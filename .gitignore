@@ -9,6 +9,11 @@
 .obsidian/workspace-mobile.json
 .obsidian/cache
 
+# Godot
+game/.godot/
+game/**/*.import
+game/**/*.uid
+
 # Editor
 .vscode/
 *.swp
