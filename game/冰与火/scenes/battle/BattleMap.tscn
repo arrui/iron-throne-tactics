@@ -1,0 +1,28 @@
+[gd_scene load_steps=2 format=3 uid="uid://battlemap_scene"]
+
+[ext_resource type="Script" path="res://scripts/battle/BattleBootstrap.gd" id="1"]
+
+[node name="BattleMap" type="Node2D"]
+script = ExtResource("1")
+
+[node name="TileLayer" type="Node2D" parent="."]
+
+[node name="UnitLayer" type="Node2D" parent="."]
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="TurnLabel" type="Label" parent="UI"]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 200.0
+offset_bottom = 32.0
+theme_override_font_sizes/font_size = 16
+text = "我方回合"
+
+[node name="StatusLabel" type="Label" parent="UI"]
+offset_left = 8.0
+offset_top = 36.0
+offset_right = 300.0
+offset_bottom = 60.0
+theme_override_font_sizes/font_size = 12
+text = ""

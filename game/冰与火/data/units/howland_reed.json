@@ -1,0 +1,16 @@
+{
+  "name": "豪兰·里德",
+  "class": "长枪兵",
+  "level": 1,
+  "hp": 20,
+  "max_hp": 20,
+  "pow": 6,
+  "spd": 7,
+  "skl": 8,
+  "def": 6,
+  "lck": 6,
+  "con": 7,
+  "move": 5,
+  "weapon_type": "lance",
+  "weapon_rank": "E"
+}
