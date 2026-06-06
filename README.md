@@ -12,6 +12,8 @@
 | [03-factions-and-classes.md](./03-factions-and-classes.md) | 势力与兵种：八大势力特性、转职树 |
 | [04-special-mechanics.md](./04-special-mechanics.md) | 特殊机制：血脉系统、龙与驯服、绿先知、龙火地形 |
 | [05-narrative-structure.md](./05-narrative-structure.md) | 叙事结构：整体框架、双主线设计、全角色名单 |
+| [06-chapter-prologue-1-design.md](./06-chapter-prologue-1-design.md) | 序章·一《风暴地》完整设计文档 |
+| [07-future-works.md](./07-future-works.md) | 续作与前传TODO：龙与长夜、伊耿征服、血龙狂舞、黑火叛乱 |
 
 ## 当前进度
 
