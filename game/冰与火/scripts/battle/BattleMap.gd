@@ -329,6 +329,12 @@ func _restore_unit_color(unit: Unit) -> void:
 # ── 胜败 ────────────────────────────────────────────────
 func _check_victory() -> void:
 	if _battle_over: return
+	# 胜利条件1：敌人全灭
+	var alive_enemies := enemy_units.filter(func(u: Unit) -> bool: return not u.is_dead())
+	if alive_enemies.is_empty():
+		_end_battle(true)
+		return
+	# 胜利条件2：占领右侧营地
 	for u: Unit in player_units:
 		if u.grid_pos == victory_pos and not u.is_dead():
 			_end_battle(true)
@@ -456,7 +462,9 @@ func _calc_move_range(unit: Unit) -> Array[Vector2i]:
 		for d: Vector2i in [Vector2i(1,0),Vector2i(-1,0),Vector2i(0,1),Vector2i(0,-1)]:
 			var npos: Vector2i = pos + d
 			if visited.has(npos) or not is_passable(npos): continue
-			if _unit_at(npos, 1) != null: continue
+			# 任何单位占据的格子都不能穿过（但可以停在敌方相邻格攻击）
+			var blocker := _unit_at(npos, 0) if unit.team == 1 else _unit_at(npos, 1)
+			if blocker != null: continue
 			visited[npos] = true
 			queue.append({"pos": npos, "rem": rem - 1})
 	return result
