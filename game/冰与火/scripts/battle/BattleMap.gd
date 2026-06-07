@@ -291,6 +291,10 @@ func _hide_all_panels() -> void:
 
 # ── 战斗动画 ────────────────────────────────────────────
 func _start_battle_with_animation(attacker: Unit, defender: Unit) -> void:
+	# 进入函数时先检查双方是否仍然有效
+	if not is_instance_valid(attacker) or not is_instance_valid(defender):
+		_animating_battle = false
+		return
 	_animating_battle = true
 
 	var bonus: Dictionary = get_terrain_bonus(defender.grid_pos)
@@ -471,7 +475,10 @@ func _start_enemy_turn() -> void:
 		enemy.position = _g2p(action["move_to"])
 		queue_redraw()
 		if action["attack"] != null:
-			await _start_battle_with_animation(enemy, action["attack"] as Unit)
+			var target := action["attack"] as Unit
+			# 目标可能已被本回合早前的攻击消灭
+			if is_instance_valid(target) and not target.is_dead():
+				await _start_battle_with_animation(enemy, target)
 		await get_tree().create_timer(0.2).timeout
 
 	if not _battle_over:
