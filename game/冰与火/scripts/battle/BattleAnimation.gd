@@ -44,30 +44,31 @@ func play(attacker: Unit, defender: Unit, pred: Dictionary) -> void:
 	await _slide_panel(_panel_shown_y)
 
 	# ── 预先掷骰（动画和结算共用同一套随机数）──
-	var atk_hit    := _roll(pred.get("atk_hit",   0))
-	var atk_crit   := atk_hit and _roll(pred.get("atk_crit",  0))
-	var atk_dmg    := pred.get("atk_damage", 0) * (3 if atk_crit else 1) if atk_hit else 0
+	var atk_hit:  bool = _roll(pred.get("atk_hit",  0))
+	var atk_crit: bool = atk_hit and _roll(pred.get("atk_crit", 0))
+	var atk_base: int  = int(pred.get("atk_damage", 0))
+	var atk_dmg:  int  = atk_base * (3 if atk_crit else 1) if atk_hit else 0
 
 	# 判断防守方是否存活（用于决定是否反击）
-	var def_hp_after_atk := maxi(defender.data.hp - atk_dmg, 0)
+	var def_hp_after_atk: int = maxi(defender.data.hp - atk_dmg, 0)
 
-	var def_hit    := false
-	var def_crit   := false
-	var def_dmg    := 0
+	var def_hit:  bool = false
+	var def_crit: bool = false
+	var def_dmg:  int  = 0
 	if def_hp_after_atk > 0:
-		def_hit  = _roll(pred.get("def_hit",   0))
-		def_crit = def_hit and _roll(pred.get("def_crit",  0))
-		def_dmg  = pred.get("def_damage", 0) * (3 if def_crit else 1) if def_hit else 0
+		def_hit  = _roll(pred.get("def_hit",  0))
+		def_crit = def_hit and _roll(pred.get("def_crit", 0))
+		var def_base: int = int(pred.get("def_damage", 0))
+		def_dmg = def_base * (3 if def_crit else 1) if def_hit else 0
 
-	var atk_hp_after_counter := maxi(attacker.data.hp - def_dmg, 0)
-
-	var atk_double_hit  := false
-	var atk_double_crit := false
-	var atk_double_dmg  := 0
+	var atk_double_hit:  bool = false
+	var atk_double_crit: bool = false
+	var atk_double_dmg:  int  = 0
 	if pred.get("atk_double", false) and def_hp_after_atk > 0:
 		atk_double_hit  = _roll(pred.get("atk_hit",  0))
 		atk_double_crit = atk_double_hit and _roll(pred.get("atk_crit", 0))
-		atk_double_dmg  = pred.get("atk_damage", 0) * (3 if atk_double_crit else 1) if atk_double_hit else 0
+		var dbl_base: int = int(pred.get("atk_damage", 0))
+		atk_double_dmg = dbl_base * (3 if atk_double_crit else 1) if atk_double_hit else 0
 
 	# ── 播放动画（只显示，不修改实际数据）──
 	await _do_attack_anim(_atk_icon, _def_icon, atk_hit, atk_dmg, atk_crit, false)
