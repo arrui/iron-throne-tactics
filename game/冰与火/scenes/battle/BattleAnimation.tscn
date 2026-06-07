@@ -31,13 +31,12 @@ anchor_bottom = 1.0
 offset_right = 280.0
 grow_vertical = 2
 
-[node name="Icon" type="TextureRect" parent="Panel/AtkSide"]
-offset_left = 20.0
-offset_top = 20.0
-offset_right = 116.0
-offset_bottom = 116.0
-expand_mode = 1
-stretch_mode = 5
+[node name="Icon" type="Sprite2D" parent="Panel/AtkSide"]
+position = Vector2(68, 68)
+scale = Vector2(6, 6)
+region_enabled = true
+region_rect = Rect2(0, 0, 16, 16)
+texture_filter = 1
 
 [node name="Name" type="Label" parent="Panel/AtkSide"]
 offset_left = 8.0
@@ -91,13 +90,12 @@ offset_left = -280.0
 grow_horizontal = 0
 grow_vertical = 2
 
-[node name="Icon" type="TextureRect" parent="Panel/DefSide"]
-offset_left = 164.0
-offset_top = 20.0
-offset_right = 260.0
-offset_bottom = 116.0
-expand_mode = 1
-stretch_mode = 5
+[node name="Icon" type="Sprite2D" parent="Panel/DefSide"]
+position = Vector2(212, 68)
+scale = Vector2(6, 6)
+region_enabled = true
+region_rect = Rect2(0, 0, 16, 16)
+texture_filter = 1
 
 [node name="Name" type="Label" parent="Panel/DefSide"]
 offset_left = 140.0

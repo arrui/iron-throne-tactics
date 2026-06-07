@@ -15,15 +15,15 @@ const DAMAGE_FLOAT_DURATION := 0.7
 const HIT_PAUSE          := 0.18
 const ROUND_GAP          := 0.30
 
-@onready var _atk_icon:   TextureRect = $Panel/AtkSide/Icon
-@onready var _atk_name:   Label       = $Panel/AtkSide/Name
+@onready var _atk_icon:   Sprite2D   = $Panel/AtkSide/Icon
+@onready var _atk_name:   Label      = $Panel/AtkSide/Name
 @onready var _atk_hp_bar: ProgressBar = $Panel/AtkSide/HPBar
-@onready var _atk_hp_lbl: Label       = $Panel/AtkSide/HPLabel
+@onready var _atk_hp_lbl: Label      = $Panel/AtkSide/HPLabel
 
-@onready var _def_icon:   TextureRect = $Panel/DefSide/Icon
-@onready var _def_name:   Label       = $Panel/DefSide/Name
+@onready var _def_icon:   Sprite2D   = $Panel/DefSide/Icon
+@onready var _def_name:   Label      = $Panel/DefSide/Name
 @onready var _def_hp_bar: ProgressBar = $Panel/DefSide/HPBar
-@onready var _def_hp_lbl: Label       = $Panel/DefSide/HPLabel
+@onready var _def_hp_lbl: Label      = $Panel/DefSide/HPLabel
 
 @onready var _panel: Control = $Panel
 
@@ -102,12 +102,14 @@ func _setup_sides(attacker: Unit, defender: Unit) -> void:
 	_fill_side(attacker, _atk_icon, _atk_name, _atk_hp_bar, _atk_hp_lbl)
 	_fill_side(defender, _def_icon, _def_name, _def_hp_bar, _def_hp_lbl)
 
-func _fill_side(unit: Unit, icon: TextureRect, name_lbl: Label,
+func _fill_side(unit: Unit, icon: Sprite2D, name_lbl: Label,
 		hp_bar: ProgressBar, hp_lbl: Label) -> void:
 	if icon:
 		var sprite := unit.get_node_or_null("Sprite") as Sprite2D
 		if sprite and sprite.texture:
-			icon.texture = sprite.texture
+			icon.texture        = sprite.texture
+			icon.region_enabled = true
+			icon.region_rect    = Rect2(0, 0, 16, 16)  # 只显示第1帧
 	if name_lbl:
 		name_lbl.text = unit.data.name
 	var max_hp: int = unit.data.max_hp
@@ -126,7 +128,7 @@ func _slide_panel(target_y: float) -> void:
 
 # ── 单次攻击动画（含HP条更新）────────────────────────────
 func _do_attack_anim(
-		atk_icon: TextureRect, def_icon: TextureRect,
+		atk_icon: Sprite2D, def_icon: Sprite2D,
 		def_hp_bar: ProgressBar, def_hp_lbl: Label,
 		hit: bool, damage: int, crit: bool,
 		is_counter: bool, def_hp_before: int) -> void:
@@ -164,7 +166,7 @@ func _do_attack_anim(
 	await tween_back.finished
 
 # ── 受击抖动（左右快速震动）──────────────────────────────
-func _shake_icon(icon: TextureRect) -> void:
+func _shake_icon(icon: Sprite2D) -> void:
 	var orig := icon.position
 	var tween := create_tween()
 	tween.tween_property(icon, "position:x", orig.x - 8.0, 0.04)
@@ -191,7 +193,7 @@ func _update_hp_bar(bar: ProgressBar, lbl: Label,
 	await tween.finished
 
 # ── 伤害数字浮字 ─────────────────────────────────────────
-func _spawn_damage_label(near: TextureRect, damage: int, crit: bool) -> void:
+func _spawn_damage_label(near: Sprite2D, damage: int, crit: bool) -> void:
 	var lbl := Label.new()
 	lbl.text = ("暴击！%d" % damage) if crit else str(damage)
 	lbl.add_theme_color_override("font_color",
@@ -205,7 +207,7 @@ func _spawn_damage_label(near: TextureRect, damage: int, crit: bool) -> void:
 	tween.tween_property(lbl, "modulate:a", 0.0, DAMAGE_FLOAT_DURATION)
 	tween.chain().tween_callback(lbl.queue_free)
 
-func _spawn_miss_label(near: TextureRect) -> void:
+func _spawn_miss_label(near: Sprite2D) -> void:
 	var lbl := Label.new()
 	lbl.text = "MISS"
 	lbl.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))

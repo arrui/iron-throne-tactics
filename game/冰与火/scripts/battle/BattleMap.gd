@@ -273,11 +273,9 @@ func _on_confirm_attack() -> void:
 func _start_battle_with_animation(attacker: Unit, defender: Unit) -> void:
 	_animating_battle = true
 
-	# 预测数据（用于动画）
 	var pred: Dictionary = BattleCalculator.predict(
 		attacker.data, defender.data, attacker.weapon_key, defender.weapon_key)
 
-	# 实例化并挂到 UI 层
 	var anim_node: BattleAnimation = BATTLE_ANIM_SCENE.instantiate() as BattleAnimation
 	var ui_layer := get_node_or_null("UI") as CanvasLayer
 	if ui_layer:
@@ -285,15 +283,12 @@ func _start_battle_with_animation(attacker: Unit, defender: Unit) -> void:
 	else:
 		add_child(anim_node)
 
-	# 等待动画完成，拿到结算数据
-	anim_node.animation_finished.connect(
-		func(result: Dictionary) -> void:
-			anim_node.queue_free()
-			_execute_combat_from_result(attacker, defender, result)
-			_animating_battle = false
-	, CONNECT_ONE_SHOT)
-
 	anim_node.play(attacker, defender, pred)
+	# await 动画完成，敌方回合也能正确等待
+	var result: Dictionary = await anim_node.animation_finished
+	anim_node.queue_free()
+	_execute_combat_from_result(attacker, defender, result)
+	_animating_battle = false
 
 func _on_cancel_attack() -> void:
 	_hide_all_panels()
@@ -463,8 +458,8 @@ func _start_enemy_turn() -> void:
 		enemy.position = _g2p(action["move_to"])
 		queue_redraw()
 		if action["attack"] != null:
-			_execute_combat(enemy, action["attack"] as Unit)
-		await get_tree().create_timer(0.4).timeout
+			await _start_battle_with_animation(enemy, action["attack"] as Unit)
+		await get_tree().create_timer(0.2).timeout
 
 	if not _battle_over:
 		_start_player_turn()
