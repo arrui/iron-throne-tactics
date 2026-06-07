@@ -1,5 +1,4 @@
 # BattleCalculator.gd
-# 战斗数值计算，纯函数，无副作用
 class_name BattleCalculator
 
 const WEAPON_BASE: Dictionary = {
