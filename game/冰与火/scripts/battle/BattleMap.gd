@@ -1,4 +1,4 @@
-# BattleMap.gd
+# BattleMap.gd — 完整demo版
 class_name BattleMap
 extends Node2D
 
@@ -8,38 +8,94 @@ signal battle_lost
 const TILE_SIZE := 48
 
 enum Phase { PLAYER_TURN, ENEMY_TURN }
+# 玩家操作状态机
+enum PlayerState {
+	IDLE,          # 未选中任何单位
+	UNIT_SELECTED, # 已选中，显示移动范围
+	UNIT_MOVED,    # 已移动，等待行动菜单选择
+	PREDICT,       # 显示战斗预测弹窗
+}
 
 var map_width  := 15
 var map_height := 10
 var victory_pos := Vector2i(13, 4)
 
 var current_phase: Phase = Phase.PLAYER_TURN
+var player_state: PlayerState = PlayerState.IDLE
 var player_units: Array = []
 var enemy_units:  Array = []
-var selected_unit: Unit = null
-var move_range: Array[Vector2i] = []
-var terrain: Array = []
 
+var selected_unit: Unit = null   # 已选中的我方单位
+var target_enemy:  Unit = null   # 预测弹窗中的攻击目标
+var move_range:    Array[Vector2i] = []
+var attack_tiles:  Array[Vector2i] = []  # 可攻击的敌方格
+var terrain: Array = []
+var _battle_over: bool = false
+
+# UI 节点
+var _turn_label:    Label = null
+var _status_label:  Label = null
+var _hint_label:    Label = null
+var _action_menu:   PanelContainer = null
+var _atk_btn:       Button = null
+var _wait_btn:      Button = null
+var _predict_panel: PanelContainer = null
+var _atk_line:      Label = null
+var _def_line:      Label = null
+var _double_line:   Label = null
+var _confirm_btn:   Button = null
+var _cancel_btn:    Button = null
+var _result_panel:  PanelContainer = null
+var _result_title:  Label = null
+var _result_msg:    Label = null
+var _restart_btn:   Button = null
+
+# 颜色常量
 const TERRAIN_COLORS: Dictionary = {
 	0: Color(0.35, 0.55, 0.25),
 	1: Color(0.15, 0.35, 0.10),
 	2: Color(0.55, 0.50, 0.40),
 	3: Color(0.20, 0.20, 0.20),
 }
-const VICTORY_COLOR  := Color(1.0, 0.85, 0.1, 0.6)
-const MOVEABLE_COLOR := Color(0.3, 0.6, 1.0, 0.45)
-const SELECTED_COLOR := Color(1.0, 1.0, 0.3, 0.55)
-const ATTACK_COLOR   := Color(1.0, 0.3, 0.2, 0.45)
-
-var turn_label:   Label = null
-var status_label: Label = null
-var _battle_over: bool = false
+const VICTORY_COLOR  := Color(1.0, 0.85, 0.1, 0.55)
+const MOVEABLE_COLOR := Color(0.25, 0.55, 1.0, 0.40)
+const SELECTED_COLOR := Color(1.0, 1.0, 0.25, 0.55)
+const ATTACK_COLOR   := Color(1.0, 0.25, 0.20, 0.45)
+const MOVED_COLOR    := Color(0.25, 0.85, 0.55, 0.50)
 
 func _ready() -> void:
-	turn_label   = get_node_or_null("UI/TurnLabel") as Label
-	status_label = get_node_or_null("UI/StatusLabel") as Label
+	_bind_ui()
 	_init_terrain()
-	_update_ui()
+	_update_turn_label()
+
+func _bind_ui() -> void:
+	_turn_label    = get_node_or_null("UI/TurnLabel")    as Label
+	_status_label  = get_node_or_null("UI/StatusLabel")  as Label
+	_hint_label    = get_node_or_null("UI/HintLabel")    as Label
+	_action_menu   = get_node_or_null("UI/ActionMenu")   as PanelContainer
+	_predict_panel = get_node_or_null("UI/PredictPanel") as PanelContainer
+	_result_panel  = get_node_or_null("UI/ResultPanel")  as PanelContainer
+
+	if _action_menu:
+		_atk_btn  = _action_menu.get_node_or_null("VBox/AttackBtn") as Button
+		_wait_btn = _action_menu.get_node_or_null("VBox/WaitBtn")   as Button
+		if _atk_btn:  _atk_btn.pressed.connect(_on_attack_pressed)
+		if _wait_btn: _wait_btn.pressed.connect(_on_wait_pressed)
+
+	if _predict_panel:
+		_atk_line    = _predict_panel.get_node_or_null("VBox/AtkLine")    as Label
+		_def_line    = _predict_panel.get_node_or_null("VBox/DefLine")    as Label
+		_double_line = _predict_panel.get_node_or_null("VBox/DoubleLine") as Label
+		_confirm_btn = _predict_panel.get_node_or_null("VBox/Buttons/ConfirmBtn") as Button
+		_cancel_btn  = _predict_panel.get_node_or_null("VBox/Buttons/CancelBtn")  as Button
+		if _confirm_btn: _confirm_btn.pressed.connect(_on_confirm_attack)
+		if _cancel_btn:  _cancel_btn.pressed.connect(_on_cancel_attack)
+
+	if _result_panel:
+		_result_title = _result_panel.get_node_or_null("VBox/ResultTitle") as Label
+		_result_msg   = _result_panel.get_node_or_null("VBox/ResultMsg")   as Label
+		_restart_btn  = _result_panel.get_node_or_null("VBox/RestartBtn")  as Button
+		if _restart_btn: _restart_btn.pressed.connect(_restart)
 
 # ── 地形 ────────────────────────────────────────────────
 func _init_terrain() -> void:
@@ -47,43 +103,42 @@ func _init_terrain() -> void:
 	for y in map_height:
 		terrain[y] = []
 		for x in map_width:
-			terrain[y].append(3 if (x == 0 or x == map_width-1 or y == 0 or y == map_height-1) else 0)
-
-func get_terrain(pos: Vector2i) -> int:
-	if pos.x < 0 or pos.x >= map_width or pos.y < 0 or pos.y >= map_height:
-		return 3
-	return terrain[pos.y][pos.x]
+			terrain[y].append(3 if (x==0 or x==map_width-1 or y==0 or y==map_height-1) else 0)
 
 func is_passable(pos: Vector2i) -> bool:
-	return get_terrain(pos) != 3
+	if pos.x < 0 or pos.x >= map_width or pos.y < 0 or pos.y >= map_height:
+		return false
+	return terrain[pos.y][pos.x] != 3
 
 # ── 渲染 ────────────────────────────────────────────────
 func _draw() -> void:
-	# 地形
+	# 地形底色
 	for y in map_height:
 		for x in map_width:
-			var rect := Rect2(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+			var rect := Rect2(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE)
 			draw_rect(rect, TERRAIN_COLORS[terrain[y][x]])
-			draw_rect(rect, Color(0, 0, 0, 0.2), false)
+			draw_rect(rect, Color(0,0,0,0.18), false)
 
-	# 胜利格
-	draw_rect(Rect2(victory_pos.x * TILE_SIZE, victory_pos.y * TILE_SIZE, TILE_SIZE, TILE_SIZE), VICTORY_COLOR)
+	# 胜利格（金色）
+	draw_rect(Rect2(victory_pos.x*TILE_SIZE, victory_pos.y*TILE_SIZE, TILE_SIZE, TILE_SIZE), VICTORY_COLOR)
 
-	# 可移动范围
+	# 移动范围（蓝色）
 	for pos: Vector2i in move_range:
-		draw_rect(Rect2(pos.x * TILE_SIZE, pos.y * TILE_SIZE, TILE_SIZE, TILE_SIZE), MOVEABLE_COLOR)
+		draw_rect(Rect2(pos.x*TILE_SIZE, pos.y*TILE_SIZE, TILE_SIZE, TILE_SIZE), MOVEABLE_COLOR)
 
-	# 可攻击范围（移动范围相邻的敌方）
-	if selected_unit != null:
-		for pos: Vector2i in move_range:
-			for d: Vector2i in [Vector2i(1,0),Vector2i(-1,0),Vector2i(0,1),Vector2i(0,-1)]:
-				var ep: Vector2i = pos + d
-				if _unit_at(ep, 1) != null:
-					draw_rect(Rect2(ep.x * TILE_SIZE, ep.y * TILE_SIZE, TILE_SIZE, TILE_SIZE), ATTACK_COLOR)
+	# 攻击范围（红色）
+	for pos: Vector2i in attack_tiles:
+		draw_rect(Rect2(pos.x*TILE_SIZE, pos.y*TILE_SIZE, TILE_SIZE, TILE_SIZE), ATTACK_COLOR)
 
-	# 选中格
+	# 选中单位高亮（黄色）
 	if selected_unit != null:
-		draw_rect(Rect2(selected_unit.grid_pos.x * TILE_SIZE, selected_unit.grid_pos.y * TILE_SIZE, TILE_SIZE, TILE_SIZE), SELECTED_COLOR)
+		draw_rect(Rect2(selected_unit.grid_pos.x*TILE_SIZE,
+			selected_unit.grid_pos.y*TILE_SIZE, TILE_SIZE, TILE_SIZE), SELECTED_COLOR)
+
+	# 已移动但未行动（青绿色脉冲提示）
+	if player_state == PlayerState.UNIT_MOVED and selected_unit != null:
+		draw_rect(Rect2(selected_unit.grid_pos.x*TILE_SIZE,
+			selected_unit.grid_pos.y*TILE_SIZE, TILE_SIZE, TILE_SIZE), MOVED_COLOR)
 
 # ── 单位管理 ────────────────────────────────────────────
 func add_unit(unit: Unit) -> void:
@@ -92,111 +147,211 @@ func add_unit(unit: Unit) -> void:
 	else:
 		enemy_units.append(unit)
 	get_node("UnitLayer").add_child(unit)
-	unit.position = grid_to_pixel(unit.grid_pos)
+	unit.position = _g2p(unit.grid_pos)
 	unit.unit_died.connect(_on_unit_died)
-	# 首字标签
 	var lbl: Label = unit.get_node_or_null("Label") as Label
-	if lbl:
-		lbl.text = unit.data.name.substr(0, 1)
+	if lbl: lbl.text = unit.data.name.substr(0,1)
+	var hp: Label = unit.get_node_or_null("HPLabel") as Label
+	if hp: hp.text = str(unit.data.hp)
 
-func grid_to_pixel(pos: Vector2i) -> Vector2:
-	return Vector2(pos.x * TILE_SIZE + TILE_SIZE * 0.5, pos.y * TILE_SIZE + TILE_SIZE * 0.5)
+func _g2p(pos: Vector2i) -> Vector2:
+	return Vector2(pos.x*TILE_SIZE + TILE_SIZE*0.5, pos.y*TILE_SIZE + TILE_SIZE*0.5)
 
-func pixel_to_grid(px: Vector2) -> Vector2i:
-	return Vector2i(int(px.x / TILE_SIZE), int(px.y / TILE_SIZE))
+func _p2g(px: Vector2) -> Vector2i:
+	return Vector2i(int(px.x/TILE_SIZE), int(px.y/TILE_SIZE))
 
 # ── 输入 ────────────────────────────────────────────────
 func _input(event: InputEvent) -> void:
 	if _battle_over or current_phase != Phase.PLAYER_TURN:
 		return
-	if not (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT):
+	# 弹窗开着时屏蔽地图点击
+	if _action_menu and _action_menu.visible:
 		return
-	var clicked: Vector2i = pixel_to_grid(get_global_mouse_position())
-	if selected_unit == null:
-		_try_select(clicked)
-	elif clicked in move_range:
-		_try_move(selected_unit, clicked)
-	else:
-		# 点了别的我方单位，切换选中
-		var other: Unit = _unit_at(clicked, 0)
-		if other != null and other.can_act():
-			_deselect()
+	if _predict_panel and _predict_panel.visible:
+		return
+	if not (event is InputEventMouseButton and event.pressed
+			and event.button_index == MOUSE_BUTTON_LEFT):
+		return
+
+	var clicked: Vector2i = _p2g(get_global_mouse_position())
+
+	match player_state:
+		PlayerState.IDLE:
 			_try_select(clicked)
-		else:
-			_deselect()
+
+		PlayerState.UNIT_SELECTED:
+			if clicked == selected_unit.grid_pos:
+				_deselect()
+			elif clicked in move_range:
+				_do_move(selected_unit, clicked)
+			else:
+				var other: Unit = _unit_at(clicked, 0)
+				if other != null and other.can_act():
+					_deselect(); _try_select(clicked)
+				else:
+					_deselect()
+
+		PlayerState.UNIT_MOVED:
+			# 点击敌人格：打开预测弹窗
+			if clicked in attack_tiles:
+				var enemy: Unit = _unit_at(clicked, 1)
+				if enemy != null:
+					_open_predict(selected_unit, enemy)
 
 func _try_select(pos: Vector2i) -> void:
 	var unit: Unit = _unit_at(pos, 0)
-	if unit != null and unit.can_act():
-		selected_unit = unit
-		move_range    = _calc_move_range(unit)
-		queue_redraw()
-		_set_status("%s（HP:%d  移动:%d）— 点击蓝格移动，红框攻击" % [
-			unit.data.name, unit.data.hp, unit.data.move])
+	if unit == null or not unit.can_act():
+		return
+	selected_unit = unit
+	move_range    = _calc_move_range(unit)
+	attack_tiles  = _calc_attack_tiles(move_range)
+	player_state  = PlayerState.UNIT_SELECTED
+	queue_redraw()
+	_set_status("%s  HP:%d  移动:%d — 点蓝格移动" % [
+		unit.data.name, unit.data.hp, unit.data.move])
 
 func _deselect() -> void:
 	selected_unit = null
+	target_enemy  = null
 	move_range.clear()
+	attack_tiles.clear()
+	player_state = PlayerState.IDLE
+	_hide_all_panels()
 	queue_redraw()
 	_set_status("")
 
-func _try_move(unit: Unit, target: Vector2i) -> void:
-	# 不能移动到我方单位占据的格子
+func _do_move(unit: Unit, target: Vector2i) -> void:
 	if _unit_at(target, 0) != null and _unit_at(target, 0) != unit:
 		return
 	unit.grid_pos = target
-	unit.position = grid_to_pixel(target)
+	unit.position = _g2p(target)
 	unit.mark_moved()
-	_deselect()
 
-	var adj: Unit = _adjacent_enemy(target)
-	if adj != null:
-		_execute_combat(unit, adj)
+	# 计算移动后的攻击范围
+	attack_tiles = _adj_enemies(target)
+	move_range.clear()
+	player_state = PlayerState.UNIT_MOVED
+	queue_redraw()
+
+	if attack_tiles.is_empty():
+		# 没有相邻敌人，直接弹出等待菜单
+		_show_action_menu(target, false)
+		_set_status("%s 已移动 — 选择行动" % unit.data.name)
 	else:
-		unit.mark_acted()
-		_refresh_unit_color(unit)
-		_check_victory()
-		_check_all_acted()
+		# 有相邻敌人，弹出包含攻击选项的菜单
+		_show_action_menu(target, true)
+		_set_status("%s 已移动 — 选择行动（可攻击%d个敌人）" % [
+			unit.data.name, attack_tiles.size()])
 
-# ── 战斗结算（延迟死亡：全部结算完再清除） ──────────────
+# ── 行动菜单 ────────────────────────────────────────────
+func _show_action_menu(grid_pos: Vector2i, can_attack: bool) -> void:
+	if _action_menu == null:
+		return
+	# 弹窗跟随单位位置
+	var px: Vector2 = _g2p(grid_pos)
+	_action_menu.position = px + Vector2(TILE_SIZE * 0.6, -TILE_SIZE * 0.5)
+	if _atk_btn: _atk_btn.visible = can_attack
+	_action_menu.visible = true
+
+func _on_attack_pressed() -> void:
+	_hide_all_panels()
+	# 如果只有一个相邻敌人，直接弹预测；否则让玩家点地图上的红格
+	if attack_tiles.size() == 1:
+		var enemy: Unit = _unit_at(attack_tiles[0], 1)
+		if enemy != null:
+			_open_predict(selected_unit, enemy)
+	else:
+		player_state = PlayerState.UNIT_MOVED
+		_set_status("点击红色格子选择攻击目标")
+
+func _on_wait_pressed() -> void:
+	_hide_all_panels()
+	selected_unit.mark_acted()
+	_refresh_unit_color(selected_unit)
+	_deselect()
+	_check_all_acted()
+
+# ── 战斗预测弹窗 ────────────────────────────────────────
+func _open_predict(attacker: Unit, defender: Unit) -> void:
+	target_enemy = defender
+	if _predict_panel == null:
+		return
+
+	var pred: Dictionary = BattleCalculator.predict(
+		attacker.data, defender.data, attacker.weapon_key, defender.weapon_key)
+
+	var crit_a: String = "（暴击%d%%）" % pred["atk_crit"] if pred["atk_crit"] > 0 else ""
+	var crit_d: String = "（暴击%d%%）" % pred["def_crit"] if pred["def_crit"] > 0 else ""
+
+	if _atk_line:
+		_atk_line.text = "攻：%s  伤害 %d  命中 %d%%%s" % [
+			attacker.data.name, pred["atk_damage"], pred["atk_hit"], crit_a]
+	if _def_line:
+		_def_line.text = "防：%s  伤害 %d  命中 %d%%%s" % [
+			defender.data.name, pred["def_damage"], pred["def_hit"], crit_d]
+	if _double_line:
+		_double_line.text = "⚡ 可追击！" if pred["atk_double"] else ""
+
+	# 弹窗位置：居中偏上
+	_predict_panel.position = Vector2(
+		get_viewport().get_visible_rect().size.x * 0.5 - 140,
+		get_viewport().get_visible_rect().size.y * 0.5 - 90)
+	_predict_panel.visible = true
+	player_state = PlayerState.PREDICT
+
+func _on_confirm_attack() -> void:
+	_hide_all_panels()
+	if selected_unit != null and target_enemy != null:
+		_execute_combat(selected_unit, target_enemy)
+	target_enemy = null
+
+func _on_cancel_attack() -> void:
+	_hide_all_panels()
+	# 回到已移动状态，可以重新选择目标
+	player_state = PlayerState.UNIT_MOVED
+	attack_tiles = _adj_enemies(selected_unit.grid_pos)
+	queue_redraw()
+	_set_status("已取消，重新选择攻击目标")
+
+func _hide_all_panels() -> void:
+	if _action_menu:   _action_menu.visible   = false
+	if _predict_panel: _predict_panel.visible = false
+
+# ── 战斗结算 ────────────────────────────────────────────
 func _execute_combat(attacker: Unit, defender: Unit) -> void:
 	var pred: Dictionary = BattleCalculator.predict(
 		attacker.data, defender.data, attacker.weapon_key, defender.weapon_key)
 
-	var log_text: String = "⚔ %s(HP:%d) vs %s(HP:%d)" % [
-		attacker.data.name, attacker.data.hp,
-		defender.data.name, defender.data.hp]
+	var log: String = "⚔ %s(HP:%d) vs %s(HP:%d)" % [
+		attacker.data.name, attacker.data.hp, defender.data.name, defender.data.hp]
 
-	# 攻击方出手
 	if _roll(pred["atk_hit"]):
 		var dmg: int = pred["atk_damage"] * (3 if _roll(pred["atk_crit"]) else 1)
 		defender.take_damage(dmg)
-		log_text += "  →%d伤" % dmg
+		log += "  →%d伤" % dmg
 	else:
-		log_text += "  →未命中"
+		log += "  →未命中"
 
-	# 防御方反击（未死亡才能反击）
 	if not defender.is_dead() and _roll(pred["def_hit"]):
 		var dmg: int = pred["def_damage"] * (3 if _roll(pred["def_crit"]) else 1)
 		attacker.take_damage(dmg)
-		log_text += "  ←%d伤" % dmg
+		log += "  ←%d伤" % dmg
 
-	# 攻击方追击（防御方未死且速度差≥5）
 	if not defender.is_dead() and pred["atk_double"]:
 		if _roll(pred["atk_hit"]):
 			var dmg: int = pred["atk_damage"]
 			defender.take_damage(dmg)
-			log_text += "  →%d追" % dmg
+			log += "  →%d追" % dmg
 
-	_set_status(log_text)
-	print(log_text)
+	print(log)
+	_set_status(log)
 
-	# 全部结算完毕，再处理死亡
 	attacker.resolve_death()
 	defender.resolve_death()
 
 	attacker.mark_acted()
 	_refresh_unit_color(attacker)
+	_deselect()
 	queue_redraw()
 	_check_victory()
 	_check_all_acted()
@@ -204,11 +359,11 @@ func _execute_combat(attacker: Unit, defender: Unit) -> void:
 func _roll(rate: int) -> bool:
 	return randi() % 100 < rate
 
-# ── 颜色反馈 ────────────────────────────────────────────
+# ── 颜色 ────────────────────────────────────────────────
 func _refresh_unit_color(unit: Unit) -> void:
 	var s: ColorRect = unit.get_node_or_null("Sprite") as ColorRect
 	if s and unit.state == Unit.State.DONE:
-		s.color = Color(s.color.r * 0.55, s.color.g * 0.55, s.color.b * 0.55, 1.0)
+		s.color = Color(s.color.r*0.5, s.color.g*0.5, s.color.b*0.5, 1.0)
 
 func _restore_unit_color(unit: Unit) -> void:
 	var s: ColorRect = unit.get_node_or_null("Sprite") as ColorRect
@@ -217,49 +372,56 @@ func _restore_unit_color(unit: Unit) -> void:
 
 # ── 胜败 ────────────────────────────────────────────────
 func _check_victory() -> void:
-	if _battle_over:
-		return
+	if _battle_over: return
 	for u: Unit in player_units:
 		if u.grid_pos == victory_pos and not u.is_dead():
-			_battle_over = true
-			_set_status("🏆 胜利！占领右侧营地！按 R 重新开始。")
+			_end_battle(true, "🏆 胜利！占领了右侧营地！")
 			return
 
 func _check_defeat() -> void:
-	if _battle_over:
-		return
-	var alive: Array = player_units.filter(func(u: Unit) -> bool: return not u.is_dead())
-	if alive.is_empty():
-		_battle_over = true
-		_set_status("💀 全灭，战斗失败。按 R 重新开始。")
+	if _battle_over: return
+	if player_units.filter(func(u: Unit) -> bool: return not u.is_dead()).is_empty():
+		_end_battle(false, "💀 全灭，战斗失败。")
 
+func _end_battle(won: bool, msg: String) -> void:
+	_battle_over = true
+	_hide_all_panels()
+	_set_status(msg)
+	if _result_panel:
+		if _result_title: _result_title.text = "🏆 胜利！" if won else "💀 失败"
+		if _result_msg:   _result_msg.text   = msg
+		# 结果面板居中
+		var vs: Vector2 = get_viewport().get_visible_rect().size
+		_result_panel.position = Vector2(vs.x * 0.5 - 160, vs.y * 0.5 - 80)
+		_result_panel.visible  = true
+	if won: battle_won.emit()
+	else:   battle_lost.emit()
+
+func _restart() -> void:
+	get_tree().reload_current_scene()
+
+# ── 回合 ────────────────────────────────────────────────
 func _check_all_acted() -> void:
-	if _battle_over:
-		return
-	var can_act: bool = player_units.any(
-		func(u: Unit) -> bool: return not u.is_dead() and u.can_act())
-	if not can_act:
+	if _battle_over: return
+	if not player_units.any(func(u: Unit) -> bool: return not u.is_dead() and u.can_act()):
 		await get_tree().create_timer(0.6).timeout
 		_start_enemy_turn()
 
-# ── 回合切换 ────────────────────────────────────────────
 func _start_enemy_turn() -> void:
-	if _battle_over:
-		return
+	if _battle_over: return
 	current_phase = Phase.ENEMY_TURN
 	_deselect()
-	_update_ui()
+	_update_turn_label()
 
 	for enemy: Unit in enemy_units.duplicate():
-		if enemy.is_dead():
-			continue
+		if enemy.is_dead(): continue
 		var action: Dictionary = EnemyAI.decide(enemy, player_units, _calc_move_range(enemy))
 		enemy.grid_pos = action["move_to"]
-		enemy.position = grid_to_pixel(action["move_to"])
+		enemy.position = _g2p(action["move_to"])
 		queue_redraw()
 		if action["attack"] != null:
 			_execute_combat(enemy, action["attack"] as Unit)
-		await get_tree().create_timer(0.35).timeout
+		await get_tree().create_timer(0.4).timeout
 
 	if not _battle_over:
 		_start_player_turn()
@@ -270,29 +432,22 @@ func _start_player_turn() -> void:
 			u.reset_turn()
 			_restore_unit_color(u)
 	current_phase = Phase.PLAYER_TURN
-	_update_ui()
+	_update_turn_label()
 	_check_defeat()
 	queue_redraw()
 
-# ── 重新开始 ────────────────────────────────────────────
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and event.keycode == KEY_R:
-		get_tree().reload_current_scene()
-
-# ── UI ──────────────────────────────────────────────────
-func _update_ui() -> void:
-	if turn_label:
-		if _battle_over:
-			turn_label.text = "战斗结束"
-			turn_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3))
-		else:
-			turn_label.text = "我方回合" if current_phase == Phase.PLAYER_TURN else "敌方回合"
-			turn_label.add_theme_color_override("font_color",
-				Color(0.3, 0.7, 1.0) if current_phase == Phase.PLAYER_TURN else Color(1.0, 0.4, 0.3))
+func _update_turn_label() -> void:
+	if not _turn_label: return
+	_turn_label.text = "我方回合" if current_phase == Phase.PLAYER_TURN else "敌方回合"
+	_turn_label.add_theme_color_override("font_color",
+		Color(0.3, 0.7, 1.0) if current_phase == Phase.PLAYER_TURN else Color(1.0, 0.4, 0.3))
 
 func _set_status(msg: String) -> void:
-	if status_label:
-		status_label.text = msg
+	if _status_label: _status_label.text = msg
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and event.keycode == KEY_R:
+		_restart()
 
 # ── 工具 ────────────────────────────────────────────────
 func _unit_at(pos: Vector2i, team: int) -> Unit:
@@ -301,12 +456,25 @@ func _unit_at(pos: Vector2i, team: int) -> Unit:
 			return u
 	return null
 
-func _adjacent_enemy(pos: Vector2i) -> Unit:
+func _adj_enemies(pos: Vector2i) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
 	for d: Vector2i in [Vector2i(1,0),Vector2i(-1,0),Vector2i(0,1),Vector2i(0,-1)]:
-		var u: Unit = _unit_at(pos + d, 1)
-		if u != null:
-			return u
-	return null
+		var np: Vector2i = pos + d
+		if _unit_at(np, 1) != null:
+			result.append(np)
+	return result
+
+func _calc_attack_tiles(from_range: Array[Vector2i]) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	var seen: Dictionary = {}
+	for pos: Vector2i in from_range:
+		for d: Vector2i in [Vector2i(1,0),Vector2i(-1,0),Vector2i(0,1),Vector2i(0,-1)]:
+			var np: Vector2i = pos + d
+			if seen.has(np): continue
+			if _unit_at(np, 1) != null:
+				seen[np] = true
+				result.append(np)
+	return result
 
 func _calc_move_range(unit: Unit) -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
@@ -318,14 +486,11 @@ func _calc_move_range(unit: Unit) -> Array[Vector2i]:
 		var pos: Vector2i = curr["pos"]
 		var rem: int = curr["rem"]
 		result.append(pos)
-		if rem == 0:
-			continue
+		if rem == 0: continue
 		for d: Vector2i in [Vector2i(1,0),Vector2i(-1,0),Vector2i(0,1),Vector2i(0,-1)]:
 			var npos: Vector2i = pos + d
-			if visited.has(npos) or not is_passable(npos):
-				continue
-			if _unit_at(npos, 1) != null:
-				continue
+			if visited.has(npos) or not is_passable(npos): continue
+			if _unit_at(npos, 1) != null: continue
 			visited[npos] = true
 			queue.append({"pos": npos, "rem": rem - 1})
 	return result
