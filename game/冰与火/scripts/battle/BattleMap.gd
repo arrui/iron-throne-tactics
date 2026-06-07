@@ -468,17 +468,28 @@ func _start_enemy_turn() -> void:
 	_deselect()
 	_update_turn_label()
 
-	for enemy: Unit in enemy_units.duplicate():
-		if enemy.is_dead(): continue
+	# 快照本回合敌方列表，await期间列表可能变化
+	var enemies_this_turn: Array = enemy_units.duplicate()
+
+	for i in enemies_this_turn.size():
+		if _battle_over: break
+		var enemy: Unit = enemies_this_turn[i]
+		# await后节点可能已被释放
+		if not is_instance_valid(enemy) or enemy.is_dead():
+			continue
+
 		var action: Dictionary = EnemyAI.decide(enemy, player_units, _calc_move_range(enemy))
+		if not is_instance_valid(enemy): continue  # 二次确认
+
 		enemy.grid_pos = action["move_to"]
 		enemy.position = _g2p(action["move_to"])
 		queue_redraw()
+
 		if action["attack"] != null:
-			var target := action["attack"] as Unit
-			# 目标可能已被本回合早前的攻击消灭
+			var target: Unit = action["attack"] as Unit
 			if is_instance_valid(target) and not target.is_dead():
 				await _start_battle_with_animation(enemy, target)
+
 		await get_tree().create_timer(0.2).timeout
 
 	if not _battle_over:
@@ -486,7 +497,7 @@ func _start_enemy_turn() -> void:
 
 func _start_player_turn() -> void:
 	for u: Unit in player_units:
-		if not u.is_dead():
+		if is_instance_valid(u) and not u.is_dead():
 			u.reset_turn()
 			_restore_unit_color(u)
 	current_phase = Phase.PLAYER_TURN
