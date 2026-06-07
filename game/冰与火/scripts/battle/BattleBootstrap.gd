@@ -43,7 +43,8 @@ func _play_dialogue(path: String) -> void:
 		add_child(_dialogue_box)
 		# 等一帧让@onready变量全部初始化完毕
 		await get_tree().process_frame
-		_dialogue_sys = _dialogue_box.get_node("DialogueSystem") as DialogueSystem
+		# 脚本直接挂在CanvasLayer根节点上，CanvasLayer本身就是DialogueSystem
+		_dialogue_sys = _dialogue_box as DialogueSystem
 
 	# 禁用战斗输入，防止对话期间误操作
 	set_process_input(false)

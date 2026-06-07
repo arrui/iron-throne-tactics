@@ -1,6 +1,6 @@
 # DialogueSystem.gd
 class_name DialogueSystem
-extends Node
+extends CanvasLayer
 
 signal dialogue_finished
 
@@ -9,7 +9,6 @@ const CHAR_DELAY := 0.05
 @onready var _speaker_label: Label = $SpeakerLabel
 @onready var _text_label:    Label = $TextLabel
 @onready var _prompt_icon:   Label = $PromptIcon
-@onready var _background:    ColorRect = $"../Background"
 
 var _lines:       Array  = []
 var _current_idx: int    = 0
@@ -28,8 +27,8 @@ func play(dialogue_path: String) -> void:
 	_current_idx = 0
 	_active      = true
 
-	# 显示对话框（通过父节点CanvasLayer的visible控制）
-	get_parent().visible = true
+	# 显示对话框
+	visible = true
 	_prompt_icon.visible = false
 	_show_line(_current_idx)
 
@@ -103,7 +102,7 @@ func _finish() -> void:
 	_active = false
 	if _tween != null and _tween.is_valid():
 		_tween.kill()
-	get_parent().visible = false
+	visible = false
 	dialogue_finished.emit()
 
 func _input(event: InputEvent) -> void:
