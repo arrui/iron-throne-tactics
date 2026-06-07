@@ -39,13 +39,38 @@ const TERRAIN_MAP: Array = [
 var _dialogue_box: CanvasLayer    = null
 var _dialogue_sys: DialogueSystem = null
 
+# Toen图块集Atlas坐标映射（列,行）→ 对应地形类型
+# 图集7列×52行，每格16×16像素
+# 0=平原 1=森林 2=矮墙 3=峭壁
+const TILE_ATLAS_COORDS := {
+	0: Vector2i(0, 0),   # 平原：草地（第0列第0行）
+	1: Vector2i(2, 4),   # 森林：树木（第2列第4行）
+	2: Vector2i(1, 20),  # 矮墙：石墙（第1列第20行）
+	3: Vector2i(0, 12),  # 峭壁：深灰石（第0列第12行）
+}
+
 func _ready() -> void:
 	super._ready()
+	_paint_tilemap()
 	_spawn_player_units()
 	_spawn_enemy_units()
 	queue_redraw()
 	await _play_dialogue(PRE_DIALOGUE_PATH)
 	battle_won.connect(_on_battle_won_for_dialogue, CONNECT_ONE_SHOT)
+
+# ── 用代码填充TileMapLayer ──────────────────────────────
+func _paint_tilemap() -> void:
+	var tilemap: TileMapLayer = get_node_or_null("TileLayer/TileMapLayer") as TileMapLayer
+	if tilemap == null:
+		push_error("找不到TileMapLayer节点")
+		return
+	tilemap.clear()
+	for y in TERRAIN_MAP.size():
+		var row: Array = TERRAIN_MAP[y]
+		for x in row.size():
+			var t: int = int(row[x])
+			var coords: Vector2i = TILE_ATLAS_COORDS.get(t, Vector2i(0, 0))
+			tilemap.set_cell(Vector2i(x, y), 0, coords)
 
 # ── 地形数据接口（供BattleMap.get_terrain_bonus调用）──
 func _get_terrain_type(pos: Vector2i) -> int:
