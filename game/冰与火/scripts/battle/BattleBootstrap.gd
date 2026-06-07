@@ -1,6 +1,6 @@
 # BattleBootstrap.gd
 # 序章·一《风暴地》初始化：从JSON加载单位，按位置摆放
-extends BattleMap
+extends "res://scripts/battle/BattleMap.gd"
 
 const UNIT_SCENE := preload("res://scenes/battle/Unit.tscn")
 const DATA_PATH  := "res://data/units/"
@@ -34,13 +34,11 @@ func _make_unit(filename: String, team: int, pos: Vector2i) -> void:
 		return
 	file.close()
 
-	var unit = UNIT_SCENE.instantiate()
+	var unit: Node2D = UNIT_SCENE.instantiate()
 	unit.setup(UnitData.from_dict(json.data), team, pos)
 
-	# 敌方单位改成红色
 	if team == 1:
-		var sprite := unit.get_node_or_null("Sprite")
-		if sprite:
-			sprite.color = Color(1.0, 0.3, 0.2)
+		var sprite: ColorRect = unit.get_node("Sprite")
+		sprite.color = Color(1.0, 0.3, 0.2)
 
 	add_unit(unit)
