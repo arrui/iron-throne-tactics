@@ -7,6 +7,9 @@ signal battle_lost
 
 const TILE_SIZE := 48
 
+# 战斗动画场景（懒加载）
+const BATTLE_ANIM_SCENE := preload("res://scenes/battle/BattleAnimation.tscn")
+
 enum Phase { PLAYER_TURN, ENEMY_TURN }
 enum PlayerState { IDLE, UNIT_SELECTED, UNIT_MOVED, PREDICT }
 
@@ -23,7 +26,8 @@ var selected_unit: Unit = null
 var target_enemy:  Unit = null
 var move_range:    Array[Vector2i] = []
 var attack_tiles:  Array[Vector2i] = []
-var _battle_over: bool = false
+var _battle_over:      bool = false
+var _animating_battle: bool = false  # 战斗动画进行中，屏蔽所有输入
 
 # UI 节点引用
 var _turn_label:    Label = null
@@ -143,7 +147,7 @@ func _p2g(px: Vector2) -> Vector2i:
 
 # ── 输入 ────────────────────────────────────────────────
 func _input(event: InputEvent) -> void:
-	if _battle_over or current_phase != Phase.PLAYER_TURN:
+	if _battle_over or _animating_battle or current_phase != Phase.PLAYER_TURN:
 		return
 	if _action_menu   and _action_menu.visible:   return
 	if _predict_panel and _predict_panel.visible: return
@@ -261,8 +265,35 @@ func _open_predict(attacker: Unit, defender: Unit) -> void:
 func _on_confirm_attack() -> void:
 	_hide_all_panels()
 	if selected_unit != null and target_enemy != null:
-		_execute_combat(selected_unit, target_enemy)
-	target_enemy = null
+		_start_battle_with_animation(selected_unit, target_enemy)
+	else:
+		target_enemy = null
+
+## 实例化战斗动画面板，播放动画后再执行结算
+func _start_battle_with_animation(attacker: Unit, defender: Unit) -> void:
+	_animating_battle = true
+
+	# 预测数据（用于动画）
+	var pred: Dictionary = BattleCalculator.predict(
+		attacker.data, defender.data, attacker.weapon_key, defender.weapon_key)
+
+	# 实例化并挂到 UI 层
+	var anim_node: BattleAnimation = BATTLE_ANIM_SCENE.instantiate() as BattleAnimation
+	var ui_layer := get_node_or_null("UI") as CanvasLayer
+	if ui_layer:
+		ui_layer.add_child(anim_node)
+	else:
+		add_child(anim_node)
+
+	# 等待动画完成，拿到结算数据
+	anim_node.animation_finished.connect(
+		func(result: Dictionary) -> void:
+			anim_node.queue_free()
+			_execute_combat_from_result(attacker, defender, result)
+			_animating_battle = false
+	, CONNECT_ONE_SHOT)
+
+	anim_node.play(attacker, defender, pred)
 
 func _on_cancel_attack() -> void:
 	_hide_all_panels()
@@ -312,19 +343,62 @@ func _execute_combat(attacker: Unit, defender: Unit) -> void:
 	_check_victory()
 	_check_all_acted()
 
+## 根据战斗动画传回的结算结果，执行实际扣血与死亡判定
+func _execute_combat_from_result(attacker: Unit, defender: Unit,
+		result: Dictionary) -> void:
+	var log: String = "⚔ %s(HP:%d) vs %s(HP:%d)" % [
+		attacker.data.name, attacker.data.hp,
+		defender.data.name, defender.data.hp]
+
+	# 攻击方攻击
+	if result.get("atk_hit", false):
+		var dmg: int = result.get("atk_damage", 0)
+		defender.take_damage(dmg)
+		log += "  →%d伤" % dmg
+	else:
+		log += "  →未命中"
+
+	# 防守方反击（若存活）
+	if not defender.is_dead() and result.get("def_hit", false):
+		var dmg: int = result.get("def_damage", 0)
+		attacker.take_damage(dmg)
+		log += "  ←%d伤" % dmg
+
+	# 追击（atk_double=有追击资格，double_hit=实际命中）
+	if not defender.is_dead() and result.get("atk_double", false) \
+			and result.get("double_hit", false):
+		var double_dmg: int = result.get("double_damage", 0)
+		if double_dmg > 0:
+			defender.take_damage(double_dmg)
+			log += "  →%d追" % double_dmg
+
+	print(log)
+	_set_status(log)
+
+	attacker.resolve_death()
+	defender.resolve_death()
+	attacker.mark_acted()
+	_refresh_unit_color(attacker)
+	_deselect()
+	target_enemy = null
+	queue_redraw()
+	_check_victory()
+	_check_all_acted()
+
 func _roll(rate: int) -> bool:
 	return randi() % 100 < rate
 
-# ── 颜色反馈 ────────────────────────────────────────────
+# ── 颜色反馈（兼容 Sprite2D 和 ColorRect 两种 Sprite 节点）─
 func _refresh_unit_color(unit: Unit) -> void:
-	var s: ColorRect = unit.get_node_or_null("Sprite") as ColorRect
-	if s and unit.state == Unit.State.DONE:
-		s.color = Color(s.color.r * 0.5, s.color.g * 0.5, s.color.b * 0.5, 1.0)
+	# 行动完毕：将 modulate 调暗
+	var node := unit.get_node_or_null("Sprite")
+	if node and unit.state == Unit.State.DONE:
+		node.modulate = Color(0.5, 0.5, 0.5, 1.0)
 
 func _restore_unit_color(unit: Unit) -> void:
-	var s: ColorRect = unit.get_node_or_null("Sprite") as ColorRect
-	if s:
-		s.color = Color(0.2, 0.6, 1.0) if unit.team == 0 else Color(1.0, 0.3, 0.2)
+	var node := unit.get_node_or_null("Sprite")
+	if node:
+		node.modulate = Color(1.0, 1.0, 1.0, 1.0)
 
 # ── 胜败 ────────────────────────────────────────────────
 func _check_victory() -> void:
