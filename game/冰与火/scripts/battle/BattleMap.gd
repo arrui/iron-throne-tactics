@@ -5,7 +5,7 @@ extends Node2D
 signal battle_won
 signal battle_lost
 
-const TILE_SIZE := 48
+const TILE_SIZE := 72
 
 # 战斗动画场景（懒加载）
 const BATTLE_ANIM_SCENE := preload("res://scenes/battle/BattleAnimation.tscn")
