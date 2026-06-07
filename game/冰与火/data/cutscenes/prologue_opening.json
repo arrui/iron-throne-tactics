@@ -2,24 +2,34 @@
   "id": "prologue_opening",
   "slides": [
     {
-      "text": "凛冬将至。\n而那一年，烈焰先于冬雪而来。",
-      "duration": 3.0
+      "text": "凛冬将至。",
+      "subtext": "这是维斯特洛每个孩子从小便知道的话。",
+      "duration": 3.5,
+      "image": ""
     },
     {
-      "text": "疯王艾里斯二世，\n用铁链与焰火终结了史塔克家族的父与子。",
-      "duration": 3.5
+      "text": "但那一年，是烈焰先至。",
+      "subtext": "而非冬雪。",
+      "duration": 3.0,
+      "image": ""
     },
     {
-      "text": "然后，他要求谷地的艾林家族\n交出另外两个寄养的男孩。",
-      "duration": 3.0
+      "text": "疯王艾里斯二世的统治走入了它的终章。",
+      "subtext": "王国已腐烂在他的妄念与火焰之中。",
+      "duration": 4.0,
+      "image": ""
     },
     {
-      "text": "艾林拒绝了。\n\n战争，就此点燃。",
-      "duration": 3.5
+      "text": "没有人料到，终结会来得如此之快——",
+      "subtext": "也没有人料到，它会以鲜血为代价。",
+      "duration": 4.0,
+      "image": ""
     },
     {
-      "text": "篡夺者战争 · 第一年\n\n风暴地",
-      "duration": 3.0
+      "text": "篡夺者战争",
+      "subtext": "第二八三年，龙历",
+      "duration": 3.5,
+      "image": ""
     }
   ]
 }

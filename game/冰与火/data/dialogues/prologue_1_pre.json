@@ -1,9 +1,45 @@
 {
   "id": "prologue_1_pre",
   "lines": [
-    {"speaker": "劳勃", "text": "他们欠我们一条命。", "next": 1},
-    {"speaker": "奈德", "text": "不止一条。", "next": 2},
-    {"speaker": "劳勃", "text": "打完这仗，我要亲手把那个疯子从王座上拉下来。", "next": 3},
-    {"speaker": "奈德", "text": "……", "next": -1}
+    {
+      "speaker": "劳勃",
+      "text": "他们烧死了你父亲，勒死了你兄长。",
+      "next": 1
+    },
+    {
+      "speaker": "内德",
+      "text": "我知道。",
+      "next": 2
+    },
+    {
+      "speaker": "劳勃",
+      "text": "你不愤怒吗？",
+      "next": 3
+    },
+    {
+      "speaker": "内德",
+      "text": "我很愤怒。",
+      "next": 4
+    },
+    {
+      "speaker": "内德",
+      "text": "但愤怒杀不了他们。剑能。",
+      "next": 5
+    },
+    {
+      "speaker": "劳勃",
+      "text": "……说得好，史塔克人。",
+      "next": 6
+    },
+    {
+      "speaker": "劳勃",
+      "text": "那我们打完这一仗，再去打下一仗，一直打到君临。",
+      "next": 7
+    },
+    {
+      "speaker": "内德",
+      "text": "先把眼前这仗打完。",
+      "next": -1
+    }
   ]
 }

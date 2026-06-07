@@ -1,0 +1,23 @@
+{
+  "id": "prologue_uprising",
+  "slides": [
+    {
+      "text": "风暴地。\n篡夺者战争，第一年。",
+      "subtext": "",
+      "duration": 3.0,
+      "image": "res://assets/cutscenes/storm_end.png"
+    },
+    {
+      "text": "劳勃·拜拉席恩在此处竖起了反旗。",
+      "subtext": "他的战锤已从墙上取下，\n他的心中只剩一个名字：莱安娜。",
+      "duration": 4.5,
+      "image": "res://assets/cutscenes/storm_end.png"
+    },
+    {
+      "text": "内德·史塔克从谷地赶来，与义兄并肩。",
+      "subtext": "他们一起长大，一起学剑。\n现在，他们将一起打仗。",
+      "duration": 4.0,
+      "image": ""
+    }
+  ]
+}

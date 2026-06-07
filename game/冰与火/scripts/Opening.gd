@@ -1,18 +1,37 @@
-# Opening.gd — 序章开场场景脚本
-# 播放开场动画，完成后切换到战斗地图
+# Opening.gd — 序章·一完整开场流程
+# 流程：总览旁白 → 疯王杀父兄过场 → 起义宣誓过场 → 进入战斗
 extends Node
 
+const CUTSCENE_SCENE := preload("res://scenes/cutscene/CutscenePlayer.tscn")
+const BATTLE_SCENE   := "res://scenes/battle/BattleMap.tscn"
+
+const PROLOGUE_OPENING  := "res://data/cutscenes/prologue_opening.json"
+const MAD_KING          := "res://data/cutscenes/prologue_mad_king.json"
+const UPRISING          := "res://data/cutscenes/prologue_uprising.json"
+
+var _cutscene: CutscenePlayer = null
+
 func _ready() -> void:
-	var player: CutscenePlayer = $CutscenePlayer as CutscenePlayer
-	if player == null:
-		push_error("Opening: 找不到 CutscenePlayer 子节点")
-		_go_to_battle()
+	_cutscene = CUTSCENE_SCENE.instantiate() as CutscenePlayer
+	add_child(_cutscene)
+	_cutscene.cutscene_finished.connect(_on_cutscene_finished)
+	_play_sequence()
+
+var _sequence: Array = []
+var _seq_index: int  = 0
+
+func _play_sequence() -> void:
+	_sequence  = [PROLOGUE_OPENING, MAD_KING, UPRISING]
+	_seq_index = 0
+	_play_next()
+
+func _play_next() -> void:
+	if _seq_index >= _sequence.size():
+		get_tree().change_scene_to_file(BATTLE_SCENE)
 		return
-	player.cutscene_finished.connect(_on_finished)
-	player.play("res://data/cutscenes/prologue_opening.json")
+	_cutscene.play(_sequence[_seq_index])
 
-func _on_finished() -> void:
-	_go_to_battle()
-
-func _go_to_battle() -> void:
-	get_tree().change_scene_to_file("res://scenes/battle/BattleMap.tscn")
+func _on_cutscene_finished() -> void:
+	_seq_index += 1
+	await get_tree().create_timer(0.3).timeout
+	_play_next()

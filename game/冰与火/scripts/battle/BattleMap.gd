@@ -91,21 +91,12 @@ func _bind_ui() -> void:
 			_restart_btn.pressed.connect(_restart)
 
 # ── 高亮绘制（覆盖在TileMapLayer之上）──────────────────
-# 注意：BattleMap节点本身的_draw()绘制在TileMapLayer上面
-# 因为UnitLayer是TileMapLayer的兄弟节点，渲染顺序在其后
 func _draw() -> void:
-	# 胜利目标格（始终显示）
 	_draw_tile_highlight(victory_pos, VICTORY_COLOR)
-
-	# 移动范围（蓝色）
 	for pos: Vector2i in move_range:
 		_draw_tile_highlight(pos, MOVEABLE_COLOR)
-
-	# 攻击范围（红色）
 	for pos: Vector2i in attack_tiles:
 		_draw_tile_highlight(pos, ATTACK_COLOR)
-
-	# 已移动单位（青绿）
 	if player_state == PlayerState.UNIT_MOVED and selected_unit != null:
 		_draw_tile_highlight(selected_unit.grid_pos, MOVED_COLOR)
 	elif selected_unit != null:
@@ -115,14 +106,27 @@ func _draw_tile_highlight(pos: Vector2i, color: Color) -> void:
 	var rect := Rect2(pos.x * TILE_SIZE, pos.y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
 	draw_rect(rect, color)
 
-# ── 地形可通行判断（基于TileMapLayer实际内容）──────────
+# ── 地形可通行判断 ──────────────────────────────────────
 func is_passable(pos: Vector2i) -> bool:
 	if pos.x < 0 or pos.x >= map_width or pos.y < 0 or pos.y >= map_height:
 		return false
-	# 边界不可通行
 	if pos.x == 0 or pos.x == map_width - 1 or pos.y == 0 or pos.y == map_height - 1:
 		return false
 	return true
+
+# ── 地形加成（供BattleCalculator使用）──────────────────
+# 返回该格子的 {avoid, defense} 加成
+func get_terrain_bonus(pos: Vector2i) -> Dictionary:
+	# 子类（BattleBootstrap）通过 terrain_data 字典提供地形信息
+	# 默认返回平原（无加成）
+	if not has_method("_get_terrain_type"):
+		return {"avoid": 0, "defense": 0}
+	var t: int = call("_get_terrain_type", pos)
+	match t:
+		1: return {"avoid": 20, "defense": 10}   # 森林
+		2: return {"avoid": 0,  "defense": 20}   # 矮墙
+		3: return {"avoid": 0,  "defense": 0}    # 峭壁（不可通行）
+		_: return {"avoid": 0,  "defense": 0}    # 平原
 
 # ── 单位管理 ────────────────────────────────────────────
 func add_unit(unit: Unit) -> void:
@@ -214,7 +218,6 @@ func _do_move(unit: Unit, target: Vector2i) -> void:
 		_set_status("%s 已移动" % unit.data.name)
 	else:
 		_show_action_menu(target, true)
-		_set_status("%s 已移动（可攻击%d个敌人）" % [unit.data.name, attack_tiles.size()])
 
 # ── 行动菜单 ────────────────────────────────────────────
 func _show_action_menu(grid_pos: Vector2i, can_attack: bool) -> void:
@@ -245,15 +248,22 @@ func _open_predict(attacker: Unit, defender: Unit) -> void:
 	target_enemy = defender
 	if _predict_panel == null: return
 
-	var pred: Dictionary = BattleCalculator.predict(
-		attacker.data, defender.data, attacker.weapon_key, defender.weapon_key)
+	# 获取防守方地形加成
+	var bonus: Dictionary = get_terrain_bonus(defender.grid_pos)
+	var pred: Dictionary  = BattleCalculator.predict(
+		attacker.data, defender.data, attacker.weapon_key, defender.weapon_key,
+		bonus.get("avoid", 0))
 
 	if _atk_line:
-		_atk_line.text = "攻：%s  伤害%d  命中%d%%" % [
-			attacker.data.name, pred["atk_damage"], pred["atk_hit"]]
+		var crit_str: String = "  暴击%d%%" % pred["atk_crit"] if pred["atk_crit"] > 0 else ""
+		_atk_line.text = "攻：%s  伤害%d  命中%d%%%s" % [
+			attacker.data.name, pred["atk_damage"], pred["atk_hit"], crit_str]
 	if _def_line:
-		_def_line.text = "防：%s  伤害%d  命中%d%%" % [
-			defender.data.name, pred["def_damage"], pred["def_hit"]]
+		var terrain_str: String = ""
+		if bonus.get("avoid", 0) > 0:
+			terrain_str = "  [地形回避%d%%]" % bonus["avoid"]
+		_def_line.text = "防：%s  伤害%d  命中%d%%%s" % [
+			defender.data.name, pred["def_damage"], pred["def_hit"], terrain_str]
 	if _double_line:
 		_double_line.text = "⚡ 可追击！" if pred["atk_double"] else ""
 
@@ -265,30 +275,8 @@ func _open_predict(attacker: Unit, defender: Unit) -> void:
 func _on_confirm_attack() -> void:
 	_hide_all_panels()
 	if selected_unit != null and target_enemy != null:
-		_start_battle_with_animation(selected_unit, target_enemy)
-	else:
-		target_enemy = null
-
-## 实例化战斗动画面板，播放动画后再执行结算
-func _start_battle_with_animation(attacker: Unit, defender: Unit) -> void:
-	_animating_battle = true
-
-	var pred: Dictionary = BattleCalculator.predict(
-		attacker.data, defender.data, attacker.weapon_key, defender.weapon_key)
-
-	var anim_node: BattleAnimation = BATTLE_ANIM_SCENE.instantiate() as BattleAnimation
-	var ui_layer := get_node_or_null("UI") as CanvasLayer
-	if ui_layer:
-		ui_layer.add_child(anim_node)
-	else:
-		add_child(anim_node)
-
-	anim_node.play(attacker, defender, pred)
-	# await 动画完成，敌方回合也能正确等待
-	var result: Dictionary = await anim_node.animation_finished
-	anim_node.queue_free()
-	_execute_combat_from_result(attacker, defender, result)
-	_animating_battle = false
+		await _start_battle_with_animation(selected_unit, target_enemy)
+	target_enemy = null
 
 func _on_cancel_attack() -> void:
 	_hide_all_panels()
@@ -301,13 +289,36 @@ func _hide_all_panels() -> void:
 	if _action_menu:   _action_menu.visible   = false
 	if _predict_panel: _predict_panel.visible = false
 
+# ── 战斗动画 ────────────────────────────────────────────
+func _start_battle_with_animation(attacker: Unit, defender: Unit) -> void:
+	_animating_battle = true
+
+	var bonus: Dictionary = get_terrain_bonus(defender.grid_pos)
+	var pred: Dictionary = BattleCalculator.predict(
+		attacker.data, defender.data, attacker.weapon_key, defender.weapon_key,
+		bonus.get("avoid", 0))
+
+	var anim_node: BattleAnimation = BATTLE_ANIM_SCENE.instantiate() as BattleAnimation
+	var ui_layer := get_node_or_null("UI") as CanvasLayer
+	if ui_layer:
+		ui_layer.add_child(anim_node)
+	else:
+		add_child(anim_node)
+
+	anim_node.play(attacker, defender, pred)
+	var result: Dictionary = await anim_node.animation_finished
+	anim_node.queue_free()
+	_execute_combat_from_result(attacker, defender, result)
+	_animating_battle = false
+
 # ── 战斗结算 ────────────────────────────────────────────
 func _execute_combat(attacker: Unit, defender: Unit) -> void:
+	var bonus: Dictionary = get_terrain_bonus(defender.grid_pos)
 	var pred: Dictionary = BattleCalculator.predict(
-		attacker.data, defender.data, attacker.weapon_key, defender.weapon_key)
+		attacker.data, defender.data, attacker.weapon_key, defender.weapon_key,
+		bonus.get("avoid", 0))
 
-	var log: String = "⚔ %s(HP:%d) vs %s(HP:%d)" % [
-		attacker.data.name, attacker.data.hp, defender.data.name, defender.data.hp]
+	var log: String = "⚔ %s vs %s" % [attacker.data.name, defender.data.name]
 
 	if _roll(pred["atk_hit"]):
 		var dmg: int = pred["atk_damage"] * (3 if _roll(pred["atk_crit"]) else 1)
@@ -338,14 +349,12 @@ func _execute_combat(attacker: Unit, defender: Unit) -> void:
 	_check_victory()
 	_check_all_acted()
 
-## 根据战斗动画传回的结算结果，执行实际扣血与死亡判定
 func _execute_combat_from_result(attacker: Unit, defender: Unit,
 		result: Dictionary) -> void:
 	var log: String = "⚔ %s(HP:%d) vs %s(HP:%d)" % [
 		attacker.data.name, attacker.data.hp,
 		defender.data.name, defender.data.hp]
 
-	# 攻击方攻击
 	if result.get("atk_hit", false):
 		var dmg: int = result.get("atk_damage", 0)
 		defender.take_damage(dmg)
@@ -353,15 +362,12 @@ func _execute_combat_from_result(attacker: Unit, defender: Unit,
 	else:
 		log += "  →未命中"
 
-	# 防守方反击（若存活）
 	if not defender.is_dead() and result.get("def_hit", false):
 		var dmg: int = result.get("def_damage", 0)
 		attacker.take_damage(dmg)
 		log += "  ←%d伤" % dmg
 
-	# 追击（atk_double=有追击资格，double_hit=实际命中）
-	if not defender.is_dead() and result.get("atk_double", false) \
-			and result.get("double_hit", false):
+	if not defender.is_dead() and result.get("atk_double", false):
 		var double_dmg: int = result.get("double_damage", 0)
 		if double_dmg > 0:
 			defender.take_damage(double_dmg)
@@ -383,9 +389,8 @@ func _execute_combat_from_result(attacker: Unit, defender: Unit,
 func _roll(rate: int) -> bool:
 	return randi() % 100 < rate
 
-# ── 颜色反馈（兼容 Sprite2D 和 ColorRect 两种 Sprite 节点）─
+# ── 颜色反馈 ────────────────────────────────────────────
 func _refresh_unit_color(unit: Unit) -> void:
-	# 行动完毕：将 modulate 调暗
 	var node := unit.get_node_or_null("Sprite")
 	if node and unit.state == Unit.State.DONE:
 		node.modulate = Color(0.5, 0.5, 0.5, 1.0)
@@ -398,12 +403,10 @@ func _restore_unit_color(unit: Unit) -> void:
 # ── 胜败 ────────────────────────────────────────────────
 func _check_victory() -> void:
 	if _battle_over: return
-	# 胜利条件1：敌人全灭
 	var alive_enemies := enemy_units.filter(func(u: Unit) -> bool: return not u.is_dead())
 	if alive_enemies.is_empty():
 		_end_battle(true)
 		return
-	# 胜利条件2：占领右侧营地
 	for u: Unit in player_units:
 		if u.grid_pos == victory_pos and not u.is_dead():
 			_end_battle(true)
@@ -531,7 +534,6 @@ func _calc_move_range(unit: Unit) -> Array[Vector2i]:
 		for d: Vector2i in [Vector2i(1,0),Vector2i(-1,0),Vector2i(0,1),Vector2i(0,-1)]:
 			var npos: Vector2i = pos + d
 			if visited.has(npos) or not is_passable(npos): continue
-			# 任何单位占据的格子都不能穿过（但可以停在敌方相邻格攻击）
 			var blocker := _unit_at(npos, 0) if unit.team == 1 else _unit_at(npos, 1)
 			if blocker != null: continue
 			visited[npos] = true

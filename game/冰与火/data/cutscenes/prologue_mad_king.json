@@ -1,0 +1,41 @@
+{
+  "id": "prologue_mad_king",
+  "slides": [
+    {
+      "text": "布兰登·史塔克进京，要求龙石岛王子归还莱安娜。",
+      "subtext": "他以为这是一个兄长的权利。",
+      "duration": 4.0,
+      "image": "res://assets/cutscenes/mad_king_throne.png"
+    },
+    {
+      "text": "疯王将他投入大牢，\n随后传召临冬城公爵——布兰登之父，瑞卡德·史塔克。",
+      "subtext": "\"带你的黄金和你的仁慈来赎他。\"",
+      "duration": 4.5,
+      "image": "res://assets/cutscenes/mad_king_throne.png"
+    },
+    {
+      "text": "瑞卡德身着全套盔甲踏入王庭，\n请求以决斗方式解决此事。",
+      "subtext": "疯王笑了。",
+      "duration": 4.0,
+      "image": "res://assets/cutscenes/mad_king_fire.png"
+    },
+    {
+      "text": "\"火焰，\"疯王说，\"是我的斗士。\"",
+      "subtext": "瑞卡德·史塔克在铁王座前被活活烧死。\n布兰登·史塔克在父亲眼前被勒死。",
+      "duration": 5.0,
+      "image": "res://assets/cutscenes/mad_king_fire.png"
+    },
+    {
+      "text": "疯王随后传令谷地领主琼恩·艾林：",
+      "subtext": "\"交出内德·史塔克与劳勃·拜拉席恩的人头。\"",
+      "duration": 4.0,
+      "image": "res://assets/cutscenes/mad_king_throne.png"
+    },
+    {
+      "text": "琼恩·艾林拒绝了。",
+      "subtext": "并向七大王国的领主们发出了开战的鸽信。",
+      "duration": 4.0,
+      "image": ""
+    }
+  ]
+}
