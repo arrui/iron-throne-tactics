@@ -308,7 +308,17 @@ func _start_battle_with_animation(attacker: Unit, defender: Unit) -> void:
 	anim_node.play(attacker, defender, pred)
 	var result: Dictionary = await anim_node.animation_finished
 	anim_node.queue_free()
-	_execute_combat_from_result(attacker, defender, result)
+	# 动画期间单位可能已被其他结算销毁，先检查有效性
+	if is_instance_valid(attacker) and is_instance_valid(defender):
+		_execute_combat_from_result(attacker, defender, result)
+	elif is_instance_valid(attacker):
+		# 防守方已死（被其他攻击消灭），只需标记攻击方行动完毕
+		attacker.mark_acted()
+		_refresh_unit_color(attacker)
+		_deselect()
+		queue_redraw()
+		_check_victory()
+		_check_all_acted()
 	_animating_battle = false
 
 # ── 战斗结算 ────────────────────────────────────────────
