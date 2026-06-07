@@ -199,7 +199,7 @@ func _spawn_damage_label(near: Sprite2D, damage: int, crit: bool) -> void:
 	lbl.add_theme_color_override("font_color",
 		Color(1.0, 0.85, 0.1) if crit else Color(1.0, 0.25, 0.25))
 	lbl.add_theme_font_size_override("font_size", 22 if crit else 18)
-	lbl.global_position = near.global_position + Vector2(near.size.x * 0.3, -10)
+	lbl.global_position = near.global_position + Vector2(0, -50)
 	add_child(lbl)
 	var tween := create_tween()
 	tween.set_parallel(true)
@@ -212,7 +212,7 @@ func _spawn_miss_label(near: Sprite2D) -> void:
 	lbl.text = "MISS"
 	lbl.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
 	lbl.add_theme_font_size_override("font_size", 16)
-	lbl.global_position = near.global_position + Vector2(near.size.x * 0.2, -10)
+	lbl.global_position = near.global_position + Vector2(0, -50)
 	add_child(lbl)
 	var tween := create_tween()
 	tween.set_parallel(true)
