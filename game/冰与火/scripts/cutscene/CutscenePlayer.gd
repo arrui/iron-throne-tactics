@@ -16,7 +16,6 @@ var _skip_requested: bool = false
 
 # 子节点引用（由 tscn 提供）
 @onready var _label: Label = $TextLabel
-@onready var _anim:  AnimationPlayer = $AnimationPlayer
 
 func _ready() -> void:
 	# 初始透明
@@ -46,10 +45,12 @@ func play(json_path: String) -> void:
 func _input(event: InputEvent) -> void:
 	if not _is_playing:
 		return
-	var key_skip := event is InputEventKey and event.pressed and (
-		event.keycode == KEY_SPACE or event.keycode == KEY_ENTER)
-	var mouse_skip := event is InputEventMouseButton and event.pressed and \
-		event.button_index == MOUSE_BUTTON_LEFT
+	var key_skip: bool = (event is InputEventKey) and (event as InputEventKey).pressed and (
+		(event as InputEventKey).keycode == KEY_SPACE or
+		(event as InputEventKey).keycode == KEY_ENTER)
+	var mouse_skip: bool = (event is InputEventMouseButton) and \
+		(event as InputEventMouseButton).pressed and \
+		(event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT
 	if key_skip or mouse_skip:
 		_skip_requested = true
 		get_viewport().set_input_as_handled()
@@ -65,8 +66,8 @@ func _load_json(path: String) -> Dictionary:
 		return {}
 	var text := file.get_as_text()
 	file.close()
-	var result := JSON.parse_string(text)
-	if result == null:
+	var result: Variant = JSON.parse_string(text)
+	if result == null or not (result is Dictionary):
 		push_error("CutscenePlayer: JSON 解析失败 %s" % path)
 		return {}
 	return result as Dictionary
