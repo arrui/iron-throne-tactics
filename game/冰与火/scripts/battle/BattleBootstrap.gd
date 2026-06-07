@@ -41,6 +41,8 @@ func _play_dialogue(path: String) -> void:
 	if _dialogue_box == null:
 		_dialogue_box = DIALOGUE_BOX_SCENE.instantiate() as CanvasLayer
 		add_child(_dialogue_box)
+		# 等一帧让@onready变量全部初始化完毕
+		await get_tree().process_frame
 		_dialogue_sys = _dialogue_box.get_node("DialogueSystem") as DialogueSystem
 
 	# 禁用战斗输入，防止对话期间误操作
