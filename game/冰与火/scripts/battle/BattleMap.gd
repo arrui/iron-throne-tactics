@@ -159,7 +159,7 @@ func _input(event: InputEvent) -> void:
 			and event.button_index == MOUSE_BUTTON_LEFT):
 		return
 
-	var clicked: Vector2i = _p2g(get_global_mouse_position())
+	var clicked: Vector2i = _p2g(to_local(get_global_mouse_position()))
 
 	match player_state:
 		PlayerState.IDLE:
