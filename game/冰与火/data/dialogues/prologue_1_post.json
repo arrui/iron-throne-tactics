@@ -1,0 +1,10 @@
+{
+  "id": "prologue_1_post",
+  "lines": [
+    {"speaker": "劳勃", "text": "第一仗。", "next": 1},
+    {"speaker": "奈德", "text": "嗯。", "next": 2},
+    {"speaker": "劳勃", "text": "你在想他们。", "next": 3},
+    {"speaker": "奈德", "text": "一直都在想。", "next": 4},
+    {"speaker": "劳勃", "text": "我也是。走吧，还有很多仗要打。", "next": -1}
+  ]
+}

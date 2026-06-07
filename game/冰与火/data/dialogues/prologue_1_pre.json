@@ -1,0 +1,9 @@
+{
+  "id": "prologue_1_pre",
+  "lines": [
+    {"speaker": "劳勃", "text": "他们欠我们一条命。", "next": 1},
+    {"speaker": "奈德", "text": "不止一条。", "next": 2},
+    {"speaker": "劳勃", "text": "打完这仗，我要亲手把那个疯子从王座上拉下来。", "next": 3},
+    {"speaker": "奈德", "text": "……", "next": -1}
+  ]
+}
