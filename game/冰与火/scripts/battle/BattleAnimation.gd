@@ -7,23 +7,23 @@ signal animation_finished(result: Dictionary)
 
 const SLIDE_IN_DURATION  := 0.25
 const SLIDE_OUT_DURATION := 0.25
-const CHARGE_DURATION    := 0.18
-const RETURN_DURATION    := 0.15
-const CHARGE_OFFSET      := 60.0
+const CHARGE_DURATION    := 0.14   # 快冲
+const RETURN_DURATION    := 0.20   # 慢退
+const CHARGE_OFFSET      := 80.0
 const DAMAGE_FLOAT_RISE  := 40.0
 const DAMAGE_FLOAT_DURATION := 0.7
-const HIT_PAUSE          := 0.2
-const ROUND_GAP          := 0.25
+const HIT_PAUSE          := 0.18
+const ROUND_GAP          := 0.30
 
-@onready var _atk_icon:   Sprite2D   = $Panel/AtkSide/Icon
-@onready var _atk_name:   Label      = $Panel/AtkSide/Name
+@onready var _atk_icon:   TextureRect = $Panel/AtkSide/Icon
+@onready var _atk_name:   Label       = $Panel/AtkSide/Name
 @onready var _atk_hp_bar: ProgressBar = $Panel/AtkSide/HPBar
-@onready var _atk_hp_lbl: Label      = $Panel/AtkSide/HPLabel
+@onready var _atk_hp_lbl: Label       = $Panel/AtkSide/HPLabel
 
-@onready var _def_icon:   Sprite2D   = $Panel/DefSide/Icon
-@onready var _def_name:   Label      = $Panel/DefSide/Name
+@onready var _def_icon:   TextureRect = $Panel/DefSide/Icon
+@onready var _def_name:   Label       = $Panel/DefSide/Name
 @onready var _def_hp_bar: ProgressBar = $Panel/DefSide/HPBar
-@onready var _def_hp_lbl: Label      = $Panel/DefSide/HPLabel
+@onready var _def_hp_lbl: Label       = $Panel/DefSide/HPLabel
 
 @onready var _panel: Control = $Panel
 
@@ -49,7 +49,6 @@ func play(attacker: Unit, defender: Unit, pred: Dictionary) -> void:
 	var atk_base: int  = int(pred.get("atk_damage", 0))
 	var atk_dmg:  int  = atk_base * (3 if atk_crit else 1) if atk_hit else 0
 
-	# 判断防守方是否存活（用于决定是否反击）
 	var def_hp_after_atk: int = maxi(defender.data.hp - atk_dmg, 0)
 
 	var def_hit:  bool = false
@@ -70,37 +69,40 @@ func play(attacker: Unit, defender: Unit, pred: Dictionary) -> void:
 		var dbl_base: int = int(pred.get("atk_damage", 0))
 		atk_double_dmg = dbl_base * (3 if atk_double_crit else 1) if atk_double_hit else 0
 
-	# ── 播放动画（只显示，不修改实际数据）──
-	await _do_attack_anim(_atk_icon, _def_icon, atk_hit, atk_dmg, atk_crit, false)
+	# ── 播放动画 ──
+	await _do_attack_anim(_atk_icon, _def_icon, _def_hp_bar, _def_hp_lbl,
+		atk_hit, atk_dmg, atk_crit, false, defender.data.hp)
 	await get_tree().create_timer(ROUND_GAP).timeout
 
 	if def_hp_after_atk > 0:
-		await _do_attack_anim(_def_icon, _atk_icon, def_hit, def_dmg, def_crit, true)
+		await _do_attack_anim(_def_icon, _atk_icon, _atk_hp_bar, _atk_hp_lbl,
+			def_hit, def_dmg, def_crit, true, attacker.data.hp)
 		await get_tree().create_timer(ROUND_GAP).timeout
 
 	if pred.get("atk_double", false) and def_hp_after_atk > 0:
-		await _do_attack_anim(_atk_icon, _def_icon, atk_double_hit, atk_double_dmg, atk_double_crit, false)
+		await _do_attack_anim(_atk_icon, _def_icon, _def_hp_bar, _def_hp_lbl,
+			atk_double_hit, atk_double_dmg, atk_double_crit, false, def_hp_after_atk)
 		await get_tree().create_timer(ROUND_GAP).timeout
 
 	await _slide_panel(_panel_hidden_y)
 	visible = false
 
-	# ── 把已掷好的结果传给 BattleMap 执行实际结算 ──
 	animation_finished.emit({
-		"atk_hit":        atk_hit,
-		"atk_damage":     atk_dmg,
-		"def_hit":        def_hit,
-		"def_damage":     def_dmg,
-		"atk_double":     pred.get("atk_double", false),
-		"double_hit":     atk_double_hit,
-		"double_damage":  atk_double_dmg,
+		"atk_hit":       atk_hit,
+		"atk_damage":    atk_dmg,
+		"def_hit":       def_hit,
+		"def_damage":    def_dmg,
+		"atk_double":    pred.get("atk_double", false),
+		"double_hit":    atk_double_hit,
+		"double_damage": atk_double_dmg,
 	})
 
+# ── UI初始化 ────────────────────────────────────────────
 func _setup_sides(attacker: Unit, defender: Unit) -> void:
 	_fill_side(attacker, _atk_icon, _atk_name, _atk_hp_bar, _atk_hp_lbl)
 	_fill_side(defender, _def_icon, _def_name, _def_hp_bar, _def_hp_lbl)
 
-func _fill_side(unit: Unit, icon: Sprite2D, name_lbl: Label,
+func _fill_side(unit: Unit, icon: TextureRect, name_lbl: Label,
 		hp_bar: ProgressBar, hp_lbl: Label) -> void:
 	if icon:
 		var sprite := unit.get_node_or_null("Sprite") as Sprite2D
@@ -115,75 +117,106 @@ func _fill_side(unit: Unit, icon: Sprite2D, name_lbl: Label,
 	if hp_lbl:
 		hp_lbl.text = "%d/%d" % [unit.data.hp, max_hp]
 
+# ── 滑入/滑出面板 ────────────────────────────────────────
 func _slide_panel(target_y: float) -> void:
 	var tween := create_tween()
 	tween.tween_property(_panel, "position:y", target_y, SLIDE_IN_DURATION)\
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUINT)
 	await tween.finished
 
-func _do_attack_anim(atk_icon: Sprite2D, def_icon: Sprite2D,
-		hit: bool, damage: int, crit: bool, is_counter: bool) -> void:
+# ── 单次攻击动画（含HP条更新）────────────────────────────
+func _do_attack_anim(
+		atk_icon: TextureRect, def_icon: TextureRect,
+		def_hp_bar: ProgressBar, def_hp_lbl: Label,
+		hit: bool, damage: int, crit: bool,
+		is_counter: bool, def_hp_before: int) -> void:
+
 	if atk_icon == null or def_icon == null:
 		return
+
 	var dir := 1.0 if not is_counter else -1.0
 	var origin_x := atk_icon.position.x
 
+	# 快冲：加速冲向目标
 	var tween_charge := create_tween()
 	tween_charge.tween_property(atk_icon, "position:x",
 		origin_x + CHARGE_OFFSET * dir, CHARGE_DURATION)\
-		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
+		.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
 	await tween_charge.finished
 
 	if hit:
-		await _show_damage_number(def_icon, damage, crit)
-		await _flash_icon(def_icon)
+		# 受击方抖动
+		await _shake_icon(def_icon)
+		# 更新HP条
+		var new_hp := maxi(def_hp_before - damage, 0)
+		await _update_hp_bar(def_hp_bar, def_hp_lbl, def_hp_before, new_hp, def_hp_bar.max_value as int)
+		# 伤害数字
+		_spawn_damage_label(def_icon, damage, crit)
 	else:
-		await _show_miss_label(def_icon)
+		_spawn_miss_label(def_icon)
 
 	await get_tree().create_timer(HIT_PAUSE).timeout
 
+	# 慢退：减速回到原位
 	var tween_back := create_tween()
 	tween_back.tween_property(atk_icon, "position:x", origin_x, RETURN_DURATION)\
-		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 	await tween_back.finished
 
-func _show_damage_number(near: Sprite2D, damage: int, crit: bool) -> void:
-	var lbl := Label.new()
-	lbl.text = ("暴！%d" % damage) if crit else str(damage)
-	lbl.add_theme_color_override("font_color",
-		Color(1.0, 0.9, 0.1) if crit else Color(1.0, 0.2, 0.2))
-	lbl.add_theme_font_size_override("font_size", 20 if crit else 16)
-	lbl.global_position = near.global_position + Vector2(0, -20)
-	get_tree().current_scene.add_child(lbl)
+# ── 受击抖动（左右快速震动）──────────────────────────────
+func _shake_icon(icon: TextureRect) -> void:
+	var orig := icon.position
+	var tween := create_tween()
+	tween.tween_property(icon, "position:x", orig.x - 8.0, 0.04)
+	tween.tween_property(icon, "position:x", orig.x + 10.0, 0.04)
+	tween.tween_property(icon, "position:x", orig.x - 6.0, 0.04)
+	tween.tween_property(icon, "position:x", orig.x + 4.0, 0.03)
+	tween.tween_property(icon, "position:x", orig.x, 0.03)
+	# 同时闪白
+	tween.parallel().tween_property(icon, "modulate", Color(2.5, 2.5, 2.5, 1), 0.05)
+	tween.parallel().tween_property(icon, "modulate", Color(1, 1, 1, 1), 0.12)
+	await tween.finished
 
+# ── HP条平滑更新 ─────────────────────────────────────────
+func _update_hp_bar(bar: ProgressBar, lbl: Label,
+		hp_from: int, hp_to: int, max_hp: int) -> void:
+	if bar == null:
+		return
+	var tween := create_tween()
+	tween.tween_property(bar, "value", float(hp_to), 0.3)\
+		.set_ease(Tween.EASE_OUT)
+	if lbl:
+		tween.tween_callback(func() -> void:
+			lbl.text = "%d/%d" % [hp_to, max_hp])
+	await tween.finished
+
+# ── 伤害数字浮字 ─────────────────────────────────────────
+func _spawn_damage_label(near: TextureRect, damage: int, crit: bool) -> void:
+	var lbl := Label.new()
+	lbl.text = ("暴击！%d" % damage) if crit else str(damage)
+	lbl.add_theme_color_override("font_color",
+		Color(1.0, 0.85, 0.1) if crit else Color(1.0, 0.25, 0.25))
+	lbl.add_theme_font_size_override("font_size", 22 if crit else 18)
+	lbl.global_position = near.global_position + Vector2(near.size.x * 0.3, -10)
+	add_child(lbl)
 	var tween := create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(lbl, "position:y", lbl.position.y - DAMAGE_FLOAT_RISE, DAMAGE_FLOAT_DURATION)
 	tween.tween_property(lbl, "modulate:a", 0.0, DAMAGE_FLOAT_DURATION)
-	await tween.finished
-	lbl.queue_free()
+	tween.chain().tween_callback(lbl.queue_free)
 
-func _show_miss_label(near: Sprite2D) -> void:
+func _spawn_miss_label(near: TextureRect) -> void:
 	var lbl := Label.new()
 	lbl.text = "MISS"
-	lbl.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	lbl.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
 	lbl.add_theme_font_size_override("font_size", 16)
-	lbl.global_position = near.global_position + Vector2(0, -20)
-	get_tree().current_scene.add_child(lbl)
-
+	lbl.global_position = near.global_position + Vector2(near.size.x * 0.2, -10)
+	add_child(lbl)
 	var tween := create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(lbl, "position:y", lbl.position.y - 20.0, 0.5)
+	tween.tween_property(lbl, "position:y", lbl.position.y - 24.0, 0.5)
 	tween.tween_property(lbl, "modulate:a", 0.0, 0.5)
-	await tween.finished
-	lbl.queue_free()
-
-func _flash_icon(icon: Sprite2D) -> void:
-	var orig := icon.modulate
-	var tween := create_tween()
-	tween.tween_property(icon, "modulate", Color(2, 2, 2, 1), 0.05)
-	tween.tween_property(icon, "modulate", orig, 0.1)
-	await tween.finished
+	tween.chain().tween_callback(lbl.queue_free)
 
 func _roll(rate: int) -> bool:
 	return randi() % 100 < rate
