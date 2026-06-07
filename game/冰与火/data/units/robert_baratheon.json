@@ -1,16 +1,16 @@
 {
-  "name": "劳勃·拜拉席恩",
+  "name": "劳勃",
   "class": "重装战士",
-  "level": 1,
-  "hp": 28,
-  "max_hp": 28,
-  "pow": 10,
-  "spd": 5,
-  "skl": 6,
-  "def": 9,
-  "lck": 4,
-  "con": 13,
+  "level": 5,
+  "hp": 44,
+  "max_hp": 44,
+  "pow": 16,
+  "spd": 7,
+  "skl": 9,
+  "def": 13,
+  "lck": 5,
+  "con": 15,
   "move": 4,
   "weapon_type": "axe",
-  "weapon_rank": "E"
+  "weapon_rank": "C"
 }
