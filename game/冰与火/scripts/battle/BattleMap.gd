@@ -1,4 +1,4 @@
-# BattleMap.gd — 完整demo版 v2
+# BattleMap.gd — 图块版 v3
 class_name BattleMap
 extends Node2D
 
@@ -23,13 +23,11 @@ var selected_unit: Unit = null
 var target_enemy:  Unit = null
 var move_range:    Array[Vector2i] = []
 var attack_tiles:  Array[Vector2i] = []
-var terrain: Array = []
 var _battle_over: bool = false
 
 # UI 节点引用
 var _turn_label:    Label = null
 var _status_label:  Label = null
-var _hint_label:    Label = null
 var _action_menu:   PanelContainer = null
 var _atk_btn:       Button = null
 var _wait_btn:      Button = null
@@ -44,28 +42,20 @@ var _result_title:  Label = null
 var _result_msg:    Label = null
 var _restart_btn:   Button = null
 
-# 颜色
-const TERRAIN_COLORS: Dictionary = {
-	0: Color(0.35, 0.55, 0.25),
-	1: Color(0.15, 0.35, 0.10),
-	2: Color(0.55, 0.50, 0.40),
-	3: Color(0.20, 0.20, 0.20),
-}
-const VICTORY_COLOR  := Color(1.0, 0.85, 0.1, 0.55)
+# 高亮颜色（绘制在TileMapLayer上方）
 const MOVEABLE_COLOR := Color(0.25, 0.55, 1.0, 0.40)
 const SELECTED_COLOR := Color(1.0, 1.0, 0.25, 0.55)
 const ATTACK_COLOR   := Color(1.0, 0.25, 0.20, 0.45)
 const MOVED_COLOR    := Color(0.25, 0.85, 0.55, 0.50)
+const VICTORY_COLOR  := Color(1.0, 0.85, 0.1, 0.45)
 
 func _ready() -> void:
 	_bind_ui()
-	_init_terrain()
 	_update_turn_label()
 
 func _bind_ui() -> void:
 	_turn_label    = get_node_or_null("UI/TurnLabel")    as Label
 	_status_label  = get_node_or_null("UI/StatusLabel")  as Label
-	_hint_label    = get_node_or_null("UI/HintLabel")    as Label
 	_action_menu   = get_node_or_null("UI/ActionMenu")   as PanelContainer
 	_predict_panel = get_node_or_null("UI/PredictPanel") as PanelContainer
 	_result_panel  = get_node_or_null("UI/ResultPanel")  as PanelContainer
@@ -79,9 +69,9 @@ func _bind_ui() -> void:
 			_wait_btn.pressed.connect(_on_wait_pressed)
 
 	if _predict_panel:
-		_atk_line    = _predict_panel.get_node_or_null("VBox/AtkLine")           as Label
-		_def_line    = _predict_panel.get_node_or_null("VBox/DefLine")           as Label
-		_double_line = _predict_panel.get_node_or_null("VBox/DoubleLine")        as Label
+		_atk_line    = _predict_panel.get_node_or_null("VBox/AtkLine")            as Label
+		_def_line    = _predict_panel.get_node_or_null("VBox/DefLine")            as Label
+		_double_line = _predict_panel.get_node_or_null("VBox/DoubleLine")         as Label
 		_confirm_btn = _predict_panel.get_node_or_null("VBox/Buttons/ConfirmBtn") as Button
 		_cancel_btn  = _predict_panel.get_node_or_null("VBox/Buttons/CancelBtn")  as Button
 		if _confirm_btn and not _confirm_btn.pressed.is_connected(_on_confirm_attack):
@@ -96,42 +86,39 @@ func _bind_ui() -> void:
 		if _restart_btn and not _restart_btn.pressed.is_connected(_restart):
 			_restart_btn.pressed.connect(_restart)
 
-# ── 地形 ────────────────────────────────────────────────
-func _init_terrain() -> void:
-	terrain.resize(map_height)
-	for y in map_height:
-		terrain[y] = []
-		for x in map_width:
-			terrain[y].append(3 if (x==0 or x==map_width-1 or y==0 or y==map_height-1) else 0)
+# ── 高亮绘制（覆盖在TileMapLayer之上）──────────────────
+# 注意：BattleMap节点本身的_draw()绘制在TileMapLayer上面
+# 因为UnitLayer是TileMapLayer的兄弟节点，渲染顺序在其后
+func _draw() -> void:
+	# 胜利目标格（始终显示）
+	_draw_tile_highlight(victory_pos, VICTORY_COLOR)
 
+	# 移动范围（蓝色）
+	for pos: Vector2i in move_range:
+		_draw_tile_highlight(pos, MOVEABLE_COLOR)
+
+	# 攻击范围（红色）
+	for pos: Vector2i in attack_tiles:
+		_draw_tile_highlight(pos, ATTACK_COLOR)
+
+	# 已移动单位（青绿）
+	if player_state == PlayerState.UNIT_MOVED and selected_unit != null:
+		_draw_tile_highlight(selected_unit.grid_pos, MOVED_COLOR)
+	elif selected_unit != null:
+		_draw_tile_highlight(selected_unit.grid_pos, SELECTED_COLOR)
+
+func _draw_tile_highlight(pos: Vector2i, color: Color) -> void:
+	var rect := Rect2(pos.x * TILE_SIZE, pos.y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+	draw_rect(rect, color)
+
+# ── 地形可通行判断（基于TileMapLayer实际内容）──────────
 func is_passable(pos: Vector2i) -> bool:
 	if pos.x < 0 or pos.x >= map_width or pos.y < 0 or pos.y >= map_height:
 		return false
-	return terrain[pos.y][pos.x] != 3
-
-# ── 渲染 ────────────────────────────────────────────────
-func _draw() -> void:
-	for y in map_height:
-		for x in map_width:
-			var rect := Rect2(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE)
-			draw_rect(rect, TERRAIN_COLORS[terrain[y][x]])
-			draw_rect(rect, Color(0,0,0,0.18), false)
-
-	draw_rect(Rect2(victory_pos.x*TILE_SIZE, victory_pos.y*TILE_SIZE, TILE_SIZE, TILE_SIZE), VICTORY_COLOR)
-
-	for pos: Vector2i in move_range:
-		draw_rect(Rect2(pos.x*TILE_SIZE, pos.y*TILE_SIZE, TILE_SIZE, TILE_SIZE), MOVEABLE_COLOR)
-
-	for pos: Vector2i in attack_tiles:
-		draw_rect(Rect2(pos.x*TILE_SIZE, pos.y*TILE_SIZE, TILE_SIZE, TILE_SIZE), ATTACK_COLOR)
-
-	if selected_unit != null:
-		draw_rect(Rect2(selected_unit.grid_pos.x*TILE_SIZE,
-			selected_unit.grid_pos.y*TILE_SIZE, TILE_SIZE, TILE_SIZE), SELECTED_COLOR)
-
-	if player_state == PlayerState.UNIT_MOVED and selected_unit != null:
-		draw_rect(Rect2(selected_unit.grid_pos.x*TILE_SIZE,
-			selected_unit.grid_pos.y*TILE_SIZE, TILE_SIZE, TILE_SIZE), MOVED_COLOR)
+	# 边界不可通行
+	if pos.x == 0 or pos.x == map_width - 1 or pos.y == 0 or pos.y == map_height - 1:
+		return false
+	return true
 
 # ── 单位管理 ────────────────────────────────────────────
 func add_unit(unit: Unit) -> void:
@@ -143,15 +130,16 @@ func add_unit(unit: Unit) -> void:
 	unit.position = _g2p(unit.grid_pos)
 	unit.unit_died.connect(_on_unit_died)
 	var lbl: Label = unit.get_node_or_null("Label") as Label
-	if lbl: lbl.text = unit.data.name.substr(0,1)
+	if lbl: lbl.text = unit.data.name.substr(0, 1)
 	var hp: Label = unit.get_node_or_null("HPLabel") as Label
 	if hp: hp.text = str(unit.data.hp)
 
 func _g2p(pos: Vector2i) -> Vector2:
-	return Vector2(pos.x*TILE_SIZE + TILE_SIZE*0.5, pos.y*TILE_SIZE + TILE_SIZE*0.5)
+	return Vector2(pos.x * TILE_SIZE + TILE_SIZE * 0.5,
+				   pos.y * TILE_SIZE + TILE_SIZE * 0.5)
 
 func _p2g(px: Vector2) -> Vector2i:
-	return Vector2i(int(px.x/TILE_SIZE), int(px.y/TILE_SIZE))
+	return Vector2i(int(px.x / TILE_SIZE), int(px.y / TILE_SIZE))
 
 # ── 输入 ────────────────────────────────────────────────
 func _input(event: InputEvent) -> void:
@@ -227,7 +215,7 @@ func _do_move(unit: Unit, target: Vector2i) -> void:
 # ── 行动菜单 ────────────────────────────────────────────
 func _show_action_menu(grid_pos: Vector2i, can_attack: bool) -> void:
 	if _action_menu == null: return
-	_action_menu.position = _g2p(grid_pos) + Vector2(TILE_SIZE*0.6, -TILE_SIZE*0.5)
+	_action_menu.position = _g2p(grid_pos) + Vector2(TILE_SIZE * 0.6, -TILE_SIZE * 0.5)
 	if _atk_btn: _atk_btn.visible = can_attack
 	_action_menu.visible = true
 
@@ -266,7 +254,7 @@ func _open_predict(attacker: Unit, defender: Unit) -> void:
 		_double_line.text = "⚡ 可追击！" if pred["atk_double"] else ""
 
 	var vs: Vector2 = get_viewport().get_visible_rect().size
-	_predict_panel.position = Vector2(vs.x*0.5 - 140, vs.y*0.5 - 90)
+	_predict_panel.position = Vector2(vs.x * 0.5 - 140, vs.y * 0.5 - 90)
 	_predict_panel.visible  = true
 	player_state = PlayerState.PREDICT
 
@@ -317,7 +305,6 @@ func _execute_combat(attacker: Unit, defender: Unit) -> void:
 
 	attacker.resolve_death()
 	defender.resolve_death()
-
 	attacker.mark_acted()
 	_refresh_unit_color(attacker)
 	_deselect()
@@ -328,11 +315,11 @@ func _execute_combat(attacker: Unit, defender: Unit) -> void:
 func _roll(rate: int) -> bool:
 	return randi() % 100 < rate
 
-# ── 颜色 ────────────────────────────────────────────────
+# ── 颜色反馈 ────────────────────────────────────────────
 func _refresh_unit_color(unit: Unit) -> void:
 	var s: ColorRect = unit.get_node_or_null("Sprite") as ColorRect
 	if s and unit.state == Unit.State.DONE:
-		s.color = Color(s.color.r*0.5, s.color.g*0.5, s.color.b*0.5, 1.0)
+		s.color = Color(s.color.r * 0.5, s.color.g * 0.5, s.color.b * 0.5, 1.0)
 
 func _restore_unit_color(unit: Unit) -> void:
 	var s: ColorRect = unit.get_node_or_null("Sprite") as ColorRect
@@ -358,18 +345,16 @@ func _end_battle(won: bool) -> void:
 	_update_turn_label()
 
 	if _result_panel == null:
-		# 面板找不到时的降级处理
 		_set_status("🏆 胜利！按R重新开始。" if won else "💀 失败！按R重新开始。")
 		return
 
 	if _result_title:
 		_result_title.text = "🏆 胜利！" if won else "💀 失败"
 	if _result_msg:
-		_result_msg.text = "成功占领营地！按R或点击按钮重新开始。" if won else "全灭，战斗失败。按R或点击按钮重新开始。"
+		_result_msg.text = "成功占领营地！" if won else "全灭，战斗失败。"
 
-	# 面板居中
 	var vs: Vector2 = get_viewport().get_visible_rect().size
-	_result_panel.position = Vector2(vs.x*0.5 - 160, vs.y*0.5 - 80)
+	_result_panel.position = Vector2(vs.x * 0.5 - 160, vs.y * 0.5 - 80)
 	_result_panel.visible  = true
 
 	if won: battle_won.emit()

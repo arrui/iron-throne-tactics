@@ -1,17 +1,393 @@
-[gd_scene load_steps=2 format=3 uid="uid://battlemap_scene"]
+[gd_scene format=4 uid="uid://bm0ewhvtovw10"]
 
-[ext_resource type="Script" path="res://scripts/battle/BattleBootstrap.gd" id="1"]
+[ext_resource type="Script" uid="uid://cyfo5giwruwto" path="res://scripts/battle/BattleBootstrap.gd" id="1"]
+[ext_resource type="Texture2D" uid="uid://5jtko8lt7vql" path="res://assets/tilesets/medieval_tileset.png" id="2_elcx0"]
 
-[node name="BattleMap" type="Node2D"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_le66r"]
+texture = ExtResource("2_elcx0")
+0:0/0 = 0
+1:0/0 = 0
+2:0/0 = 0
+3:0/0 = 0
+4:0/0 = 0
+5:0/0 = 0
+6:0/0 = 0
+0:1/0 = 0
+1:1/0 = 0
+2:1/0 = 0
+3:1/0 = 0
+4:1/0 = 0
+5:1/0 = 0
+6:1/0 = 0
+0:2/0 = 0
+1:2/0 = 0
+2:2/0 = 0
+3:2/0 = 0
+4:2/0 = 0
+5:2/0 = 0
+6:2/0 = 0
+0:3/0 = 0
+1:3/0 = 0
+2:3/0 = 0
+3:3/0 = 0
+4:3/0 = 0
+5:3/0 = 0
+6:3/0 = 0
+0:4/0 = 0
+1:4/0 = 0
+2:4/0 = 0
+3:4/0 = 0
+4:4/0 = 0
+5:4/0 = 0
+6:4/0 = 0
+0:5/0 = 0
+1:5/0 = 0
+2:5/0 = 0
+3:5/0 = 0
+4:5/0 = 0
+5:5/0 = 0
+6:5/0 = 0
+0:6/0 = 0
+1:6/0 = 0
+2:6/0 = 0
+3:6/0 = 0
+4:6/0 = 0
+5:6/0 = 0
+6:6/0 = 0
+0:7/0 = 0
+1:7/0 = 0
+2:7/0 = 0
+3:7/0 = 0
+4:7/0 = 0
+5:7/0 = 0
+6:7/0 = 0
+0:8/0 = 0
+1:8/0 = 0
+2:8/0 = 0
+3:8/0 = 0
+4:8/0 = 0
+5:8/0 = 0
+6:8/0 = 0
+0:9/0 = 0
+1:9/0 = 0
+2:9/0 = 0
+3:9/0 = 0
+4:9/0 = 0
+5:9/0 = 0
+6:9/0 = 0
+0:10/0 = 0
+1:10/0 = 0
+2:10/0 = 0
+3:10/0 = 0
+4:10/0 = 0
+5:10/0 = 0
+6:10/0 = 0
+0:11/0 = 0
+1:11/0 = 0
+2:11/0 = 0
+3:11/0 = 0
+4:11/0 = 0
+5:11/0 = 0
+6:11/0 = 0
+0:12/0 = 0
+1:12/0 = 0
+2:12/0 = 0
+3:12/0 = 0
+4:12/0 = 0
+5:12/0 = 0
+6:12/0 = 0
+0:13/0 = 0
+1:13/0 = 0
+2:13/0 = 0
+3:13/0 = 0
+4:13/0 = 0
+5:13/0 = 0
+6:13/0 = 0
+0:14/0 = 0
+1:14/0 = 0
+2:14/0 = 0
+3:14/0 = 0
+4:14/0 = 0
+5:14/0 = 0
+6:14/0 = 0
+0:15/0 = 0
+1:15/0 = 0
+2:15/0 = 0
+3:15/0 = 0
+4:15/0 = 0
+5:15/0 = 0
+6:15/0 = 0
+0:16/0 = 0
+1:16/0 = 0
+2:16/0 = 0
+3:16/0 = 0
+4:16/0 = 0
+5:16/0 = 0
+6:16/0 = 0
+0:17/0 = 0
+1:17/0 = 0
+2:17/0 = 0
+3:17/0 = 0
+4:17/0 = 0
+5:17/0 = 0
+6:17/0 = 0
+0:18/0 = 0
+1:18/0 = 0
+2:18/0 = 0
+3:18/0 = 0
+4:18/0 = 0
+5:18/0 = 0
+6:18/0 = 0
+0:19/0 = 0
+1:19/0 = 0
+2:19/0 = 0
+3:19/0 = 0
+4:19/0 = 0
+5:19/0 = 0
+6:19/0 = 0
+0:20/0 = 0
+1:20/0 = 0
+2:20/0 = 0
+3:20/0 = 0
+4:20/0 = 0
+5:20/0 = 0
+6:20/0 = 0
+0:21/0 = 0
+1:21/0 = 0
+2:21/0 = 0
+3:21/0 = 0
+4:21/0 = 0
+5:21/0 = 0
+6:21/0 = 0
+0:22/0 = 0
+1:22/0 = 0
+2:22/0 = 0
+3:22/0 = 0
+4:22/0 = 0
+5:22/0 = 0
+6:22/0 = 0
+0:23/0 = 0
+1:23/0 = 0
+2:23/0 = 0
+3:23/0 = 0
+4:23/0 = 0
+5:23/0 = 0
+6:23/0 = 0
+0:24/0 = 0
+1:24/0 = 0
+2:24/0 = 0
+3:24/0 = 0
+4:24/0 = 0
+5:24/0 = 0
+6:24/0 = 0
+0:25/0 = 0
+1:25/0 = 0
+2:25/0 = 0
+3:25/0 = 0
+4:25/0 = 0
+5:25/0 = 0
+6:25/0 = 0
+0:26/0 = 0
+1:26/0 = 0
+2:26/0 = 0
+3:26/0 = 0
+4:26/0 = 0
+5:26/0 = 0
+6:26/0 = 0
+0:27/0 = 0
+1:27/0 = 0
+2:27/0 = 0
+3:27/0 = 0
+4:27/0 = 0
+5:27/0 = 0
+6:27/0 = 0
+0:28/0 = 0
+1:28/0 = 0
+2:28/0 = 0
+3:28/0 = 0
+4:28/0 = 0
+5:28/0 = 0
+6:28/0 = 0
+0:29/0 = 0
+1:29/0 = 0
+2:29/0 = 0
+3:29/0 = 0
+4:29/0 = 0
+5:29/0 = 0
+6:29/0 = 0
+0:30/0 = 0
+1:30/0 = 0
+2:30/0 = 0
+3:30/0 = 0
+4:30/0 = 0
+5:30/0 = 0
+6:30/0 = 0
+0:31/0 = 0
+1:31/0 = 0
+2:31/0 = 0
+3:31/0 = 0
+4:31/0 = 0
+5:31/0 = 0
+6:31/0 = 0
+0:32/0 = 0
+1:32/0 = 0
+2:32/0 = 0
+3:32/0 = 0
+4:32/0 = 0
+5:32/0 = 0
+6:32/0 = 0
+0:33/0 = 0
+1:33/0 = 0
+2:33/0 = 0
+3:33/0 = 0
+4:33/0 = 0
+5:33/0 = 0
+6:33/0 = 0
+0:34/0 = 0
+1:34/0 = 0
+2:34/0 = 0
+3:34/0 = 0
+4:34/0 = 0
+5:34/0 = 0
+6:34/0 = 0
+0:35/0 = 0
+1:35/0 = 0
+2:35/0 = 0
+3:35/0 = 0
+4:35/0 = 0
+5:35/0 = 0
+6:35/0 = 0
+0:36/0 = 0
+1:36/0 = 0
+2:36/0 = 0
+3:36/0 = 0
+4:36/0 = 0
+5:36/0 = 0
+6:36/0 = 0
+0:37/0 = 0
+1:37/0 = 0
+2:37/0 = 0
+3:37/0 = 0
+4:37/0 = 0
+5:37/0 = 0
+6:37/0 = 0
+0:38/0 = 0
+1:38/0 = 0
+2:38/0 = 0
+3:38/0 = 0
+4:38/0 = 0
+5:38/0 = 0
+6:38/0 = 0
+0:39/0 = 0
+1:39/0 = 0
+2:39/0 = 0
+3:39/0 = 0
+4:39/0 = 0
+5:39/0 = 0
+6:39/0 = 0
+0:40/0 = 0
+1:40/0 = 0
+2:40/0 = 0
+3:40/0 = 0
+4:40/0 = 0
+5:40/0 = 0
+6:40/0 = 0
+0:41/0 = 0
+1:41/0 = 0
+2:41/0 = 0
+3:41/0 = 0
+4:41/0 = 0
+5:41/0 = 0
+6:41/0 = 0
+0:42/0 = 0
+1:42/0 = 0
+2:42/0 = 0
+3:42/0 = 0
+4:42/0 = 0
+5:42/0 = 0
+6:42/0 = 0
+0:43/0 = 0
+1:43/0 = 0
+2:43/0 = 0
+3:43/0 = 0
+4:43/0 = 0
+5:43/0 = 0
+6:43/0 = 0
+0:44/0 = 0
+1:44/0 = 0
+2:44/0 = 0
+3:44/0 = 0
+4:44/0 = 0
+5:44/0 = 0
+6:44/0 = 0
+0:45/0 = 0
+1:45/0 = 0
+2:45/0 = 0
+3:45/0 = 0
+4:45/0 = 0
+5:45/0 = 0
+6:45/0 = 0
+0:46/0 = 0
+1:46/0 = 0
+2:46/0 = 0
+3:46/0 = 0
+4:46/0 = 0
+5:46/0 = 0
+6:46/0 = 0
+0:47/0 = 0
+1:47/0 = 0
+2:47/0 = 0
+3:47/0 = 0
+4:47/0 = 0
+5:47/0 = 0
+6:47/0 = 0
+0:48/0 = 0
+1:48/0 = 0
+2:48/0 = 0
+3:48/0 = 0
+4:48/0 = 0
+5:48/0 = 0
+6:48/0 = 0
+0:49/0 = 0
+1:49/0 = 0
+2:49/0 = 0
+3:49/0 = 0
+4:49/0 = 0
+5:49/0 = 0
+6:49/0 = 0
+0:50/0 = 0
+1:50/0 = 0
+2:50/0 = 0
+3:50/0 = 0
+4:50/0 = 0
+5:50/0 = 0
+6:50/0 = 0
+0:51/0 = 0
+1:51/0 = 0
+2:51/0 = 0
+3:51/0 = 0
+4:51/0 = 0
+5:51/0 = 0
+6:51/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_58xiw"]
+tile_size = Vector2i(48, 48)
+sources/0 = SubResource("TileSetAtlasSource_le66r")
+
+[node name="BattleMap" type="Node2D" unique_id=1594060771]
 script = ExtResource("1")
 
-[node name="TileLayer" type="Node2D" parent="."]
+[node name="TileLayer" type="Node2D" parent="." unique_id=478034549]
 
-[node name="UnitLayer" type="Node2D" parent="."]
+[node name="TileMapLayer" type="TileMapLayer" parent="TileLayer" unique_id=1290513530]
+tile_map_data = PackedByteArray("AAABAAAAAAACAAAAAAAEAAIAAAACAAAAAAAFAAIAAAACAAAAAAAGAAIAAAACAAAAAAAGAAMAAAACAAAAAAAHAAMAAAACAAAAAAAIAAQAAAACAAAAAAAJAAQAAAACAAAAAAAJAAUAAAACAAAAAAAKAAUAAAACAAAAAAAKAAYAAAACAAAAAAALAAYAAAACAAAAAAAMAAYAAAACAAAAAAANAAYAAAACAAAAAAAOAAYAAAACAAAAAAAPAAYAAAACAAAAAAAQAAYAAAACAAAAAAARAAYAAAACAAAAAAASAAYAAAACAAAAAAATAAYAAAACAAAAAAAUAAYAAAACAAAAAAAVAAUAAAACAAAAAAAWAAUAAAACAAAAAAAXAAUAAAACAAAAAAAXAAYAAAACAAAAAAAYAAYAAAACAAAAAAAYAAcAAAACAAAAAAAYAAgAAAACAAAAAAAYAAkAAAACAAAAAAAYAAoAAAACAAAAAAAYAAsAAAACAAAAAAAYAAwAAAACAAAAAAADAAIAAAACAAAAAAADAAMAAAACAAAAAAADAAQAAAACAAAAAAAEAAQAAAACAAAAAAAFAAQAAAACAAAAAAAFAAUAAAACAAAAAAAGAAUAAAACAAAAAAAHAAUAAAACAAAAAAAIAAUAAAACAAAAAAAJAAYAAAACAAAAAAAHAAQAAAACAAAAAAAGAAQAAAACAAAAAAAFAAMAAAACAAAAAAAEAAMAAAACAAAAAAAMAAcAAAAEAAAAAAANAAcAAAAEAAAAAAAMAAgAAAAEAAAAAAANAAgAAAAEAAAAAAALAAkAAAACAAEAAAAGAAgAAAAFAAIAAAAHAAgAAAAFAAIAAAAWAAcAAAABAAMAAAAWAAoAAAACAAMAAAACAAIAAAAAAAAAAAACAAMAAAAAAAAAAAACAAQAAAAAAAAAAAACAAUAAAAAAAAAAAADAAYAAAAAAAAAAAAEAAYAAAAAAAAAAAAEAAUAAAAAAAAAAAADAAUAAAAAAAAAAAAFAAYAAAAAAAAAAAAGAAYAAAAAAAAAAAAHAAYAAAAAAAAAAAAIAAYAAAAAAAAAAAAIAAcAAAAAAAAAAAAHAAcAAAAAAAAAAAAGAAcAAAAAAAAAAAAFAAcAAAAAAAAAAAAEAAcAAAAAAAAAAAAJAAcAAAAAAAAAAAAKAAcAAAAAAAAAAAALAAcAAAAAAAAAAAALAAgAAAAAAAAAAAAKAAgAAAAAAAAAAAAJAAgAAAAAAAAAAAAIAAgAAAAAAAAAAAAXAAIAAAABAAcAAAAWAAIAAAAAAAcAAAAWAAMAAAAAAAgAAAAXAAMAAAABAAgAAAA=")
+tile_set = SubResource("TileSet_58xiw")
 
-[node name="UI" type="CanvasLayer" parent="."]
+[node name="UnitLayer" type="Node2D" parent="." unique_id=571003370]
 
-[node name="TurnLabel" type="Label" parent="UI"]
+[node name="UI" type="CanvasLayer" parent="." unique_id=1699934925]
+
+[node name="TurnLabel" type="Label" parent="UI" unique_id=1514108395]
 offset_left = 8.0
 offset_top = 8.0
 offset_right = 250.0
@@ -19,112 +395,107 @@ offset_bottom = 36.0
 theme_override_font_sizes/font_size = 18
 text = "我方回合"
 
-[node name="StatusLabel" type="Label" parent="UI"]
+[node name="StatusLabel" type="Label" parent="UI" unique_id=143831413]
 offset_left = 8.0
 offset_top = 40.0
 offset_right = 500.0
 offset_bottom = 64.0
 theme_override_font_sizes/font_size = 13
-text = ""
 
-[node name="HintLabel" type="Label" parent="UI"]
+[node name="HintLabel" type="Label" parent="UI" unique_id=1056106503]
 offset_left = 8.0
 offset_top = 62.0
 offset_right = 600.0
 offset_bottom = 82.0
-theme_override_font_sizes/font_size = 11
 theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 11
 text = "点击我方单位选中 | 点蓝格移动 | 移动至敌人旁自动攻击 | R重置"
 
-[node name="ActionMenu" type="PanelContainer" parent="UI"]
+[node name="ActionMenu" type="PanelContainer" parent="UI" unique_id=112879972]
 visible = false
-offset_left = 0.0
-offset_top = 0.0
 offset_right = 140.0
 offset_bottom = 90.0
 
-[node name="VBox" type="VBoxContainer" parent="UI/ActionMenu"]
-offset_left = 4.0
-offset_top = 4.0
-offset_right = 136.0
-offset_bottom = 86.0
+[node name="VBox" type="VBoxContainer" parent="UI/ActionMenu" unique_id=486672960]
+layout_mode = 2
 
-[node name="AttackBtn" type="Button" parent="UI/ActionMenu/VBox"]
+[node name="AttackBtn" type="Button" parent="UI/ActionMenu/VBox" unique_id=1035636419]
 custom_minimum_size = Vector2(128, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
 text = "⚔ 攻击"
-theme_override_font_sizes/font_size = 14
 
-[node name="WaitBtn" type="Button" parent="UI/ActionMenu/VBox"]
+[node name="WaitBtn" type="Button" parent="UI/ActionMenu/VBox" unique_id=1201918824]
 custom_minimum_size = Vector2(128, 36)
-text = "⏸ 等待"
+layout_mode = 2
 theme_override_font_sizes/font_size = 14
+text = "⏸ 等待"
 
-[node name="PredictPanel" type="PanelContainer" parent="UI"]
+[node name="PredictPanel" type="PanelContainer" parent="UI" unique_id=2130539311]
 visible = false
-offset_left = 0.0
-offset_top = 0.0
 offset_right = 280.0
 offset_bottom = 180.0
 
-[node name="VBox" type="VBoxContainer" parent="UI/PredictPanel"]
-offset_left = 8.0
-offset_top = 8.0
-offset_right = 272.0
-offset_bottom = 172.0
+[node name="VBox" type="VBoxContainer" parent="UI/PredictPanel" unique_id=1669515753]
+layout_mode = 2
 
-[node name="Title" type="Label" parent="UI/PredictPanel/VBox"]
+[node name="Title" type="Label" parent="UI/PredictPanel/VBox" unique_id=1520621507]
+layout_mode = 2
 theme_override_font_sizes/font_size = 15
 text = "战斗预测"
 
-[node name="AtkLine" type="Label" parent="UI/PredictPanel/VBox"]
+[node name="AtkLine" type="Label" parent="UI/PredictPanel/VBox" unique_id=604456442]
+layout_mode = 2
 theme_override_font_sizes/font_size = 13
 text = "攻：奈德  伤害 8  命中 82%"
 
-[node name="DefLine" type="Label" parent="UI/PredictPanel/VBox"]
+[node name="DefLine" type="Label" parent="UI/PredictPanel/VBox" unique_id=1864651220]
+layout_mode = 2
 theme_override_font_sizes/font_size = 13
 text = "防：王军  伤害 3  命中 55%"
 
-[node name="DoubleLine" type="Label" parent="UI/PredictPanel/VBox"]
-theme_override_font_sizes/font_size = 11
+[node name="DoubleLine" type="Label" parent="UI/PredictPanel/VBox" unique_id=300538588]
+layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.9, 0.3, 1)
-text = ""
+theme_override_font_sizes/font_size = 11
 
-[node name="Buttons" type="HBoxContainer" parent="UI/PredictPanel/VBox"]
+[node name="Buttons" type="HBoxContainer" parent="UI/PredictPanel/VBox" unique_id=1700513298]
+layout_mode = 2
 
-[node name="ConfirmBtn" type="Button" parent="UI/PredictPanel/VBox/Buttons"]
+[node name="ConfirmBtn" type="Button" parent="UI/PredictPanel/VBox/Buttons" unique_id=854453675]
 custom_minimum_size = Vector2(120, 34)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
 text = "✔ 确认攻击"
-theme_override_font_sizes/font_size = 13
 
-[node name="CancelBtn" type="Button" parent="UI/PredictPanel/VBox/Buttons"]
+[node name="CancelBtn" type="Button" parent="UI/PredictPanel/VBox/Buttons" unique_id=377216184]
 custom_minimum_size = Vector2(100, 34)
-text = "✘ 取消"
+layout_mode = 2
 theme_override_font_sizes/font_size = 13
+text = "✘ 取消"
 
-[node name="ResultPanel" type="PanelContainer" parent="UI"]
+[node name="ResultPanel" type="PanelContainer" parent="UI" unique_id=52861157]
 visible = false
-offset_left = 0.0
-offset_top = 0.0
 offset_right = 320.0
 offset_bottom = 160.0
 
-[node name="VBox" type="VBoxContainer" parent="UI/ResultPanel"]
-offset_left = 12.0
-offset_top = 12.0
-offset_right = 308.0
-offset_bottom = 148.0
+[node name="VBox" type="VBoxContainer" parent="UI/ResultPanel" unique_id=1838612037]
+layout_mode = 2
 
-[node name="ResultTitle" type="Label" parent="UI/ResultPanel/VBox"]
+[node name="ResultTitle" type="Label" parent="UI/ResultPanel/VBox" unique_id=288603368]
+layout_mode = 2
 theme_override_font_sizes/font_size = 28
-horizontal_alignment = 1
 text = "胜利！"
-
-[node name="ResultMsg" type="Label" parent="UI/ResultPanel/VBox"]
-theme_override_font_sizes/font_size = 14
 horizontal_alignment = 1
-text = "成功占领营地"
 
-[node name="RestartBtn" type="Button" parent="UI/ResultPanel/VBox"]
+[node name="ResultMsg" type="Label" parent="UI/ResultPanel/VBox" unique_id=1014499472]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "成功占领营地"
+horizontal_alignment = 1
+
+[node name="RestartBtn" type="Button" parent="UI/ResultPanel/VBox" unique_id=1495528671]
 custom_minimum_size = Vector2(240, 40)
-text = "重新开始 (R)"
+layout_mode = 2
 theme_override_font_sizes/font_size = 15
+text = "重新开始 (R)"
