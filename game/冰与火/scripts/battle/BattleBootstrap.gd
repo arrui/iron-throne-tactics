@@ -5,9 +5,18 @@ extends "res://scripts/battle/BattleMap.gd"
 
 const UNIT_SCENE        := preload("res://scenes/battle/Unit.tscn")
 const DIALOGUE_BOX_SCENE := preload("res://scenes/dialogue/DialogueBox.tscn")
-const DATA_PATH         := "res://data/units/"
+const DATA_PATH          := "res://data/units/"
+const SPRITE_PATH        := "res://assets/units/"
 const PRE_DIALOGUE_PATH  := "res://data/dialogues/prologue_1_pre.json"
 const POST_DIALOGUE_PATH := "res://data/dialogues/prologue_1_post.json"
+
+# 角色数据文件 → 地图图标文件的映射
+const UNIT_SPRITE_MAP := {
+	"ned_stark.json":        "ned_stark_map.png",
+	"robert_baratheon.json": "robert_baratheon_map.png",
+	"howland_reed.json":     "howland_reed_map.png",
+	"royal_soldier.json":    "royal_soldier_map.png",
+}
 
 var _dialogue_box: CanvasLayer  = null
 var _dialogue_sys: DialogueSystem = null
@@ -86,8 +95,17 @@ func _make_unit(filename: String, team: int, pos: Vector2i) -> void:
 	var unit: Node2D = UNIT_SCENE.instantiate()
 	unit.setup(UnitData.from_dict(json.data), team, pos)
 
-	if team == 1:
-		var sprite: ColorRect = unit.get_node("Sprite")
-		sprite.color = Color(1.0, 0.3, 0.2)
+	# 加载对应角色的地图图标（spritesheet 48×16，含3帧）
+	var sprite_file: String = UNIT_SPRITE_MAP.get(filename, "")
+	if sprite_file != "":
+		var tex := load(SPRITE_PATH + sprite_file)
+		if tex != null:
+			var sprite: Sprite2D = unit.get_node("Sprite")
+			sprite.texture      = tex
+			# 只显示第1帧（直立帧，x=0~15）
+			sprite.region_enabled = true
+			sprite.region_rect    = Rect2(0, 0, 16, 16)
+		else:
+			push_error("无法加载图标：" + SPRITE_PATH + sprite_file)
 
 	add_unit(unit)
