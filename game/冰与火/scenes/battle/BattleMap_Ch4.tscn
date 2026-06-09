@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=4 uid="uid://battlemap_ch4_001"]
+
+[ext_resource type="PackedScene" path="res://scenes/battle/BattleMap.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/battle/BattleBootstrap_Ch4.gd" id="2_script"]
+
+[node name="BattleMap" instance=ExtResource("1_base")]
+script = ExtResource("2_script")
+
+[node name="Camera2D" parent="."]
+limit_right = 2592
+limit_bottom = 1872

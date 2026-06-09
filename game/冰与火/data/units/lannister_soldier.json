@@ -1,0 +1,21 @@
+{
+  "name": "兰尼斯特士兵",
+  "class": "步兵",
+  "level": 4,
+  "hp": 20,
+  "max_hp": 20,
+  "pow": 7,
+  "spd": 5,
+  "skl": 6,
+  "def": 6,
+  "lck": 3,
+  "con": 8,
+  "move": 4,
+  "weapon_type": "sword",
+  "weapon_rank": "E",
+  "weapon_uses": 45,
+  "weapon_max_uses": 45,
+  "is_protagonist": false,
+  "is_boss": false,
+  "min_hp": 0
+}

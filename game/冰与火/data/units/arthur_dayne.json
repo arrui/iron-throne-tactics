@@ -1,0 +1,21 @@
+{
+  "name": "亚瑟·戴恩",
+  "class": "王卫剑圣",
+  "level": 20,
+  "hp": 65,
+  "max_hp": 65,
+  "pow": 18,
+  "spd": 17,
+  "skl": 20,
+  "def": 16,
+  "lck": 10,
+  "con": 13,
+  "move": 6,
+  "weapon_type": "sword",
+  "weapon_rank": "S",
+  "weapon_uses": 20,
+  "weapon_max_uses": 20,
+  "is_protagonist": false,
+  "is_boss": true,
+  "min_hp": 1
+}

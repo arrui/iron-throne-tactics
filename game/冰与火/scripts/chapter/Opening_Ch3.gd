@@ -1,0 +1,10 @@
+extends "res://scripts/chapter/ChapterOpening.gd"
+
+func _setup() -> void:
+	_chapter_num   = "序章·三"
+	_chapter_title = "极乐塔"
+	_chapter_time  = "多恩 · 三叉戟之战后数日"
+	_battle_scene  = "res://scenes/battle/BattleMap_Ch3.tscn"
+	_cutscene_files = [
+		"res://data/cutscenes/ch3_opening.json",
+	]

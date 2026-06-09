@@ -42,6 +42,11 @@ func _init() -> void:
 	_run_suite("战斗预测全流程", _test_battle_predict_full)
 	_run_suite("Unit 状态机（含 undo_move）", _test_unit_state_machine)
 	_run_suite("路径查找 Dijkstra 逻辑", _test_pathfinding_logic)
+	_run_suite("武器耐久系统", _test_weapon_durability)
+	_run_suite("道具系统", _test_item_system)
+	_run_suite("武器三角加成", _test_weapon_triangle)
+	_run_suite("Boss 无敌底板（min_hp）", _test_boss_min_hp)
+	_run_suite("SaveSystem 存档读档", _test_save_system)
 
 	print("\n╔══════════════════════════════════════╗")
 	var status: String = "全部通过 ✓" if _fail_count == 0 else ("失败 %d 项 ✗" % _fail_count)
@@ -573,6 +578,237 @@ func _test_battle_predict_full() -> void:
 	# 验证守方反击伤害合理
 	_assert(pred["def_damage"] >= 1 and pred["def_damage"] <= 50,
 		"def_damage在合理范围内（=%d）" % pred["def_damage"])
+
+# ══════════════════════════════════════════════════════════
+# 测试套件 13：武器耐久系统
+# ══════════════════════════════════════════════════════════
+func _test_weapon_durability() -> void:
+	# 有耐久的武器
+	var d := UnitData.from_dict({
+		"name": "剑士", "class": "剑士", "level": 1,
+		"hp": 20, "max_hp": 20,
+		"pow": 7, "spd": 8, "skl": 7, "def": 6, "lck": 5, "con": 8,
+		"move": 5, "weapon_type": "sword", "weapon_rank": "C",
+		"weapon_uses": 3, "weapon_max_uses": 3,
+		"is_protagonist": false, "is_boss": false, "min_hp": 0, "items": []
+	})
+	_assert_eq(d.weapon_uses,     3,        "初始 weapon_uses=3")
+	_assert_eq(d.weapon_max_uses, 3,        "初始 weapon_max_uses=3")
+	_assert(not d.is_weapon_broken(),        "武器完好时 is_weapon_broken=false")
+	_assert_eq(d.get_weapon_key(), "sword_C","完好时 weapon_key=sword_C")
+
+	# 使用两次
+	d.use_weapon_once(); d.use_weapon_once()
+	_assert_eq(d.weapon_uses, 1,            "使用两次后剩余1次")
+	_assert(not d.is_weapon_broken(),        "还有1次不算破损")
+
+	# 最后一次
+	d.use_weapon_once()
+	_assert_eq(d.weapon_uses, 0,            "使用完毕后=0")
+	_assert(d.is_weapon_broken(),            "耐久归零后is_weapon_broken=true")
+	_assert_eq(d.get_weapon_key(), "fist",  "武器破损后回退到fist")
+
+	# 破损武器不能继续消耗（uses不变）
+	d.use_weapon_once()
+	_assert_eq(d.weapon_uses, 0,            "破损后再调用use_weapon_once不变")
+
+	# fist 在 BattleCalculator 中有回退值
+	var fist_weapon: Dictionary = BattleCalculator.WEAPON_BASE.get("fist", {}) as Dictionary
+	_assert(not fist_weapon.is_empty(),      "WEAPON_BASE包含fist后备武器")
+	_assert_eq(int(fist_weapon.get("atk", 0)), 1, "fist atk=1")
+
+	# 无限耐久（weapon_uses=-1）
+	var d2 := UnitData.from_dict({
+		"name": "X", "class": "X", "level": 1,
+		"hp": 20, "max_hp": 20,
+		"pow": 5, "spd": 5, "skl": 5, "def": 5, "lck": 3, "con": 7,
+		"move": 5, "weapon_type": "sword", "weapon_rank": "E",
+		"weapon_uses": -1, "weapon_max_uses": -1,
+		"is_protagonist": false, "is_boss": false, "min_hp": 0, "items": []
+	})
+	_assert(not d2.is_weapon_broken(),       "weapon_uses=-1不视为破损")
+	d2.use_weapon_once()
+	_assert_eq(d2.weapon_uses, -1,           "weapon_uses=-1调用后仍为-1（无限）")
+
+# ══════════════════════════════════════════════════════════
+# 测试套件 14：道具系统
+# ══════════════════════════════════════════════════════════
+func _test_item_system() -> void:
+	var d := UnitData.from_dict({
+		"name": "X", "class": "X", "level": 1,
+		"hp": 15, "max_hp": 30,
+		"pow": 5, "spd": 5, "skl": 5, "def": 5, "lck": 3, "con": 7,
+		"move": 5, "weapon_type": "sword", "weapon_rank": "E",
+		"weapon_uses": -1, "weapon_max_uses": -1,
+		"is_protagonist": false, "is_boss": false, "min_hp": 0,
+		"items": [
+			{"name": "急救药", "type": "heal", "heal_amount": 10, "uses": 2},
+			{"name": "过期药", "type": "heal", "heal_amount": 5, "uses": 0}
+		]
+	})
+
+	_assert(d.has_usable_items(),            "有可用道具时has_usable_items=true")
+	_assert_eq(d.items.size(), 2,            "初始道具数=2")
+
+	# 使用急救药第一次（uses: 2→1）
+	var item1 := d.use_item(0)
+	_assert(not item1.is_empty(),            "use_item返回非空字典")
+	_assert_eq(item1.get("name", ""), "急救药", "返回正确道具名")
+	_assert_eq(int(item1.get("heal_amount", 0)), 10, "治疗量=10")
+	_assert_eq(d.items.size(), 2,            "使用后道具仍2项（未归零）")
+	_assert_eq(int((d.items[0] as Dictionary).get("uses", -1)), 1, "急救药剩余uses=1")
+
+	# 使用急救药第二次（uses: 1→0，自动移除）
+	var item2 := d.use_item(0)
+	_assert(not item2.is_empty(),            "第二次使用仍有效")
+	_assert_eq(d.items.size(), 1,            "急救药用尽后自动移除，剩1项")
+
+	# 使用过期药（uses=0，不可用）
+	var item3 := d.use_item(0)
+	_assert(item3.is_empty(),               "uses=0的道具use_item返回空字典")
+
+	# 全部道具用尽
+	_assert(not d.has_usable_items(),       "无可用道具时has_usable_items=false")
+
+	# 越界索引
+	var item4 := d.use_item(99)
+	_assert(item4.is_empty(),               "越界索引返回空字典")
+
+# ══════════════════════════════════════════════════════════
+# 测试套件 15：武器三角加成
+# ══════════════════════════════════════════════════════════
+func _test_weapon_triangle() -> void:
+	# 剑 > 斧（剑优势）
+	_assert_eq(BattleCalculator.weapon_triangle_atk("sword_C", "axe_C"), 1,
+		"剑vs斧 ATK+1")
+	_assert_eq(BattleCalculator.weapon_triangle_hit("sword_C", "axe_C"), 5,
+		"剑vs斧 HIT+5")
+
+	# 斧 > 枪（斧优势）
+	_assert_eq(BattleCalculator.weapon_triangle_atk("axe_E", "lance_E"), 1,
+		"斧vs枪 ATK+1")
+
+	# 枪 > 剑（枪优势）
+	_assert_eq(BattleCalculator.weapon_triangle_atk("lance_C", "sword_C"), 1,
+		"枪vs剑 ATK+1")
+
+	# 逆三角劣势
+	_assert_eq(BattleCalculator.weapon_triangle_atk("axe_C", "sword_C"), -1,
+		"斧vs剑 ATK-1（劣势）")
+	_assert_eq(BattleCalculator.weapon_triangle_atk("sword_E", "lance_E"), -1,
+		"剑vs枪 ATK-1（劣势）")
+	_assert_eq(BattleCalculator.weapon_triangle_atk("lance_E", "axe_E"), -1,
+		"枪vs斧 ATK-1（劣势）")
+
+	# 同类武器无加成
+	_assert_eq(BattleCalculator.weapon_triangle_atk("sword_C", "sword_E"), 0,
+		"同类武器三角=0")
+
+	# fist 无三角
+	_assert_eq(BattleCalculator.weapon_triangle_atk("fist", "sword_E"), 0,
+		"fist无武器三角加成")
+
+	# 三角对实际伤害的影响
+	var atk := _make_unit_data({"pow": 10})
+	var def2 := _make_enemy_data({"def": 5})
+	# sword vs axe: 10+sword_C(9)+1 - 5 = 15
+	_assert_eq(BattleCalculator.calc_damage(atk, def2, "sword_C", "axe_C"), 15,
+		"剑vs斧 伤害含三角 pow10+sword_C9+1-def5=15")
+	# sword vs lance: 10+9-1 - 5 = 13
+	_assert_eq(BattleCalculator.calc_damage(atk, def2, "sword_C", "lance_C"), 13,
+		"剑vs枪 伤害含三角劣势 pow10+sword_C9-1-def5=13")
+	# sword vs sword: 10+9+0 - 5 = 14
+	_assert_eq(BattleCalculator.calc_damage(atk, def2, "sword_C", "sword_C"), 14,
+		"剑vs剑 无三角加成 pow10+sword_C9-def5=14")
+
+# ══════════════════════════════════════════════════════════
+# 测试套件 16：Boss 无敌底板（min_hp）
+# ══════════════════════════════════════════════════════════
+func _test_boss_min_hp() -> void:
+	var unit := Unit.new()
+	var data := UnitData.from_dict({
+		"name": "亚瑟·戴恩", "class": "剑圣", "level": 20,
+		"hp": 65, "max_hp": 65,
+		"pow": 18, "spd": 17, "skl": 20, "def": 16, "lck": 10, "con": 13,
+		"move": 6, "weapon_type": "sword", "weapon_rank": "S",
+		"weapon_uses": 20, "weapon_max_uses": 20,
+		"is_protagonist": false, "is_boss": true, "min_hp": 1, "items": []
+	})
+	unit.setup(data, 1, Vector2i(0, 0))
+
+	# 正常受伤
+	unit.take_damage(30)
+	_assert_eq(unit.data.hp, 35,     "受伤30后hp=35")
+	_assert(not unit.is_dead(),       "hp>1不死亡")
+
+	# 大量伤害不能降到1以下
+	unit.take_damage(9999)
+	_assert_eq(unit.data.hp, 1,      "min_hp=1时无法降到1以下")
+	_assert(not unit.is_dead(),       "min_hp=1时永远不触发死亡")
+	_assert(not unit._pending_death,  "min_hp=1时_pending_death保持false")
+
+	# 无min_hp的普通单位仍然可以死亡
+	var normal_unit := Unit.new()
+	var normal_data := UnitData.from_dict({
+		"name": "普通兵", "class": "步兵", "level": 1,
+		"hp": 10, "max_hp": 10,
+		"pow": 5, "spd": 5, "skl": 5, "def": 5, "lck": 3, "con": 7,
+		"move": 4, "weapon_type": "sword", "weapon_rank": "E",
+		"weapon_uses": -1, "weapon_max_uses": -1,
+		"is_protagonist": false, "is_boss": false, "min_hp": 0, "items": []
+	})
+	normal_unit.setup(normal_data, 1, Vector2i(0, 0))
+	normal_unit.take_damage(9999)
+	_assert_eq(normal_unit.data.hp, 0, "min_hp=0时hp可降至0")
+	_assert(normal_unit.is_dead(),     "min_hp=0时正常死亡")
+
+	unit.free()
+	normal_unit.free()
+
+# ══════════════════════════════════════════════════════════
+# 测试套件 17：SaveSystem 存档读档
+# ══════════════════════════════════════════════════════════
+func _test_save_system() -> void:
+	const SAVE_SYS_PATH := "res://scripts/systems/SaveSystem.gd"
+	if not ResourceLoader.exists(SAVE_SYS_PATH):
+		_assert(false, "SaveSystem.gd 文件不存在")
+		return
+
+	var ss := load(SAVE_SYS_PATH)
+
+	# 初始状态：无存档
+	ss.delete_save()
+	_assert(not ss.has_save(),             "删除后has_save=false")
+	_assert_eq(ss.load_current_chapter(), 1, "无存档时默认返回章节1")
+
+	# 保存第1章完成
+	ss.save_chapter_complete(1)
+	_assert(ss.has_save(),                 "保存后has_save=true")
+	_assert_eq(ss.load_current_chapter(), 2, "完成Ch1后下次从Ch2开始")
+
+	var completed: Array = ss.get_completed_chapters()
+	_assert(completed.has(1),              "已完成章节列表包含1")
+	_assert(not completed.has(2),          "章节2未完成")
+
+	# 保存第2章完成
+	ss.save_chapter_complete(2)
+	_assert_eq(ss.load_current_chapter(), 3, "完成Ch2后下次从Ch3开始")
+
+	var completed2: Array = ss.get_completed_chapters()
+	_assert(completed2.has(1),             "已完成列表仍包含1")
+	_assert(completed2.has(2),             "已完成列表包含2")
+
+	# 重复保存同章节不重复计
+	ss.save_chapter_complete(1)
+	var completed3: Array = ss.get_completed_chapters()
+	var count := 0
+	for v in completed3:
+		if v == 1: count += 1
+	_assert_eq(count, 1,                   "重复保存不会重复添加到列表")
+
+	# 清理：删除测试存档
+	ss.delete_save()
+	_assert(not ss.has_save(),             "测试结束后清理存档")
 
 # ══════════════════════════════════════════════════════════
 # 测试套件 11：Unit 状态机（含 undo_move）

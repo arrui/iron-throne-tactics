@@ -1,0 +1,25 @@
+{
+  "id": "ch3_post",
+  "lines": [
+    {
+      "speaker": "豪兰",
+      "text": "……奈德爵士。",
+      "next": 1
+    },
+    {
+      "speaker": "奈德",
+      "text": "别说话。",
+      "next": 2
+    },
+    {
+      "speaker": "豪兰",
+      "text": "……",
+      "next": 3
+    },
+    {
+      "speaker": "奈德",
+      "text": "我答应过她。",
+      "next": -1
+    }
+  ]
+}

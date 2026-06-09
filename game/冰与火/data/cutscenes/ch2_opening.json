@@ -1,0 +1,35 @@
+{
+  "id": "ch2_opening",
+  "slides": [
+    {
+      "text": "三叉戟河。\n篡夺者战争，第三年。",
+      "subtext": "",
+      "duration": 3.5,
+      "scene_art": "stormlands_road"
+    },
+    {
+      "text": "义军在河的北岸集结，\n旗帜连绵数里。",
+      "subtext": "史塔克的冰狼，拜拉席恩的鹿，艾林的鹰隼——\n三家之力汇于一处，等待着同一个时刻。",
+      "duration": 5.5,
+      "scene_art": "stormlands_road"
+    },
+    {
+      "text": "劳勃·拜拉席恩手持战锤，\n对麾下士兵说了什么。",
+      "subtext": "没有人听清楚全部的字句。\n但所有听到的人，都提起了手中的武器。",
+      "duration": 5.0,
+      "scene_art": "stormlands_road"
+    },
+    {
+      "text": "对岸，坦格利安王师在三叉戟南岸布阵。\n龙石岛王子雷加·坦格利安亲率中军。",
+      "subtext": "两军相望，河水在两者之间无声流淌。\n那是最后一段宁静。",
+      "duration": 5.5,
+      "scene_art": ""
+    },
+    {
+      "text": "序章·二",
+      "subtext": "三叉戟",
+      "duration": 4.0,
+      "scene_art": ""
+    }
+  ]
+}

@@ -468,6 +468,13 @@ theme_override_font_sizes/font_size = 14
 visible = false
 text = "↩ 取消移动"
 
+[node name="ItemsBtn" type="Button" parent="UI/ActionMenu/VBox"]
+custom_minimum_size = Vector2(128, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+visible = false
+text = "🎒 使用道具"
+
 [node name="PredictPanel" type="PanelContainer" parent="UI" unique_id=2130539311]
 visible = false
 offset_right = 280.0

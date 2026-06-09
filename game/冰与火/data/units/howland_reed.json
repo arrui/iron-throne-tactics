@@ -2,15 +2,18 @@
   "name": "豪兰",
   "class": "长枪兵",
   "level": 5,
-  "hp": 34,
-  "max_hp": 34,
-  "pow": 10,
-  "spd": 10,
-  "skl": 13,
-  "def": 8,
-  "lck": 9,
-  "con": 8,
+  "hp": 34, "max_hp": 34,
+  "pow": 10, "spd": 10, "skl": 13, "def": 8, "lck": 9, "con": 8,
   "move": 5,
   "weapon_type": "lance",
-  "weapon_rank": "C"
+  "weapon_rank": "C",
+  "weapon_uses": 38,
+  "weapon_max_uses": 38,
+  "is_protagonist": true,
+  "is_boss": false,
+  "min_hp": 0,
+  "items": [
+    {"name": "急救药", "type": "heal", "heal_amount": 10, "uses": 2},
+    {"name": "火油", "type": "offensive", "burn_damage": 5, "burn_turns": 2, "uses": 1}
+  ]
 }

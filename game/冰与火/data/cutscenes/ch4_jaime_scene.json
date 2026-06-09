@@ -1,0 +1,23 @@
+{
+  "id": "ch4_jaime_scene",
+  "slides": [
+    {
+      "text": "",
+      "subtext": "",
+      "duration": 2.0,
+      "scene_art": "throne_room"
+    },
+    {
+      "text": "铁王座大厅。\n詹姆·兰尼斯特独自站立，\n持剑，背对着来者。",
+      "subtext": "王卫白袍上染了血。\n他没有回头。",
+      "duration": 6.0,
+      "scene_art": "throne_room"
+    },
+    {
+      "text": "疯王艾里斯·坦格利安，\n就倒在铁王座的台阶下。",
+      "subtext": "后世将在史书中称此人为「弑君者」。\n但此刻，铁王座大厅里只有沉默。",
+      "duration": 6.5,
+      "scene_art": "throne_room"
+    }
+  ]
+}

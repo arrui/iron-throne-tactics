@@ -1,0 +1,21 @@
+{
+  "name": "雷加",
+  "class": "龙骑枪骑士",
+  "level": 12,
+  "hp": 52,
+  "max_hp": 52,
+  "pow": 16,
+  "spd": 13,
+  "skl": 15,
+  "def": 12,
+  "lck": 8,
+  "con": 12,
+  "move": 6,
+  "weapon_type": "lance",
+  "weapon_rank": "B",
+  "weapon_uses": 25,
+  "weapon_max_uses": 25,
+  "is_protagonist": false,
+  "is_boss": true,
+  "min_hp": 0
+}

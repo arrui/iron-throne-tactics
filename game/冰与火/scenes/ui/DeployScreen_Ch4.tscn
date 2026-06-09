@@ -1,0 +1,6 @@
+[gd_scene format=4 uid="uid://deploy_ch4_001"]
+
+[ext_resource type="Script" path="res://scripts/ui/DeployScreen_Ch4.gd" id="1"]
+
+[node name="DeployScreen_Ch4" type="CanvasLayer"]
+script = ExtResource("1")

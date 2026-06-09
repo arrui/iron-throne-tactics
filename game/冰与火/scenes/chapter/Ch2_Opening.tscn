@@ -1,0 +1,6 @@
+[gd_scene format=4 uid="uid://ch2_opening_001"]
+
+[ext_resource type="Script" path="res://scripts/chapter/Opening_Ch2.gd" id="1"]
+
+[node name="Ch2Opening" type="Node"]
+script = ExtResource("1")

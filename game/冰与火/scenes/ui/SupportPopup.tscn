@@ -1,0 +1,51 @@
+[gd_scene format=4 uid="uid://support_popup_001"]
+
+[ext_resource type="Script" path="res://scripts/systems/SupportPopup.gd" id="1"]
+
+[node name="SupportPopup" type="CanvasLayer"]
+layer = 25
+visible = false
+script = ExtResource("1")
+
+[node name="Background" type="PanelContainer" parent="."]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -225.0
+offset_top = -110.0
+offset_right = 225.0
+offset_bottom = 110.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="Background"]
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+
+[node name="TitleLabel" type="Label" parent="Background/VBox"]
+theme_override_colors/font_color = Color(1.0, 0.82, 0.2, 1.0)
+theme_override_font_sizes/font_size = 16
+text = "\u2694 \u652f\u63f4\u52a0\u6210"
+
+[node name="SeparatorLine" type="HSeparator" parent="Background/VBox"]
+size_flags_horizontal = 3
+
+[node name="ContentLabel" type="Label" parent="Background/VBox"]
+theme_override_colors/font_color = Color(0.88, 0.88, 0.88, 1.0)
+theme_override_font_sizes/font_size = 13
+text = ""
+autowrap_mode = 3
+size_flags_horizontal = 3
+
+[node name="RankLabel" type="Label" parent="Background/VBox"]
+theme_override_colors/font_color = Color(0.3, 0.9, 0.9, 1.0)
+theme_override_font_sizes/font_size = 14
+text = ""
+size_flags_horizontal = 3
+
+[node name="CloseBtn" type="Button" parent="Background/VBox"]
+text = "\u77e5\u9053\u4e86"
+size_flags_horizontal = 8

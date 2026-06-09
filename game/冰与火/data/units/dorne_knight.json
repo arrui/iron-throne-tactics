@@ -1,0 +1,21 @@
+{
+  "name": "多恩骑士",
+  "class": "枪骑士",
+  "level": 6,
+  "hp": 24,
+  "max_hp": 24,
+  "pow": 8,
+  "spd": 8,
+  "skl": 7,
+  "def": 6,
+  "lck": 4,
+  "con": 8,
+  "move": 5,
+  "weapon_type": "lance",
+  "weapon_rank": "D",
+  "weapon_uses": 35,
+  "weapon_max_uses": 35,
+  "is_protagonist": false,
+  "is_boss": false,
+  "min_hp": 0
+}

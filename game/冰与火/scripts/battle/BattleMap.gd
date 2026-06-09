@@ -8,7 +8,9 @@ signal battle_lost
 const TILE_SIZE := 72
 const CAM_SPEED := 520.0
 
-const BATTLE_ANIM_SCENE := preload("res://scenes/battle/BattleAnimation.tscn")
+const BATTLE_ANIM_SCENE  := preload("res://scenes/battle/BattleAnimation.tscn")
+const GAME_OVER_PATH     := "res://scenes/ui/GameOver.tscn"
+const SUPPORT_POPUP_PATH := "res://scenes/ui/SupportPopup.tscn"
 
 enum Phase { PLAYER_TURN, ENEMY_TURN }
 enum PlayerState { IDLE, UNIT_SELECTED, UNIT_MOVED, PREDICT }
@@ -69,6 +71,15 @@ var _result_title:     Label         = null
 var _result_msg:       Label         = null
 var _restart_btn:      Button        = null
 var _end_turn_btn:     Button        = null
+var _items_btn:        Button        = null
+
+# ── 道具面板（动态创建）──────────────────────────────────
+var _active_items_panel: Control = null
+
+# ── 支援追踪 ──────────────────────────────────────────────
+const SUPPORT_C_THRESHOLD := 5
+var _support_data:  Dictionary = {}   # key → adjacency count
+var _support_popup_shown: Dictionary = {} # key → bool（弹窗只显示一次）
 
 # ── 高亮颜色 ─────────────────────────────────────────────
 const MOVEABLE_COLOR := Color(0.20, 0.50, 1.00, 0.42)
@@ -132,6 +143,9 @@ func _bind_ui() -> void:
 			_wait_btn.pressed.connect(_on_wait_pressed)
 		if _cancel_move_btn and not _cancel_move_btn.pressed.is_connected(_on_cancel_move_pressed):
 			_cancel_move_btn.pressed.connect(_on_cancel_move_pressed)
+		_items_btn = _action_menu.get_node_or_null("VBox/ItemsBtn") as Button
+		if _items_btn and not _items_btn.pressed.is_connected(_on_items_pressed):
+			_items_btn.pressed.connect(_on_items_pressed)
 
 	if _predict_panel:
 		_atk_line    = _predict_panel.get_node_or_null("VBox/AtkLine")             as Label
@@ -520,6 +534,8 @@ func _show_action_menu(grid_pos: Vector2i, can_attack: bool) -> void:
 	_action_menu.position = mp
 	if _atk_btn:         _atk_btn.visible = can_attack
 	if _cancel_move_btn: _cancel_move_btn.visible = (_pre_move_pos != Vector2i(-1, -1))
+	if _items_btn:
+		_items_btn.visible = selected_unit != null and selected_unit.data.has_usable_items()
 	_action_menu.visible = true
 
 func _on_attack_pressed() -> void:
@@ -670,6 +686,11 @@ func _execute_combat_from_result(attacker: Unit, defender: Unit,
 	print(log)
 	_set_status(log)
 
+	# 武器耐久消耗
+	attacker.data.use_weapon_once()
+	if not defender.is_dead():
+		defender.data.use_weapon_once()
+
 	attacker.resolve_death()
 	defender.resolve_death()
 	attacker.mark_acted()
@@ -737,6 +758,7 @@ func _restart() -> void:
 func _check_all_acted() -> void:
 	if _battle_over: return
 	if not player_units.any(func(u: Unit) -> bool: return not u.is_dead() and u.can_act()):
+		_update_support_adjacency()   # 回合结束时统计支援相邻
 		await get_tree().create_timer(0.5).timeout
 		_start_enemy_turn()
 
@@ -870,8 +892,152 @@ func _calc_move_range(unit: Unit) -> Array[Vector2i]:
 	return result
 
 func _on_unit_died(unit: Unit) -> void:
+	# 主角阵亡 → Game Over（不进行普通死亡处理）
+	if unit.data.is_protagonist:
+		_trigger_game_over(unit)
+		return
 	player_units.erase(unit)
 	enemy_units.erase(unit)
 	unit.queue_free()
 	queue_redraw()
 	_check_defeat()
+
+# ── Game Over（主角阵亡）────────────────────────────────
+func _trigger_game_over(unit: Unit) -> void:
+	_battle_over = true
+	_hide_all_panels()
+	if _end_turn_btn: _end_turn_btn.disabled = true
+	if ResourceLoader.exists(GAME_OVER_PATH):
+		var go: Node = load(GAME_OVER_PATH).instantiate()
+		var ui_layer := get_node_or_null("UI") as CanvasLayer
+		if ui_layer: ui_layer.add_child(go)
+		else: add_child(go)
+		if go.has_method("show_game_over"):
+			go.call("show_game_over", unit.data.name)
+		if go.has_signal("restart_chapter"):
+			go.connect("restart_chapter", _restart)
+		if go.has_signal("quit_to_menu"):
+			go.connect("quit_to_menu", _restart)
+	else:
+		_set_status("⚠ 主角 %s 阵亡——游戏结束" % unit.data.name)
+		await get_tree().create_timer(2.0).timeout
+		_restart()
+
+# ── 道具系统 ─────────────────────────────────────────────
+func _on_items_pressed() -> void:
+	_hide_all_panels()
+	if selected_unit == null: return
+	_show_items_panel(selected_unit)
+
+func _show_items_panel(unit: Unit) -> void:
+	if _active_items_panel != null:
+		_active_items_panel.queue_free()
+	var panel := PanelContainer.new()
+	var vbox  := VBoxContainer.new()
+	panel.add_child(vbox)
+	var title := Label.new()
+	title.text = "使用道具"
+	title.add_theme_font_size_override("font_size", 15)
+	vbox.add_child(title)
+	var has_items := false
+	for i: int in unit.data.items.size():
+		var item: Dictionary = unit.data.items[i] as Dictionary
+		if item.get("uses", 0) <= 0: continue
+		has_items = true
+		var btn := Button.new()
+		btn.text = "%s  ×%d" % [item.get("name", "?"), item.get("uses", 0)]
+		btn.custom_minimum_size = Vector2(180, 32)
+		var ci := i
+		btn.pressed.connect(func() -> void: _on_item_used(unit, ci))
+		vbox.add_child(btn)
+	if not has_items:
+		var lbl := Label.new()
+		lbl.text = "（无可用道具）"
+		vbox.add_child(lbl)
+	var cancel := Button.new()
+	cancel.text = "取消"
+	cancel.custom_minimum_size = Vector2(180, 30)
+	cancel.pressed.connect(func() -> void:
+		if _active_items_panel: _active_items_panel.queue_free(); _active_items_panel = null
+		_show_action_menu(unit.grid_pos, not _adj_enemies(unit.grid_pos).is_empty()))
+	vbox.add_child(cancel)
+	var ui_layer := get_node_or_null("UI") as CanvasLayer
+	if ui_layer: ui_layer.add_child(panel)
+	else:        add_child(panel)
+	var vs := get_viewport().get_visible_rect().size
+	panel.position = Vector2(vs.x * 0.5 - 90.0, vs.y * 0.5 - 100.0)
+	_active_items_panel = panel
+
+func _on_item_used(unit: Unit, item_idx: int) -> void:
+	if _active_items_panel:
+		_active_items_panel.queue_free()
+		_active_items_panel = null
+	var item := unit.data.use_item(item_idx)
+	if item.is_empty(): return
+	match item.get("type", ""):
+		"heal":
+			var amount: int = int(item.get("heal_amount", 10))
+			unit.data.hp = mini(unit.data.hp + amount, unit.data.max_hp)
+			unit._refresh_hp_label()
+			_set_status("%s 使用【%s】，恢复 %d HP" % [unit.data.name, item.get("name", "道具"), amount])
+		"offensive":
+			var burn_dmg: int = int(item.get("burn_damage", 5))
+			for enemy: Unit in enemy_units:
+				if _manhattan_dist(unit.grid_pos, enemy.grid_pos) == 1:
+					enemy.take_damage(burn_dmg)
+					enemy.resolve_death()
+					_set_status("%s 使用【%s】，对周围敌人造成 %d 伤" % [
+						unit.data.name, item.get("name", "道具"), burn_dmg])
+					break
+		_:
+			_set_status("%s 使用了 %s" % [unit.data.name, item.get("name", "道具")])
+	_hide_all_panels()
+	unit.mark_acted()
+	_refresh_unit_color(unit)
+	_deselect()
+	queue_redraw()
+	_check_victory()
+	_check_all_acted()
+
+# ── 支援系统 ──────────────────────────────────────────────
+func _update_support_adjacency() -> void:
+	for i: int in player_units.size():
+		for j: int in range(i + 1, player_units.size()):
+			var ua: Unit = player_units[i]
+			var ub: Unit = player_units[j]
+			if not is_instance_valid(ua) or not is_instance_valid(ub): continue
+			if ua.is_dead() or ub.is_dead(): continue
+			if _manhattan_dist(ua.grid_pos, ub.grid_pos) == 1:
+				var key := _support_key(ua.data.name, ub.data.name)
+				_support_data[key] = int(_support_data.get(key, 0)) + 1
+				if int(_support_data[key]) == SUPPORT_C_THRESHOLD and \
+						not _support_popup_shown.get(key, false):
+					_support_popup_shown[key] = true
+					_show_support_popup(ua.data.name, ub.data.name)
+
+func _show_support_popup(name_a: String, name_b: String) -> void:
+	if not ResourceLoader.exists(SUPPORT_POPUP_PATH): return
+	var popup: Node = load(SUPPORT_POPUP_PATH).instantiate()
+	var ui_layer := get_node_or_null("UI") as CanvasLayer
+	if ui_layer: ui_layer.add_child(popup)
+	else:        add_child(popup)
+	if popup.has_method("show_support"):
+		popup.call("show_support", name_a, name_b, "C", {"hit": 5, "avoid": 5})
+	if popup.has_signal("popup_closed"):
+		popup.connect("popup_closed", popup.queue_free)
+
+func get_support_hit_bonus(attacker: Unit, ally: Unit) -> int:
+	if attacker.team != 0 or ally.team != 0: return 0
+	if _manhattan_dist(attacker.grid_pos, ally.grid_pos) > 3: return 0
+	var key := _support_key(attacker.data.name, ally.data.name)
+	var pts: int = int(_support_data.get(key, 0))
+	if pts >= SUPPORT_C_THRESHOLD: return 5
+	return 0
+
+func _support_key(a: String, b: String) -> String:
+	var parts := [a, b]
+	parts.sort()
+	return "_".join(parts)
+
+func _manhattan_dist(a: Vector2i, b: Vector2i) -> int:
+	return abs(a.x - b.x) + abs(a.y - b.y)

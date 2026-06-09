@@ -1,4 +1,5 @@
-# BattleBootstrap.gd — 序章·一《风暴地》初始化（22×16 地图）
+# BattleBootstrap.gd — 序章·一《风暴地》（22×16）
+# 通关后：存档 → 过渡至序章·二
 extends "res://scripts/battle/BattleMap.gd"
 
 const UNIT_SCENE         := preload("res://scenes/battle/Unit.tscn")
@@ -119,10 +120,24 @@ func _on_battle_won_for_dialogue() -> void:
 	if _result_panel != null:
 		_result_panel.visible = false
 	await _play_dialogue(POST_DIALOGUE_PATH)
-	if _result_panel != null:
-		var vs: Vector2 = get_viewport().get_visible_rect().size
-		_result_panel.position = Vector2(vs.x * 0.5 - 160, vs.y * 0.5 - 80)
-		_result_panel.visible  = true
+	await _advance_chapter()
+
+# 序章·一通关 → 存档 → 进入序章·二
+func _advance_chapter() -> void:
+	const SAVE_SYS_PATH := "res://scripts/systems/SaveSystem.gd"
+	if ResourceLoader.exists(SAVE_SYS_PATH):
+		var ss := load(SAVE_SYS_PATH)
+		ss.save_chapter_complete(1)
+
+	const CH2_SCENE := "res://scenes/chapter/Ch2_Opening.tscn"
+	if ResourceLoader.exists(CH2_SCENE):
+		get_tree().change_scene_to_file(CH2_SCENE)
+	else:
+		# 场景尚未创建时的回退——显示结果面板
+		if _result_panel != null:
+			var vs: Vector2 = get_viewport().get_visible_rect().size
+			_result_panel.position = Vector2(vs.x * 0.5 - 160, vs.y * 0.5 - 80)
+			_result_panel.visible  = true
 
 # ── 单位生成 ─────────────────────────────────────────────
 func _spawn_player_units() -> void:
