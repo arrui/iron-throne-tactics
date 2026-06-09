@@ -12,6 +12,9 @@ const BATTLE_ANIM_SCENE  := preload("res://scenes/battle/BattleAnimation.tscn")
 const GAME_OVER_PATH     := "res://scenes/ui/GameOver.tscn"
 const SUPPORT_POPUP_PATH := "res://scenes/ui/SupportPopup.tscn"
 
+# 专用高亮层（在 TileLayer 之上、UnitLayer 之下）
+@onready var _hl: Node2D = $HighlightLayer
+
 enum Phase { PLAYER_TURN, ENEMY_TURN }
 enum PlayerState { IDLE, UNIT_SELECTED, UNIT_MOVED, PREDICT }
 
@@ -96,6 +99,12 @@ func _ready() -> void:
 	_update_turn_label()
 	_update_danger_zone()
 
+# 每次触发重绘时同步刷新高亮层
+func queue_redraw() -> void:
+	super.queue_redraw()
+	if is_instance_valid(_hl):
+		_hl.queue_redraw()
+
 # ── 每帧：摄像机滚动 + 悬停更新 ─────────────────────────
 func _process(delta: float) -> void:
 	if not _battle_over:
@@ -168,64 +177,66 @@ func _bind_ui() -> void:
 	if _end_turn_btn and not _end_turn_btn.pressed.is_connected(_on_end_turn_pressed):
 		_end_turn_btn.pressed.connect(_on_end_turn_pressed)
 
-# ── 高亮绘制（填充 + 高对比度边框）──────────────────────
+# ── 高亮绘制（由 HighlightLayer 调用，保证在地形之上、单位之下）────
 func _draw() -> void:
+	pass  # BattleMap 本身不绘制，由 HighlightLayer._draw() → _draw_highlights() 处理
+
+# HighlightLayer.gd 的 _draw() 回调此方法
+func _draw_highlights(canvas: Node2D) -> void:
 	# 1. 危险区（最底层）
 	if _show_danger:
 		for pos: Vector2i in _danger_tiles.keys():
-			_draw_tile_highlight(pos, DANGER_COLOR)
+			_draw_tile_highlight(canvas, pos, DANGER_COLOR)
 
 	# 2. 胜利格
-	_draw_tile_highlight(victory_pos, VICTORY_COLOR)
+	_draw_tile_highlight(canvas, victory_pos, VICTORY_COLOR)
 
 	# 3. 移动范围
 	for pos: Vector2i in move_range:
-		_draw_tile_highlight(pos, MOVEABLE_COLOR)
+		_draw_tile_highlight(canvas, pos, MOVEABLE_COLOR)
 
 	# 4. 攻击范围
 	for pos: Vector2i in attack_tiles:
-		_draw_tile_highlight(pos, ATTACK_COLOR)
+		_draw_tile_highlight(canvas, pos, ATTACK_COLOR)
 
 	# 5. 选中/已移动高亮
 	if player_state == PlayerState.UNIT_MOVED and selected_unit != null:
-		_draw_tile_highlight(selected_unit.grid_pos, MOVED_COLOR)
+		_draw_tile_highlight(canvas, selected_unit.grid_pos, MOVED_COLOR)
 	elif selected_unit != null:
-		_draw_tile_highlight(selected_unit.grid_pos, SELECTED_COLOR)
+		_draw_tile_highlight(canvas, selected_unit.grid_pos, SELECTED_COLOR)
 
-	# 6. 路径预览（最顶层，覆盖移动范围蓝色）
+	# 6. 路径预览
 	if not _path_preview.is_empty() and \
 			player_state == PlayerState.UNIT_SELECTED and selected_unit != null:
 		var from_pos := selected_unit.grid_pos
 		for i: int in _path_preview.size():
-			_draw_path_segment(from_pos, _path_preview[i], i == _path_preview.size() - 1)
+			_draw_path_segment(canvas, from_pos, _path_preview[i],
+				i == _path_preview.size() - 1)
 			from_pos = _path_preview[i]
 
-func _draw_tile_highlight(pos: Vector2i, color: Color) -> void:
+func _draw_tile_highlight(canvas: Node2D, pos: Vector2i, color: Color) -> void:
 	var rect := Rect2(pos.x * TILE_SIZE, pos.y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
-	draw_rect(rect, color)  # 半透明填充
-	# 亮边框（3倍透明度，最高1.0）
+	canvas.draw_rect(rect, color)
 	var bc := Color(color.r, color.g, color.b, minf(color.a * 3.0, 1.0))
-	draw_rect(rect, bc, false, 2.5)
+	canvas.draw_rect(rect, bc, false, 2.5)
 
-func _draw_path_segment(from_pos: Vector2i, to_pos: Vector2i, is_last: bool) -> void:
+func _draw_path_segment(canvas: Node2D, from_pos: Vector2i, to_pos: Vector2i,
+		is_last: bool) -> void:
 	var fp := _g2p(from_pos)
 	var tp := _g2p(to_pos)
-	# 先画暗色阴影线，再画亮色主线，形成明显对比
 	const SHADOW := Color(0.0, 0.0, 0.0, 0.75)
-	draw_line(fp, tp, SHADOW,    10.0, true)  # 黑色阴影（最宽）
-	draw_line(fp, tp, PATH_COLOR, 6.0, true)  # 黄色主线
+	canvas.draw_line(fp, tp, SHADOW,     10.0, true)
+	canvas.draw_line(fp, tp, PATH_COLOR,  6.0, true)
 	if is_last:
 		var dir  := (tp - fp).normalized()
 		var perp := Vector2(-dir.y, dir.x)
 		var tip  := tp + dir * 16.0
 		var b1   := tp - dir * 6.0 + perp * 11.0
 		var b2   := tp - dir * 6.0 - perp * 11.0
-		# 阴影箭头
-		draw_polygon(PackedVector2Array([
+		canvas.draw_polygon(PackedVector2Array([
 				tip + dir * 3.0, b1 + perp * 3.0, b2 - perp * 3.0]),
 			PackedColorArray([SHADOW, SHADOW, SHADOW]))
-		# 主色箭头
-		draw_polygon(PackedVector2Array([tip, b1, b2]),
+		canvas.draw_polygon(PackedVector2Array([tip, b1, b2]),
 			PackedColorArray([PATH_COLOR, PATH_COLOR, PATH_COLOR]))
 
 # ── 地形系统 ─────────────────────────────────────────────
