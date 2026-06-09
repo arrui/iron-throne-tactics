@@ -39,6 +39,17 @@ func _ready() -> void:
 		_panel.position.y = _panel_hidden_y
 
 func play(attacker: Unit, defender: Unit, pred: Dictionary) -> void:
+	# ── 在任何await之前提取所有需要的数据 ──────────────────
+	# await期间节点可能被释放，必须在此之前把数据存成局部变量
+	if not is_instance_valid(attacker) or not is_instance_valid(defender):
+		animation_finished.emit({"atk_hit": false, "atk_damage": 0,
+			"def_hit": false, "def_damage": 0, "atk_double": false,
+			"double_hit": false, "double_damage": 0})
+		return
+
+	var atk_hp_now: int = attacker.data.hp
+	var def_hp_now: int = defender.data.hp
+
 	visible = true
 	_setup_sides(attacker, defender)
 	await _slide_panel(_panel_shown_y)
@@ -49,7 +60,7 @@ func play(attacker: Unit, defender: Unit, pred: Dictionary) -> void:
 	var atk_base: int  = int(pred.get("atk_damage", 0))
 	var atk_dmg:  int  = atk_base * (3 if atk_crit else 1) if atk_hit else 0
 
-	var def_hp_after_atk: int = maxi(defender.data.hp - atk_dmg, 0)
+	var def_hp_after_atk: int = maxi(def_hp_now - atk_dmg, 0)
 
 	var def_hit:  bool = false
 	var def_crit: bool = false
@@ -69,14 +80,14 @@ func play(attacker: Unit, defender: Unit, pred: Dictionary) -> void:
 		var dbl_base: int = int(pred.get("atk_damage", 0))
 		atk_double_dmg = dbl_base * (3 if atk_double_crit else 1) if atk_double_hit else 0
 
-	# ── 播放动画 ──
+	# ── 播放动画（使用本地变量，不再访问节点data）──
 	await _do_attack_anim(_atk_icon, _def_icon, _def_hp_bar, _def_hp_lbl,
-		atk_hit, atk_dmg, atk_crit, false, defender.data.hp)
+		atk_hit, atk_dmg, atk_crit, false, def_hp_now)
 	await get_tree().create_timer(ROUND_GAP).timeout
 
 	if def_hp_after_atk > 0:
 		await _do_attack_anim(_def_icon, _atk_icon, _atk_hp_bar, _atk_hp_lbl,
-			def_hit, def_dmg, def_crit, true, attacker.data.hp)
+			def_hit, def_dmg, def_crit, true, atk_hp_now)
 		await get_tree().create_timer(ROUND_GAP).timeout
 
 	if pred.get("atk_double", false) and def_hp_after_atk > 0:
