@@ -28,6 +28,11 @@ var is_protagonist: bool = false   # true → 死亡触发 Game Over
 var is_boss:        bool = false   # true → Boss 专属演出
 var min_hp:         int  = 0       # HP 底板（无法降到此值以下；Boss无敌用）
 
+# ── 守卫型Boss专属（配合EnemyAI守卫逻辑）────────────────
+var guard_pos_x:  int = -1   # 守卫中心X（-1=不启用）
+var guard_pos_y:  int = -1   # 守卫中心Y
+var guard_range:  int = 3    # 守卫半径（格数）
+
 # ── 武器有效性 ────────────────────────────────────────────
 func is_weapon_broken() -> bool:
 	return weapon_uses == 0
@@ -80,5 +85,8 @@ static func from_dict(d: Dictionary) -> UnitData:
 	data.is_protagonist  = d.get("is_protagonist",  false)
 	data.is_boss         = d.get("is_boss",         false)
 	data.min_hp          = d.get("min_hp",          0)
+	data.guard_pos_x     = d.get("guard_pos_x",     -1)
+	data.guard_pos_y     = d.get("guard_pos_y",     -1)
+	data.guard_range     = d.get("guard_range",     3)
 	data.items           = d.get("items",           []).duplicate(true)
 	return data
