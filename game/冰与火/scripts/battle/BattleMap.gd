@@ -413,6 +413,7 @@ func _do_move_animated(unit: Unit, target: Vector2i) -> void:
 
 	var prev_pos := _pre_move_pos
 	for step: Vector2i in path:
+		if not is_instance_valid(unit): break
 		_set_unit_facing(unit, step - prev_pos)
 		prev_pos = step
 		unit.grid_pos = step
@@ -420,7 +421,7 @@ func _do_move_animated(unit: Unit, target: Vector2i) -> void:
 		tw.tween_property(unit, "position", _g2p(step), 0.09)\
 			.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_QUAD)
 		await tw.finished
-		_redraw_all()
+		if is_instance_valid(unit): _redraw_all()
 
 	_animating_battle = false
 	attack_tiles = _adj_enemies(target)
@@ -809,14 +810,15 @@ func _start_enemy_turn() -> void:
 		_animating_battle = true
 		var prev := enemy.grid_pos
 		for step: Vector2i in path:
+			if not is_instance_valid(enemy): break
 			_set_unit_facing(enemy, step - prev)
 			prev = step
 			enemy.grid_pos = step
 			var tw := create_tween()
 			tw.tween_property(enemy, "position", _g2p(step), 0.09)
 			await tw.finished
-			_redraw_all()
-		if path.is_empty():
+			if is_instance_valid(enemy): _redraw_all()
+		if path.is_empty() and is_instance_valid(enemy):
 			enemy.grid_pos = action["move_to"]
 			enemy.position = _g2p(action["move_to"])
 		_animating_battle = false
@@ -952,7 +954,8 @@ func _trigger_game_over(unit: Unit) -> void:
 	else:
 		_set_status("⚠ 主角 %s 阵亡——游戏结束" % unit.data.name)
 		await get_tree().create_timer(2.0).timeout
-		_restart()
+		if not _battle_over:  # 避免重复触发
+			_restart()
 
 # ── 道具系统 ─────────────────────────────────────────────
 func _on_items_pressed() -> void:
