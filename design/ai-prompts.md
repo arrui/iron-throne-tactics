@@ -40,7 +40,7 @@ black and gold color palette, transparent background
 参考：FE7的Oswin（重装兵）
 ```
 
-### 豪兰·里德（howland_reed_map.png）
+### 霍兰·里德（howland_reed_map.png）
 ```
 Prompt:
 GBA Fire Emblem style map unit sprite, Howland Reed scout warrior,

@@ -174,7 +174,7 @@ func _setup_ch4() -> void:
 	# 玩家单位（部署选择）
 	var selection := GameState.deploy_selection.duplicate()
 	if selection.is_empty():
-		selection = ["ned_stark.json", "robert_baratheon.json", "northern_knight.json"]
+		selection = ["ned_stark.json", "northern_knight.json", "northern_knight.json"]
 	var spawns: Array = [Vector2i(2,22),Vector2i(3,22),Vector2i(4,22),
 		Vector2i(2,23),Vector2i(3,23),Vector2i(4,23)]
 	for i: int in min(selection.size(), spawns.size()):

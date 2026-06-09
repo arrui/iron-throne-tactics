@@ -1,6 +1,6 @@
 # BattleBootstrap_Ch3.gd — 序章·三《极乐塔》（24×18）
 # 胜利条件：奈德抵达塔楼入口（非歼灭）
-# 特殊机制：亚瑟·戴恩无敌（min_hp=1）；到达触发豪兰刺杀剧情；莱安娜结局过场
+# 特殊机制：亚瑟·戴恩无敌（min_hp=1）；到达触发霍兰刺杀剧情；莱安娜结局过场
 extends "res://scripts/battle/BattleMap.gd"
 
 const UNIT_SCENE         := preload("res://scenes/battle/Unit.tscn")
@@ -108,9 +108,9 @@ func _check_victory() -> void:
 func _trigger_tower_sequence() -> void:
 	_battle_over = true
 	_hide_all_panels()
-	# 豪兰刺杀戴恩过场
+	# 霍兰刺杀戴恩过场
 	await _play_cutscene("res://data/cutscenes/ch3_dayne_trigger.json")
-	# 手动移除戴恩（豪兰的侧翼行动，非玩家操作）
+	# 手动移除戴恩（霍兰的侧翼行动，非玩家操作）
 	if is_instance_valid(_dayne_unit):
 		enemy_units.erase(_dayne_unit)
 		_dayne_unit.queue_free()
