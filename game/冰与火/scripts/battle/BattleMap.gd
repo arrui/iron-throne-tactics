@@ -43,6 +43,7 @@ var attack_tiles:  Array[Vector2i] = []
 
 var _battle_over:      bool = false
 var _animating_battle: bool = false
+var _turn_ending:      bool = false  # 防止_check_all_acted重复进入
 
 # ── FE GBA 新增状态 ─────────────────────────────────────
 var _pre_move_pos:  Vector2i = Vector2i(-1, -1)  # 取消移动用
@@ -779,10 +780,12 @@ func _restart() -> void:
 
 # ── 回合 ─────────────────────────────────────────────────
 func _check_all_acted() -> void:
-	if _battle_over: return
+	if _battle_over or _turn_ending: return
 	if not player_units.any(func(u: Unit) -> bool: return not u.is_dead() and u.can_act()):
+		_turn_ending = true
 		_update_support_adjacency()   # 回合结束时统计支援相邻
 		await get_tree().create_timer(0.5).timeout
+		_turn_ending = false
 		_start_enemy_turn()
 
 func _start_enemy_turn() -> void:
@@ -829,6 +832,7 @@ func _start_enemy_turn() -> void:
 		_start_player_turn()
 
 func _start_player_turn() -> void:
+	_turn_ending = false
 	_turn_count += 1
 	for u: Unit in player_units:
 		if is_instance_valid(u) and not u.is_dead():

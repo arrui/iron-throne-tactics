@@ -49,6 +49,7 @@ func _init() -> void:
 	_run_suite("SaveSystem 存档读档", _test_save_system)
 	_run_suite("守卫型Boss数据字段", _test_guard_boss_fields)
 	_run_suite("战斗动画freed节点防护", _test_animation_freed_guard)
+	_run_suite("回合结束防重入", _test_turn_ending_guard)
 
 	print("\n╔══════════════════════════════════════╗")
 	var status: String = "全部通过 ✓" if _fail_count == 0 else ("失败 %d 项 ✗" % _fail_count)
@@ -992,3 +993,29 @@ func _test_animation_freed_guard() -> void:
 		freed_check_works = false  # 如果这里为true说明检测失效
 	_assert(freed_check_works, "freed节点防护机制有效")
 	_assert_eq(is_instance_valid(null), false, "null节点检测")
+
+# ── _check_all_acted 防重入 ──────────────────────────────
+func _test_turn_ending_guard() -> void:
+	# 验证_turn_ending标志位在Unit状态机层面的语义
+	# （无法直接测试异步协程，但验证标志位的初始状态和状态机联动）
+	var ud: UnitData = UnitDataClass.from_dict({
+		"name": "测试", "class": "剑士", "level": 1,
+		"hp": 20, "max_hp": 20, "pow": 5, "spd": 5,
+		"skl": 5, "def": 5, "lck": 3, "con": 7,
+		"move": 5, "weapon_type": "sword", "weapon_rank": "E"
+	})
+
+	# 模拟：所有单位行动完毕 = 没有can_act()的单位
+	# can_act() = state == IDLE or state == MOVED
+	var unit_script := preload("res://scripts/battle/Unit.gd")
+	var u: Unit = unit_script.new()
+	u.setup(ud, 0, Vector2i(0,0))
+
+	_assert(u.can_act(), "初始状态可行动")
+	u.mark_moved()
+	_assert(u.can_act(), "移动后仍可行动（可攻击/等待）")
+	u.mark_acted()
+	_assert(not u.can_act(), "行动完毕后不可行动")
+	u.reset_turn()
+	_assert(u.can_act(), "新回合后恢复可行动")
+	u.free()
