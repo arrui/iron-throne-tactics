@@ -87,7 +87,7 @@ godot --headless --path . --script tests/run_tests.gd
 ### 存档系统
 - [ ] 通关序章·一后刷新游戏 → 自动跳到序章·二
 - [ ] Ch4 部署画面有「新游戏（清除存档）」按钮
-- [ ] 存档文件位于 `user://save.json`（macOS: `~/Library/Application Support/Godot/app_userdata/冰与火/save.json`）
+- [ ] 存档文件位于 `user://save.json`（macOS: `~/Library/Application Support/Godot/app_userdata/冰与火之歌：战旗版/save.json`）
 
 ---
 
