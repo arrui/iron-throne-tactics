@@ -708,7 +708,7 @@ func _execute_combat_from_result(attacker: Unit, defender: Unit,
 			defender.take_damage(ddmg)
 			log += "  →%d追" % ddmg
 
-	print(log)
+	# print(log)  # 已改为Godot内部日志，避免macOS终端Unicode报错
 	_set_status(log)
 
 	# 武器耐久消耗
