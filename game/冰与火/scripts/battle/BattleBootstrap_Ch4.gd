@@ -56,7 +56,7 @@ func _ready() -> void:
 	_paint_tilemap()
 	_spawn_player_units()
 	_spawn_enemy_units()
-	queue_redraw()
+	_redraw_all()
 	await _play_dialogue(PRE_DIALOGUE_PATH)
 
 # ── 地形生成（程序化君临城街道）───────────────────────────
@@ -161,7 +161,7 @@ func _trigger_lannister_join() -> void:
 			enemy_units.erase(u)
 			u.queue_free()
 	_lannister_units.clear()
-	queue_redraw()
+	_redraw_all()
 	_set_status("兰尼斯特军已归降，道路畅通——")
 
 # ── 詹姆过场 ─────────────────────────────────────────────

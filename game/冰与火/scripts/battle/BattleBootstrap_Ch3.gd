@@ -65,7 +65,7 @@ func _ready() -> void:
 	_paint_tilemap()
 	_spawn_player_units()
 	_spawn_enemy_units()
-	queue_redraw()
+	_redraw_all()
 	await _play_dialogue(PRE_DIALOGUE_PATH)
 
 # ── 地形 ─────────────────────────────────────────────────
@@ -114,7 +114,7 @@ func _trigger_tower_sequence() -> void:
 	if is_instance_valid(_dayne_unit):
 		enemy_units.erase(_dayne_unit)
 		_dayne_unit.queue_free()
-		queue_redraw()
+		_redraw_all()
 	# 莱安娜结局过场
 	await _play_cutscene("res://data/cutscenes/ch3_lyanna.json")
 	# 战后对话

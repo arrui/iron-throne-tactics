@@ -100,8 +100,8 @@ func _ready() -> void:
 	_update_danger_zone()
 
 # 每次触发重绘时同步刷新高亮层
-func queue_redraw() -> void:
-	super.queue_redraw()
+func _redraw_all() -> void:
+	queue_redraw()
 	if is_instance_valid(_hl):
 		_hl.queue_redraw()
 
@@ -324,14 +324,14 @@ func _update_hover() -> void:
 			var new_path := _find_path_to(selected_unit, hovered)
 			if new_path != _path_preview:
 				_path_preview = new_path
-				queue_redraw()
+				_redraw_all()
 		else:
 			if not _path_preview.is_empty():
 				_path_preview.clear()
-				queue_redraw()
+				_redraw_all()
 	elif not _path_preview.is_empty():
 		_path_preview.clear()
-		queue_redraw()
+		_redraw_all()
 
 # ── 路径查找（Dijkstra，考虑地形消耗）──────────────────
 func _find_path_to(unit: Unit, target: Vector2i) -> Array[Vector2i]:
@@ -408,7 +408,7 @@ func _do_move_animated(unit: Unit, target: Vector2i) -> void:
 	unit.mark_moved()
 	move_range.clear()
 	_path_preview.clear()
-	queue_redraw()
+	_redraw_all()
 
 	var prev_pos := _pre_move_pos
 	for step: Vector2i in path:
@@ -419,12 +419,12 @@ func _do_move_animated(unit: Unit, target: Vector2i) -> void:
 		tw.tween_property(unit, "position", _g2p(step), 0.09)\
 			.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_QUAD)
 		await tw.finished
-		queue_redraw()
+		_redraw_all()
 
 	_animating_battle = false
 	attack_tiles = _adj_enemies(target)
 	player_state = PlayerState.UNIT_MOVED
-	queue_redraw()
+	_redraw_all()
 
 	if attack_tiles.is_empty():
 		_show_action_menu(target, false)
@@ -440,7 +440,7 @@ func _input(event: InputEvent) -> void:
 		var key := (event as InputEventKey).keycode
 		if key == KEY_D:
 			_show_danger = not _show_danger
-			queue_redraw()
+			_redraw_all()
 			_set_status("危险区 %s（D 键切换）" % ("已显示" if _show_danger else "已隐藏"))
 			get_viewport().set_input_as_handled()
 			return
@@ -515,7 +515,7 @@ func _open_in_place_menu() -> void:
 	_path_preview.clear()
 	_pre_move_pos = Vector2i(-1, -1)   # 没有实际移动，无需取消
 	player_state  = PlayerState.UNIT_MOVED
-	queue_redraw()
+	_redraw_all()
 	_show_action_menu(selected_unit.grid_pos, not attack_tiles.is_empty())
 
 func _try_select(pos: Vector2i) -> void:
@@ -527,7 +527,7 @@ func _try_select(pos: Vector2i) -> void:
 	attack_tiles  = _calc_attack_tiles(move_range)
 	player_state  = PlayerState.UNIT_SELECTED
 	_path_preview.clear()
-	queue_redraw()
+	_redraw_all()
 	var t_name := get_terrain_name(pos)
 	_set_status("%s  HP:%d/%d  移动:%d  [%s]" % [
 		unit.data.name, unit.data.hp, unit.data.max_hp, unit.data.move, t_name])
@@ -542,7 +542,7 @@ func _deselect() -> void:
 	_path_preview.clear()
 	player_state = PlayerState.IDLE
 	_hide_all_panels()
-	queue_redraw()
+	_redraw_all()
 	_set_status("")
 
 # ── 行动菜单 ─────────────────────────────────────────────
@@ -591,7 +591,7 @@ func _on_cancel_move_pressed() -> void:
 	attack_tiles = _calc_attack_tiles(move_range)
 	_path_preview.clear()
 	player_state = PlayerState.UNIT_SELECTED
-	queue_redraw()
+	_redraw_all()
 	_set_status("%s 取消移动" % selected_unit.data.name)
 
 func _on_end_turn_pressed() -> void:
@@ -641,7 +641,7 @@ func _on_cancel_attack() -> void:
 	_hide_all_panels()
 	player_state = PlayerState.UNIT_MOVED
 	attack_tiles = _adj_enemies(selected_unit.grid_pos)
-	queue_redraw()
+	_redraw_all()
 	_set_status("已取消，重新选择攻击目标")
 
 func _hide_all_panels() -> void:
@@ -677,7 +677,7 @@ func _start_battle_with_animation(attacker: Unit, defender: Unit) -> void:
 		attacker.mark_acted()
 		_refresh_unit_color(attacker)
 		_deselect()
-		queue_redraw()
+		_redraw_all()
 		_check_victory()
 		_check_all_acted()
 	_animating_battle = false
@@ -721,7 +721,7 @@ func _execute_combat_from_result(attacker: Unit, defender: Unit,
 	_deselect()
 	target_enemy  = null
 	_pre_move_pos = Vector2i(-1, -1)
-	queue_redraw()
+	_redraw_all()
 	_check_victory()
 	_check_all_acted()
 
@@ -812,7 +812,7 @@ func _start_enemy_turn() -> void:
 			var tw := create_tween()
 			tw.tween_property(enemy, "position", _g2p(step), 0.09)
 			await tw.finished
-			queue_redraw()
+			_redraw_all()
 		if path.is_empty():
 			enemy.grid_pos = action["move_to"]
 			enemy.position = _g2p(action["move_to"])
@@ -838,7 +838,7 @@ func _start_player_turn() -> void:
 	_update_turn_label()
 	_update_danger_zone()
 	_check_defeat()
-	queue_redraw()
+	_redraw_all()
 
 func _update_turn_label() -> void:
 	if not _turn_label: return
@@ -926,7 +926,7 @@ func _on_unit_died(unit: Unit) -> void:
 	player_units.erase(unit)
 	enemy_units.erase(unit)
 	unit.queue_free()
-	queue_redraw()
+	_redraw_all()
 	_check_defeat()
 
 # ── Game Over（主角阵亡）────────────────────────────────
@@ -1022,7 +1022,7 @@ func _on_item_used(unit: Unit, item_idx: int) -> void:
 	unit.mark_acted()
 	_refresh_unit_color(unit)
 	_deselect()
-	queue_redraw()
+	_redraw_all()
 	_check_victory()
 	_check_all_acted()
 

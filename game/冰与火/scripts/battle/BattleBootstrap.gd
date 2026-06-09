@@ -95,7 +95,7 @@ func _setup_ch1() -> void:
 	_make_unit("royal_soldier.json",    1, Vector2i(12, 11))
 	_make_unit("royal_soldier.json",    1, Vector2i(16, 9))
 	_make_unit("royal_soldier.json",    1, Vector2i(17, 7))
-	queue_redraw()
+	_redraw_all()
 	await _play_dialogue("res://data/dialogues/prologue_1_pre.json")
 	battle_won.connect(_on_won_ch1, CONNECT_ONE_SHOT)
 
@@ -125,7 +125,7 @@ func _setup_ch2() -> void:
 	_make_unit("targaryen_soldier.json",  1, Vector2i(18, 4))
 	_make_unit("targaryen_soldier.json",  1, Vector2i(22, 8))
 	_make_unit("targaryen_soldier.json",  1, Vector2i(18, 14))
-	queue_redraw()
+	_redraw_all()
 	await _play_dialogue("res://data/dialogues/ch2_pre.json")
 	battle_won.connect(_on_won_ch2, CONNECT_ONE_SHOT)
 
@@ -155,7 +155,7 @@ func _setup_ch3() -> void:
 	_make_unit("dorne_knight.json", 1, Vector2i(15, 7))
 	_make_unit("dorne_knight.json", 1, Vector2i(15, 9))
 	_make_unit("dorne_knight.json", 1, Vector2i(15, 13))
-	queue_redraw()
+	_redraw_all()
 	await _play_dialogue("res://data/dialogues/ch3_pre.json")
 
 # ══════════════════════════════════════════════════════════
@@ -197,7 +197,7 @@ func _setup_ch4() -> void:
 	_make_unit("royal_soldier.json", 1, Vector2i(26, 10))
 	_make_unit("royal_soldier.json", 1, Vector2i(26, 14))
 	_make_unit("royal_soldier.json", 1, Vector2i(29, 11))
-	queue_redraw()
+	_redraw_all()
 	await _play_dialogue("res://data/dialogues/ch4_pre.json")
 
 func _build_map_ch4() -> Array:
@@ -283,7 +283,7 @@ func _on_unit_died(unit: Unit) -> void:
 				_rhaegar_death_done = true
 				enemy_units.erase(unit)
 				unit.queue_free()
-				queue_redraw()
+				_redraw_all()
 				_trigger_ch2_rhaegar()
 				return
 		4:
@@ -307,7 +307,7 @@ func _trigger_ch3_tower() -> void:
 	_battle_over = true
 	await _play_cutscene("res://data/cutscenes/ch3_dayne_trigger.json")
 	if is_instance_valid(_dayne_unit):
-		enemy_units.erase(_dayne_unit); _dayne_unit.queue_free(); queue_redraw()
+		enemy_units.erase(_dayne_unit); _dayne_unit.queue_free(); _redraw_all()
 	await _play_cutscene("res://data/cutscenes/ch3_lyanna.json")
 	await _play_dialogue("res://data/dialogues/ch3_post.json")
 	await _advance_to(4)
@@ -319,7 +319,7 @@ func _trigger_ch4_lannister_join() -> void:
 		if is_instance_valid(u) and not u.is_dead():
 			enemy_units.erase(u); u.queue_free()
 	_lannister_units.clear()
-	queue_redraw()
+	_redraw_all()
 	_set_status("兰尼斯特军归降——道路畅通")
 
 # ── Ch4：铁王座到达（詹姆过场+结局）────────────────────

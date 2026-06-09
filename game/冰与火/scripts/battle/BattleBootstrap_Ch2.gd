@@ -68,7 +68,7 @@ func _ready() -> void:
 	_paint_tilemap()
 	_spawn_player_units()
 	_spawn_enemy_units()
-	queue_redraw()
+	_redraw_all()
 	await _play_dialogue(PRE_DIALOGUE_PATH)
 	battle_won.connect(_on_battle_won_ch2, CONNECT_ONE_SHOT)
 
@@ -110,7 +110,7 @@ func _on_unit_died(unit: Unit) -> void:
 		# 先从敌军列表移除并释放节点
 		enemy_units.erase(unit)
 		unit.queue_free()
-		queue_redraw()
+		_redraw_all()
 		_play_rhaegar_sequence()
 		return
 	super._on_unit_died(unit)
