@@ -10,12 +10,15 @@
   "def": 16,
   "lck": 10,
   "con": 13,
-  "move": 6,
+  "move": 3,
   "weapon_type": "sword",
   "weapon_rank": "S",
   "weapon_uses": 20,
   "weapon_max_uses": 20,
   "is_protagonist": false,
   "is_boss": true,
-  "min_hp": 1
+  "min_hp": 1,
+  "guard_pos_x": 17,
+  "guard_pos_y": 9,
+  "guard_range": 3
 }
