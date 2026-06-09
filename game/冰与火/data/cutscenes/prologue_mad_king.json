@@ -1,46 +1,46 @@
 {
   "id": "prologue_mad_king",
   "slides": [
-    {
-      "text": "布兰登·史塔克策马入京，\n高呼要龙石岛王子出来受死。",
-      "subtext": "他以为那是一个兄长的愤怒——\n一种王国法理尚能容忍的愤怒。",
-      "duration": 5.0,
-      "scene_art": "throne_room"
-    },
-    {
-      "text": "疯王艾里斯将他投入大牢，\n随后传令临冬城公爵瑞卡德·史塔克——",
-      "subtext": "「带你的赎金前来，我便放他离去。」",
-      "duration": 5.0,
-      "scene_art": "throne_room"
-    },
-    {
-      "text": "瑞卡德·史塔克身着全套战甲踏入王庭，\n以古礼请求神明裁判——决斗论胜负。",
-      "subtext": "疯王沉默片刻，\n而后笑了。",
-      "duration": 5.0,
-      "scene_art": "execution"
-    },
-    {
-      "text": "「你要求决斗——\n那么火焰，便是我的斗士。」",
-      "subtext": "北境之主，就这样在铁王座前，被活活烧死于自己的盔甲之中。\n布兰登拼命挣扎，试图挣脱颈上的绞索——\n绞索随之收紧，再紧——\n直至再无声息。",
-      "duration": 7.0,
-      "scene_art": "execution"
-    },
-    {
-      "text": "疯王遂传令鹰巢城领主\n琼恩·艾林——",
-      "subtext": "「将内德·史塔克与劳勃·拜拉席恩的人头送来，\n否则以叛逆论处。」",
-      "duration": 5.0,
-      "scene_art": "vale_castle"
-    },
-    {
-      "text": "琼恩·艾林是这两个孩子的教父，\n亲自将他们抚养成人。",
-      "subtext": "他沉默良久。\n而后，拒绝了。",
-      "duration": 4.5,
-      "scene_art": "vale_castle"
-    },
-    {
-      "text": "他向七大王国的每一位领主\n发出了檄文。",
-      "subtext": "凛冬不曾至，\n战争已至。",
-      "duration": 4.5
-    }
+	{
+	  "text": "布兰登·史塔克策马入京，\n高呼要龙石岛王子出来受死。",
+	  "subtext": "他以为那是一个兄长的愤怒——\n一种王国法理尚能容忍的愤怒。",
+	  "duration": 5.0,
+	  "scene_art": "throne_room"
+	},
+	{
+	  "text": "疯王艾里斯将他投入大牢，\n随后传令临冬城公爵瑞卡德·史塔克——",
+	  "subtext": "「带你的赎金前来，我便放他离去。」",
+	  "duration": 5.0,
+	  "scene_art": "throne_room"
+	},
+	{
+	  "text": "瑞卡德·史塔克身着全套战甲踏入王庭，\n以古礼请求神明裁判——决斗论胜负。",
+	  "subtext": "疯王沉默片刻，\n而后笑了。",
+	  "duration": 5.0,
+	  "scene_art": "execution"
+	},
+	{
+	  "text": "「你要求决斗——\n那么火焰，便是我的斗士。」",
+	  "subtext": "北境之主，就这样在铁王座前，被活活烧死于自己的盔甲之中。\n布兰登拼命挣扎，试图挣脱颈上的绞索——\n绞索随之收紧，再紧——\n直至再无声息。",
+	  "duration": 7.0,
+	  "scene_art": "execution"
+	},
+	{
+	  "text": "疯王遂传令鹰巢城领主\n琼恩·艾林——",
+	  "subtext": "「将内德·史塔克与劳勃·拜拉席恩的人头送来，\n否则以叛逆论处。」",
+	  "duration": 5.0,
+	  "scene_art": "vale_castle"
+	},
+	{
+	  "text": "琼恩·艾林是这两个孩子的教父，\n亲自将他们抚养成人。",
+	  "subtext": "他沉默良久。\n而后，拒绝了。",
+	  "duration": 4.5,
+	  "scene_art": "vale_castle"
+	},
+	{
+	  "text": "他向七大王国的每一位领主\n发出了檄文。",
+	  "subtext": "凛冬不曾至，\n战争已至。",
+	  "duration": 4.5
+	}
   ]
 }

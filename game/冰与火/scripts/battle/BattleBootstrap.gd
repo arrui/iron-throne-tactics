@@ -32,7 +32,7 @@ const UNIT_PORTRAIT_MAP := {
 }
 
 # ── 部署选择（Ch4，由 DeployScreen_Ch4 设置）───────────────
-static var deploy_selection: Array[String] = []
+# deploy_selection 已移至 GameState.deploy_selection
 
 # ── 共享状态 ──────────────────────────────────────────────
 var _dialogue_box:  CanvasLayer    = null
@@ -171,7 +171,7 @@ func _setup_ch4() -> void:
 	super._ready()
 	_paint_from(_terrain_cache_ch4)
 	# 玩家单位（部署选择）
-	var selection := deploy_selection.duplicate()
+	var selection := GameState.deploy_selection.duplicate()
 	if selection.is_empty():
 		selection = ["ned_stark.json", "northern_knight.json", "northern_knight.json"]
 	var spawns: Array = [Vector2i(2,22),Vector2i(3,22),Vector2i(4,22),

@@ -169,5 +169,5 @@ func _on_confirm() -> void:
 	var selections: Array[String] = ["ned_stark.json"]
 	for idx: int in _selected:
 		selections.append(AVAILABLE_UNITS[idx]["file"])
-	BattleBootstrap.deploy_selection = selections
+	GameState.deploy_selection = selections
 	get_tree().change_scene_to_file(BATTLE_SCENE)
