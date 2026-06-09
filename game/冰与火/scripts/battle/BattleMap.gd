@@ -82,7 +82,7 @@ var _support_data:  Dictionary = {}   # key → adjacency count
 var _support_popup_shown: Dictionary = {} # key → bool（弹窗只显示一次）
 
 # ── 高亮颜色 ─────────────────────────────────────────────
-const MOVEABLE_COLOR := Color(0.20, 0.50, 1.00, 0.42)
+const MOVEABLE_COLOR := Color(0.20, 0.50, 1.00, 0.26)  # 降低填充 alpha，让路径箭头更清晰
 const SELECTED_COLOR := Color(1.00, 1.00, 0.20, 0.55)
 const ATTACK_COLOR   := Color(1.00, 0.22, 0.16, 0.48)
 const MOVED_COLOR    := Color(0.20, 0.90, 0.55, 0.52)
@@ -210,13 +210,21 @@ func _draw_tile_highlight(pos: Vector2i, color: Color) -> void:
 func _draw_path_segment(from_pos: Vector2i, to_pos: Vector2i, is_last: bool) -> void:
 	var fp := _g2p(from_pos)
 	var tp := _g2p(to_pos)
-	draw_line(fp, tp, PATH_COLOR, 5.0, true)
+	# 先画暗色阴影线，再画亮色主线，形成明显对比
+	const SHADOW := Color(0.0, 0.0, 0.0, 0.75)
+	draw_line(fp, tp, SHADOW,    10.0, true)  # 黑色阴影（最宽）
+	draw_line(fp, tp, PATH_COLOR, 6.0, true)  # 黄色主线
 	if is_last:
-		var dir := (tp - fp).normalized()
+		var dir  := (tp - fp).normalized()
 		var perp := Vector2(-dir.y, dir.x)
-		var tip  := tp + dir * 14.0
-		var b1   := tp - dir * 5.0 + perp * 9.0
-		var b2   := tp - dir * 5.0 - perp * 9.0
+		var tip  := tp + dir * 16.0
+		var b1   := tp - dir * 6.0 + perp * 11.0
+		var b2   := tp - dir * 6.0 - perp * 11.0
+		# 阴影箭头
+		draw_polygon(PackedVector2Array([
+				tip + dir * 3.0, b1 + perp * 3.0, b2 - perp * 3.0]),
+			PackedColorArray([SHADOW, SHADOW, SHADOW]))
+		# 主色箭头
 		draw_polygon(PackedVector2Array([tip, b1, b2]),
 			PackedColorArray([PATH_COLOR, PATH_COLOR, PATH_COLOR]))
 
@@ -379,6 +387,10 @@ func _set_unit_facing(unit: Unit, dir: Vector2i) -> void:
 
 # ── 行走动画 ─────────────────────────────────────────────
 func _do_move_animated(unit: Unit, target: Vector2i) -> void:
+	# 安全检查：目标格被友方占据时拒绝移动
+	var occupant: Unit = _unit_at(target, unit.team)
+	if occupant != null and occupant != unit:
+		return
 	_pre_move_pos  = unit.grid_pos
 	var path       := _find_path_to(unit, target)
 	_animating_battle = true
@@ -878,13 +890,17 @@ func _calc_move_range(unit: Unit) -> Array[Vector2i]:
 		var curr: Dictionary = queue.pop_front()
 		var pos: Vector2i = curr["pos"]
 		var rem: int = curr["rem"]
-		result.append(pos)
+		# 只有无友方占据（或自身出发格）的格子才能作为停留目标
+		var friendly_at_pos: Unit = _unit_at(pos, unit.team)
+		if pos == unit.grid_pos or friendly_at_pos == null:
+			result.append(pos)
 		if rem == 0: continue
 		for d: Vector2i in [Vector2i(1,0), Vector2i(-1,0), Vector2i(0,1), Vector2i(0,-1)]:
 			var npos: Vector2i = pos + d
 			if visited.has(npos) or not is_passable(npos): continue
-			var blocker: Unit = _unit_at(npos, 0) if unit.team == 1 else _unit_at(npos, 1)
-			if blocker != null: continue
+			# 敌方单位阻断穿越；友方单位可穿越但不能停留（已在 result 加入时处理）
+			var enemy_blocker: Unit = _unit_at(npos, 0) if unit.team == 1 else _unit_at(npos, 1)
+			if enemy_blocker != null: continue
 			var cost: int = get_terrain_move_cost(npos)
 			if rem - cost < 0: continue
 			visited[npos] = true
