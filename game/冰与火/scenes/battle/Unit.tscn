@@ -8,7 +8,7 @@ script = ExtResource("1")
 
 [node name="Sprite" type="Sprite2D" parent="."]
 texture = ExtResource("2")
-scale = Vector2(4, 4)
+scale = Vector2(2, 2)
 texture_filter = 1
 
 [node name="Label" type="Label" parent="."]

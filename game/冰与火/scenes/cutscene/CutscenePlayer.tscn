@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://cutscene_player_001"]
+[gd_scene load_steps=3 format=3 uid="uid://cutscene_player_001"]
 
 [ext_resource type="Script" path="res://scripts/cutscene/CutscenePlayer.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/cutscene/CutsceneArt.gd" id="2"]
 
 [node name="CutscenePlayer" type="CanvasLayer"]
 layer = 20
@@ -11,6 +12,9 @@ script = ExtResource("1")
 anchor_right = 1.0
 anchor_bottom = 1.0
 color = Color(0.03, 0.03, 0.05, 1)
+
+[node name="SceneArt" type="Node2D" parent="."]
+script = ExtResource("2")
 
 [node name="BGImage" type="TextureRect" parent="."]
 anchor_right = 1.0

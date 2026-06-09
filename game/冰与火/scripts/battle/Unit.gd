@@ -48,6 +48,10 @@ func mark_moved() -> void:
 func mark_acted() -> void:
 	state = State.DONE
 
+func undo_move() -> void:
+	if state == State.MOVED:
+		state = State.IDLE
+
 func reset_turn() -> void:
 	state = State.IDLE
 	_pending_death = false

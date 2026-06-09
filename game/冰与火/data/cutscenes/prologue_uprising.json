@@ -4,20 +4,20 @@
     {
       "text": "风暴地。\n篡夺者战争，第一年。",
       "subtext": "",
-      "duration": 3.0,
-      "image": "res://assets/cutscenes/storm_end.png"
+      "duration": 3.5,
+      "scene_art": "stormlands_road"
     },
     {
-      "text": "劳勃·拜拉席恩在此处竖起了反旗。",
-      "subtext": "他的战锤已从墙上取下，\n他的心中只剩一个名字：莱安娜。",
-      "duration": 4.5,
-      "image": "res://assets/cutscenes/storm_end.png"
+      "text": "劳勃·拜拉席恩在祖业之地竖起了反旗。",
+      "subtext": "他们要的不是他的人头，\n而是要他亲眼目睹他所爱之人的命运——\n莱安娜·史塔克，那个被带走的女子。\n他无法接受。",
+      "duration": 5.5,
+      "scene_art": "stormlands_road"
     },
     {
-      "text": "内德·史塔克从谷地赶来，与义兄并肩。",
-      "subtext": "他们一起长大，一起学剑。\n现在，他们将一起打仗。",
-      "duration": 4.0,
-      "image": ""
+      "text": "奈德·史塔克从鹰巢城赶来，\n与结义兄弟并肩而立。",
+      "subtext": "他们一起在鹰巢城的高山上长大，\n一起学会了剑术与荣耀。\n如今，他们将一起学习\n什么叫作战争，\n以及战争之后，\n什么叫作失去。",
+      "duration": 6.0,
+      "scene_art": "stormlands_road"
     }
   ]
 }

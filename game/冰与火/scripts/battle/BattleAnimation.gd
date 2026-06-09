@@ -105,11 +105,23 @@ func _setup_sides(attacker: Unit, defender: Unit) -> void:
 func _fill_side(unit: Unit, icon: Sprite2D, name_lbl: Label,
 		hp_bar: ProgressBar, hp_lbl: Label) -> void:
 	if icon:
-		var sprite := unit.get_node_or_null("Sprite") as Sprite2D
-		if sprite and sprite.texture:
-			icon.texture        = sprite.texture
-			icon.region_enabled = true
-			icon.region_rect    = Rect2(0, 0, 16, 16)  # 只显示第1帧
+		# 优先加载立绘（48×48），其次回退至地图行走图（32×32）
+		var loaded_portrait := false
+		if unit.has_meta("portrait_path"):
+			var path: String = unit.get_meta("portrait_path") as String
+			if ResourceLoader.exists(path):
+				var tex := load(path) as Texture2D
+				if tex != null:
+					icon.texture        = tex
+					icon.region_enabled = true
+					icon.region_rect    = Rect2(0, 0, 48, 48)
+					loaded_portrait     = true
+		if not loaded_portrait:
+			var sprite := unit.get_node_or_null("Sprite") as Sprite2D
+			if sprite and sprite.texture:
+				icon.texture        = sprite.texture
+				icon.region_enabled = true
+				icon.region_rect    = Rect2(0, 0, 32, 32)
 	if name_lbl:
 		name_lbl.text = unit.data.name
 	var max_hp: int = unit.data.max_hp

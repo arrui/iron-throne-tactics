@@ -1,4 +1,4 @@
-# CutscenePlayer.gd — 升级版，支持像素背景图 + 主标题 + 副标题
+# CutscenePlayer.gd — 升级版，支持像素背景图 + 代码绘制场景 + 文字
 class_name CutscenePlayer
 extends CanvasLayer
 
@@ -12,11 +12,12 @@ var _current_index: int = 0
 var _is_playing: bool = false
 var _skip_requested: bool = false
 
-@onready var _bg_rect:   ColorRect = $Background
+@onready var _bg_rect:   ColorRect  = $Background
 @onready var _bg_image:  TextureRect = $BGImage
-@onready var _label:     Label = $TextLabel
-@onready var _sublabel:  Label = $SubTextLabel
-@onready var _vignette:  ColorRect = $Vignette
+@onready var _label:     Label      = $TextLabel
+@onready var _sublabel:  Label      = $SubTextLabel
+@onready var _vignette:  ColorRect  = $Vignette
+@onready var _scene_art: CutsceneArt = $SceneArt
 
 func _ready() -> void:
 	if _label:
@@ -25,6 +26,9 @@ func _ready() -> void:
 		_sublabel.modulate = Color(1, 1, 1, 0)
 	if _bg_image:
 		_bg_image.modulate = Color(1, 1, 1, 0)
+	if _scene_art:
+		_scene_art.alpha = 0.0
+		_scene_art.modulate = Color(1, 1, 1, 0)
 
 func play(json_path: String) -> void:
 	var data: Dictionary = _load_json(json_path)
@@ -80,9 +84,23 @@ func _play_slide(index: int) -> void:
 	var subtext: String    = slide.get("subtext", "")
 	var duration: float    = float(slide.get("duration", 3.5))
 	var image_path: String = slide.get("image", "")
+	var scene_art: String  = slide.get("scene_art", "")
 
-	# 加载背景图（如果有）
-	if _bg_image:
+	# 优先：代码绘制场景（无需外部资源）
+	if _scene_art != null:
+		if scene_art != "":
+			_scene_art.scene_type = scene_art
+			_scene_art.queue_redraw()
+			await _fade_scene_art(0.0, 1.0, FADE_DURATION * 0.8)
+		else:
+			# 确保上一张场景艺术已隐藏
+			if _scene_art.alpha > 0.01:
+				await _fade_scene_art(1.0, 0.0, FADE_DURATION * 0.5)
+			_scene_art.scene_type = ""
+			_scene_art.queue_redraw()
+
+	# 备选：外部图片（如果提供且存在）
+	if _bg_image != null:
 		if image_path != "" and ResourceLoader.exists(image_path):
 			_bg_image.texture = load(image_path)
 			await _fade_node(_bg_image, 0.0, 1.0, FADE_DURATION * 0.8)
@@ -108,8 +126,21 @@ func _play_slide(index: int) -> void:
 
 	# 淡出文字
 	await _fade_texts(1.0, 0.0, FADE_DURATION)
+
+	# 淡出背景图
 	if _bg_image and _bg_image.texture != null:
 		await _fade_node(_bg_image, 1.0, 0.0, FADE_DURATION * 0.5)
+
+	# 若下一帧没有场景艺术，淡出当前
+	var next_has_art: bool = false
+	var next_idx: int = _current_index + 1
+	if next_idx < _slides.size():
+		next_has_art = _slides[next_idx].get("scene_art", "") != ""
+	if not next_has_art and _scene_art != null and _scene_art.alpha > 0.01:
+		await _fade_scene_art(1.0, 0.0, FADE_DURATION * 0.5)
+		_scene_art.scene_type = ""
+		_scene_art.queue_redraw()
+
 	if _skip_requested:
 		_finish()
 		return
@@ -131,6 +162,17 @@ func _fade_node(node: CanvasItem, from_a: float, to_a: float, duration: float) -
 	tween.tween_property(node, "modulate:a", to_a, duration).from(from_a)
 	await tween.finished
 
+func _fade_scene_art(from_a: float, to_a: float, duration: float) -> void:
+	if _scene_art == null:
+		return
+	var tween := create_tween()
+	tween.tween_method(
+		func(a: float) -> void:
+			_scene_art.alpha = a
+			_scene_art.queue_redraw(),
+		from_a, to_a, duration)
+	await tween.finished
+
 func _wait_skippable(duration: float) -> void:
 	var elapsed := 0.0
 	while elapsed < duration and not _skip_requested:
@@ -142,5 +184,9 @@ func _finish() -> void:
 	if _label:    _label.modulate    = Color(1, 1, 1, 0)
 	if _sublabel: _sublabel.modulate = Color(1, 1, 1, 0)
 	if _bg_image: _bg_image.modulate = Color(1, 1, 1, 0)
+	if _scene_art:
+		_scene_art.alpha = 0.0
+		_scene_art.scene_type = ""
+		_scene_art.queue_redraw()
 	visible = false
 	cutscene_finished.emit()

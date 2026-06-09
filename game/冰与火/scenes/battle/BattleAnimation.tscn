@@ -33,9 +33,9 @@ grow_vertical = 2
 
 [node name="Icon" type="Sprite2D" parent="Panel/AtkSide"]
 position = Vector2(68, 68)
-scale = Vector2(6, 6)
+scale = Vector2(2, 2)
 region_enabled = true
-region_rect = Rect2(0, 0, 16, 16)
+region_rect = Rect2(0, 0, 48, 48)
 texture_filter = 1
 
 [node name="Name" type="Label" parent="Panel/AtkSide"]
@@ -92,9 +92,9 @@ grow_vertical = 2
 
 [node name="Icon" type="Sprite2D" parent="Panel/DefSide"]
 position = Vector2(212, 68)
-scale = Vector2(6, 6)
+scale = Vector2(2, 2)
 region_enabled = true
-region_rect = Rect2(0, 0, 16, 16)
+region_rect = Rect2(0, 0, 48, 48)
 texture_filter = 1
 
 [node name="Name" type="Label" parent="Panel/DefSide"]

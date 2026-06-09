@@ -1,251 +1,876 @@
-"""
-生成FE GBA风格地图行走图标（16x16像素，3帧横排，共48x16）
-参考Fire Emblem GBA系列地图sprite风格：
-- 头部：较大，有头发颜色
-- 身体：小巧，有服装颜色
-- 像素艺术剪影风格
-"""
-from PIL import Image
+from PIL import Image, ImageDraw
 import os
 
 OUTPUT_DIR = os.path.expanduser("~/Desktop/iron-throne-tactics/game/冰与火/assets/units/")
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# 透明色
 T = (0, 0, 0, 0)
+SKIN_L  = (255, 220, 170, 255)
+SKIN_M  = (230, 185, 130, 255)
+SKIN_D  = (195, 150, 100, 255)
+EYE     = (55, 35, 15, 255)
+OUTLINE = (18, 12, 8, 255)
 
-# ----- 通用调色板颜色 -----
-# 皮肤色
-SKIN_L = (255, 220, 170, 255)   # 亮肤色
-SKIN_D = (200, 160, 110, 255)   # 暗肤色
-# 眼睛
-EYE = (60, 40, 20, 255)
-# 头发描边
-HAIR_OUTLINE = (30, 20, 10, 255)
 
-def draw_sprite(pixels, frame_x, frame_w, frame_h, data):
-    """在像素列表上绘制一帧sprite。data是[(x,y,color)]列表"""
-    for (x, y, c) in data:
-        ax = frame_x * frame_w + x
-        if 0 <= ax < frame_w * 3 and 0 <= y < frame_h:
-            pixels[y][ax] = c
+def px(img, x, y, c):
+    w, h = img.size
+    if 0 <= x < w and 0 <= y < h:
+        img.putpixel((x, y), c)
 
-def make_spritesheet(frames_data, w=16, h=16):
-    """frames_data: 3帧的像素数据列表，每帧是[(x,y,color)]"""
-    img = Image.new("RGBA", (w * 3, h), (0, 0, 0, 0))
-    pixels = [[T] * (w * 3) for _ in range(h)]
 
-    for frame_idx, frame in enumerate(frames_data):
-        draw_sprite(pixels, frame_idx, w, h, frame)
+def fill_rect(img, x, y, w, h, c):
+    for dy in range(h):
+        for dx in range(w):
+            px(img, x + dx, y + dy, c)
 
-    for y in range(h):
-        for x in range(w * 3):
-            img.putpixel((x, y), pixels[y][x])
+
+def outline_rect(img, x, y, w, h, c):
+    for dx in range(w):
+        px(img, x + dx, y,         c)
+        px(img, x + dx, y + h - 1, c)
+    for dy in range(h):
+        px(img, x,         y + dy, c)
+        px(img, x + w - 1, y + dy, c)
+
+
+# =============================================================
+# NED STARK  32x32  map sprite
+# =============================================================
+def draw_ned_32(img, ox, oy, walk=False):
+    H   = (48, 38, 25, 255)
+    HL  = (75, 60, 40, 255)
+    A   = (88, 108, 138, 255)
+    AL  = (118, 142, 172, 255)
+    AD  = (58, 72,  98,  255)
+    CL  = (65, 82, 108, 255)
+    CLD = (45, 58,  80, 255)
+    SW  = (195, 200, 215, 255)
+    SWH = (235, 240, 255, 255)
+    BT  = (48, 38, 30, 255)
+    BTD = (30, 22, 15, 255)
+
+    yo = 1 if walk else 0
+
+    # ---- hair top ----
+    for dx in range(5):
+        px(img, ox+14+dx, oy+2, H)
+    px(img, ox+13, oy+2, OUTLINE); px(img, ox+19, oy+2, OUTLINE)
+    px(img, ox+13, oy+3, OUTLINE); px(img, ox+14, oy+3, H)
+    px(img, ox+15, oy+3, HL); px(img, ox+16, oy+3, HL)
+    px(img, ox+17, oy+3, H); px(img, ox+18, oy+3, H); px(img, ox+19, oy+3, OUTLINE)
+
+    # ---- head ----
+    for dx in range(7):
+        px(img, ox+13+dx, oy+4, OUTLINE if dx==0 or dx==6 else (H if dx<2 else SKIN_L))
+    # row 5
+    px(img, ox+12, oy+5, OUTLINE)
+    px(img, ox+13, oy+5, SKIN_L); px(img, ox+14, oy+5, SKIN_L)
+    px(img, ox+15, oy+5, SKIN_L); px(img, ox+16, oy+5, SKIN_L)
+    px(img, ox+17, oy+5, SKIN_M); px(img, ox+18, oy+5, SKIN_D)
+    px(img, ox+19, oy+5, OUTLINE)
+    # eyes row 6
+    px(img, ox+12, oy+6, OUTLINE)
+    px(img, ox+13, oy+6, SKIN_L); px(img, ox+14, oy+6, EYE)
+    px(img, ox+15, oy+6, SKIN_L); px(img, ox+16, oy+6, SKIN_L)
+    px(img, ox+17, oy+6, EYE);    px(img, ox+18, oy+6, SKIN_D)
+    px(img, ox+19, oy+6, OUTLINE)
+    # mouth row 7
+    px(img, ox+12, oy+7, OUTLINE)
+    px(img, ox+13, oy+7, SKIN_M); px(img, ox+14, oy+7, SKIN_D)
+    px(img, ox+15, oy+7, SKIN_M); px(img, ox+16, oy+7, SKIN_M)
+    px(img, ox+17, oy+7, SKIN_D); px(img, ox+18, oy+7, SKIN_D)
+    px(img, ox+19, oy+7, OUTLINE)
+    # neck row 8
+    px(img, ox+14, oy+8, OUTLINE); px(img, ox+15, oy+8, SKIN_D)
+    px(img, ox+16, oy+8, SKIN_D);  px(img, ox+17, oy+8, OUTLINE)
+
+    # ---- shoulders / upper body ----
+    # pauldrons row 9
+    fill_rect(img, ox+10, oy+9, 2, 2, AL)
+    px(img, ox+9,  oy+9,  OUTLINE); px(img, ox+12, oy+9, OUTLINE)
+    px(img, ox+9,  oy+10, OUTLINE); px(img, ox+12, oy+10, OUTLINE)
+    fill_rect(img, ox+19, oy+9, 2, 2, AD)
+    px(img, ox+18, oy+9,  OUTLINE); px(img, ox+21, oy+9,  OUTLINE)
+    px(img, ox+18, oy+10, OUTLINE); px(img, ox+21, oy+10, OUTLINE)
+    # chest row 9-12
+    px(img, ox+11, oy+9, OUTLINE)
+    for dx in range(8):
+        px(img, ox+12+dx, oy+9,  AL if dx<4 else A)
+    px(img, ox+20, oy+9, OUTLINE)
+    for dx in range(8):
+        px(img, ox+12+dx, oy+10, AL if dx<3 else A)
+    for dx in range(8):
+        px(img, ox+12+dx, oy+11, A  if dx<3 else AD)
+    for dx in range(8):
+        px(img, ox+12+dx, oy+12, AD)
+    px(img, ox+11, oy+10, CL); px(img, ox+11, oy+11, CL); px(img, ox+11, oy+12, CLD)
+    px(img, ox+20, oy+10, CL); px(img, ox+20, oy+11, CLD); px(img, ox+20, oy+12, CLD)
+    # outline sides
+    for row in range(9, 13):
+        px(img, ox+10, oy+row, OUTLINE); px(img, ox+21, oy+row, OUTLINE)
+
+    # ---- cloak / waist ----
+    for dx in range(10):
+        px(img, ox+11+dx, oy+13, CL if dx<2 or dx>7 else AD)
+    px(img, ox+10, oy+13, OUTLINE); px(img, ox+21, oy+13, OUTLINE)
+    for dx in range(10):
+        px(img, ox+11+dx, oy+14, CLD if dx<2 or dx>7 else AD)
+    px(img, ox+10, oy+14, OUTLINE); px(img, ox+21, oy+14, OUTLINE)
+
+    # ---- sword right side ----
+    px(img, ox+22, oy+7, SWH); px(img, ox+23, oy+6, SWH)
+    px(img, ox+22, oy+8, SW);  px(img, ox+23, oy+7, SWH)
+    px(img, ox+23, oy+8, SW);  px(img, ox+24, oy+5, SWH)
+    px(img, ox+24, oy+6, SW);  px(img, ox+25, oy+4, SWH)
+    # guard
+    px(img, ox+21, oy+9, A); px(img, ox+22, oy+9, AL)
+
+    # ---- legs ----
+    base = oy + 15 + yo
+    # left leg
+    for row in range(5):
+        fill_rect(img, ox+12, base+row, 4, 1, AD if row < 3 else BT)
+    px(img, ox+11, base, OUTLINE); px(img, ox+16, base, OUTLINE)
+    px(img, ox+11, base+1, OUTLINE); px(img, ox+16, base+1, OUTLINE)
+    px(img, ox+11, base+2, OUTLINE); px(img, ox+16, base+2, OUTLINE)
+    # right leg
+    for row in range(5):
+        fill_rect(img, ox+17, base+row, 4, 1, CLD if row < 3 else BTD)
+    px(img, ox+16, base, OUTLINE)
+    px(img, ox+21, base, OUTLINE); px(img, ox+21, base+1, OUTLINE)
+    px(img, ox+21, base+2, OUTLINE)
+    # boots
+    fill_rect(img, ox+12, base+3, 4, 2, BT)
+    fill_rect(img, ox+17, base+3, 4, 2, BTD)
+    px(img, ox+11, base+4, OUTLINE); px(img, ox+16, base+4, OUTLINE)
+    px(img, ox+16, base+4, OUTLINE); px(img, ox+21, base+4, OUTLINE)
+
+
+def make_ned_map():
+    img = Image.new("RGBA", (96, 32), T)
+    draw_ned_32(img,  0, 0, walk=False)
+    draw_ned_32(img, 32, 0, walk=True)
+    draw_ned_32(img, 64, 0, walk=False)
+    return img
+
+
+# =============================================================
+# ROBERT BARATHEON  32x32  map sprite
+# =============================================================
+def draw_robert_32(img, ox, oy, walk=False):
+    A   = (175, 135, 28, 255)
+    AL  = (225, 190, 75, 255)
+    AD  = (115, 85,  10, 255)
+    HM  = (155, 115, 18, 255)
+    HML = (205, 170, 58, 255)
+    BD  = (42,  28,  12, 255)
+    BT  = (35,  25,   8, 255)
+    BTD = (22,  14,   4, 255)
+    ANTLER = (210, 175, 60, 255)
+
+    yo = 1 if walk else 0
+
+    # ---- helm ----
+    fill_rect(img, ox+12, oy+1, 8, 1, HML)
+    px(img, ox+11, oy+1, OUTLINE); px(img, ox+20, oy+1, OUTLINE)
+    fill_rect(img, ox+11, oy+2, 10, 1, HML)
+    px(img, ox+10, oy+2, OUTLINE); px(img, ox+21, oy+2, OUTLINE)
+    fill_rect(img, ox+11, oy+3, 10, 1, HM)
+    px(img, ox+10, oy+3, OUTLINE); px(img, ox+21, oy+3, OUTLINE)
+    # antlers on helm
+    px(img, ox+9,  oy+1, ANTLER); px(img, ox+8,  oy+2, ANTLER)
+    px(img, ox+9,  oy+2, ANTLER); px(img, ox+8,  oy+3, ANTLER)
+    px(img, ox+22, oy+1, ANTLER); px(img, ox+23, oy+2, ANTLER)
+    px(img, ox+22, oy+2, ANTLER); px(img, ox+23, oy+3, ANTLER)
+    # ---- face row 4 ----
+    px(img, ox+10, oy+4, OUTLINE)
+    fill_rect(img, ox+11, oy+4, 2, 1, HM)
+    fill_rect(img, ox+13, oy+4, 6, 1, SKIN_L)
+    fill_rect(img, ox+19, oy+4, 2, 1, HM)
+    px(img, ox+21, oy+4, OUTLINE)
+    # eyes row 5
+    px(img, ox+10, oy+5, OUTLINE)
+    px(img, ox+11, oy+5, HM);      px(img, ox+12, oy+5, HM)
+    px(img, ox+13, oy+5, EYE);     px(img, ox+14, oy+5, SKIN_L)
+    px(img, ox+15, oy+5, SKIN_L);  px(img, ox+16, oy+5, SKIN_L)
+    px(img, ox+17, oy+5, EYE);     px(img, ox+18, oy+5, SKIN_M)
+    px(img, ox+19, oy+5, HM);      px(img, ox+20, oy+5, HML)
+    px(img, ox+21, oy+5, OUTLINE)
+    # beard row 6-7
+    px(img, ox+10, oy+6, OUTLINE)
+    for dx in range(10):
+        px(img, ox+11+dx, oy+6, BD if dx<2 or dx>7 else SKIN_M)
+    px(img, ox+21, oy+6, OUTLINE)
+    px(img, ox+10, oy+7, OUTLINE)
+    for dx in range(10):
+        px(img, ox+11+dx, oy+7, BD)
+    px(img, ox+21, oy+7, OUTLINE)
+
+    # ---- wide shoulders / chest ----
+    for row in range(8, 13):
+        left  = 8  + (row - 8)
+        right = 24 - (row - 8)
+        fill_rect(img, ox+left, oy+row, right-left, 1, A)
+        if row == 8:
+            fill_rect(img, ox+left, oy+row, 4, 1, AL)
+        px(img, ox+left-1,  oy+row, OUTLINE)
+        px(img, ox+right, oy+row, OUTLINE)
+    # chest detail
+    fill_rect(img, ox+12, oy+9,  8, 1, AL)
+    fill_rect(img, ox+12, oy+10, 6, 1, A)
+    fill_rect(img, ox+18, oy+10, 2, 1, AD)
+    fill_rect(img, ox+12, oy+11, 4, 1, AD)
+    fill_rect(img, ox+16, oy+11, 4, 1, AD)
+    # waist
+    fill_rect(img, ox+11, oy+13, 10, 2, AD)
+    px(img, ox+10, oy+13, OUTLINE); px(img, ox+21, oy+13, OUTLINE)
+    px(img, ox+10, oy+14, OUTLINE); px(img, ox+21, oy+14, OUTLINE)
+
+    # ---- legs (thick) ----
+    base = oy + 15 + yo
+    fill_rect(img, ox+11, base,   5, 5, AD)
+    fill_rect(img, ox+17, base,   5, 5, AD)
+    for row in range(5):
+        px(img, ox+10,  base+row, OUTLINE)
+        px(img, ox+16,  base+row, OUTLINE)
+        px(img, ox+22,  base+row, OUTLINE)
+    # boots
+    fill_rect(img, ox+11, base+3, 5, 2, BT)
+    fill_rect(img, ox+17, base+3, 5, 2, BTD)
+    for row in range(3, 5):
+        px(img, ox+10,  base+row, OUTLINE)
+        px(img, ox+16,  base+row, OUTLINE)
+        px(img, ox+22,  base+row, OUTLINE)
+
+
+def make_robert_map():
+    img = Image.new("RGBA", (96, 32), T)
+    draw_robert_32(img,  0, 0, walk=False)
+    draw_robert_32(img, 32, 0, walk=True)
+    draw_robert_32(img, 64, 0, walk=False)
+    return img
+
+
+# =============================================================
+# HOWLAND REED  32x32  map sprite
+# =============================================================
+def draw_howland_32(img, ox, oy, walk=False):
+    H   = (58, 75, 38, 255)
+    HL  = (85, 108, 58, 255)
+    A   = (65, 95, 55, 255)
+    AL  = (95, 128, 75, 255)
+    AD  = (42, 62,  32, 255)
+    CL  = (50, 75, 42, 255)
+    CLD = (32, 50, 25, 255)
+    LN  = (155, 135, 72, 255)
+    LNH = (195, 175, 105, 255)
+    LT  = (195, 200, 210, 255)
+    BT  = (45, 35, 25, 255)
+
+    yo = 1 if walk else 0
+
+    # ---- hair / head ----
+    fill_rect(img, ox+14, oy+2, 5, 1, H)
+    px(img, ox+13, oy+2, OUTLINE); px(img, ox+19, oy+2, OUTLINE)
+    px(img, ox+13, oy+3, OUTLINE)
+    px(img, ox+14, oy+3, H); px(img, ox+15, oy+3, HL)
+    px(img, ox+16, oy+3, HL); px(img, ox+17, oy+3, H); px(img, ox+18, oy+3, H)
+    px(img, ox+19, oy+3, OUTLINE)
+
+    px(img, ox+13, oy+4, OUTLINE)
+    for dx in range(6):
+        px(img, ox+14+dx, oy+4, SKIN_L if dx<4 else SKIN_M)
+    px(img, ox+20, oy+4, OUTLINE)
+
+    px(img, ox+13, oy+5, OUTLINE)
+    px(img, ox+14, oy+5, SKIN_L); px(img, ox+15, oy+5, EYE)
+    px(img, ox+16, oy+5, SKIN_L); px(img, ox+17, oy+5, SKIN_L)
+    px(img, ox+18, oy+5, EYE);    px(img, ox+19, oy+5, SKIN_M)
+    px(img, ox+20, oy+5, OUTLINE)
+
+    px(img, ox+13, oy+6, OUTLINE)
+    px(img, ox+14, oy+6, SKIN_M); px(img, ox+15, oy+6, SKIN_D)
+    px(img, ox+16, oy+6, SKIN_M); px(img, ox+17, oy+6, SKIN_M)
+    px(img, ox+18, oy+6, SKIN_D); px(img, ox+19, oy+6, SKIN_D)
+    px(img, ox+20, oy+6, OUTLINE)
+
+    px(img, ox+14, oy+7, OUTLINE); px(img, ox+15, oy+7, SKIN_D)
+    px(img, ox+16, oy+7, SKIN_D);  px(img, ox+17, oy+7, OUTLINE)
+
+    # ---- lean body ----
+    for row in range(8, 13):
+        px(img, ox+12, oy+row, OUTLINE)
+        fill_rect(img, ox+13, oy+row, 7, 1, AL if row < 10 else A)
+        fill_rect(img, ox+17, oy+row, 3, 1, AD)
+        px(img, ox+11, oy+row, CL)
+        px(img, ox+20, oy+row, CLD)
+        px(img, ox+21, oy+row, OUTLINE)
+    # waist/belt
+    fill_rect(img, ox+12, oy+13, 9, 2, CLD)
+    px(img, ox+11, oy+13, OUTLINE); px(img, ox+21, oy+13, OUTLINE)
+    px(img, ox+11, oy+14, OUTLINE); px(img, ox+21, oy+14, OUTLINE)
+
+    # ---- lance (right side, angled) ----
+    px(img, ox+22, oy+1, LT); px(img, ox+23, oy+0, LT)
+    px(img, ox+22, oy+2, LNH); px(img, ox+22, oy+3, LNH)
+    for row in range(4, 15):
+        px(img, ox+22, oy+row, LN)
+    px(img, ox+22, oy+15, LN)
+
+    # ---- legs ----
+    base = oy + 15 + yo
+    fill_rect(img, ox+13, base,   4, 5, AD)
+    fill_rect(img, ox+18, base,   4, 5, CLD)
+    for row in range(5):
+        px(img, ox+12, base+row, OUTLINE)
+        px(img, ox+17, base+row, OUTLINE)
+        px(img, ox+22, base+row, OUTLINE)
+    # boots
+    fill_rect(img, ox+13, base+3, 4, 2, BT)
+    fill_rect(img, ox+18, base+3, 4, 2, BT)
+    for row in range(3, 5):
+        px(img, ox+12, base+row, OUTLINE)
+        px(img, ox+17, base+row, OUTLINE)
+        px(img, ox+22, base+row, OUTLINE)
+
+
+def make_howland_map():
+    img = Image.new("RGBA", (96, 32), T)
+    draw_howland_32(img,  0, 0, walk=False)
+    draw_howland_32(img, 32, 0, walk=True)
+    draw_howland_32(img, 64, 0, walk=False)
+    return img
+
+
+# =============================================================
+# ROYAL SOLDIER  32x32  map sprite
+# =============================================================
+def draw_royal_32(img, ox, oy, walk=False):
+    A   = (155, 45, 35, 255)
+    AL  = (205, 75, 60, 255)
+    AD  = (105, 25, 15, 255)
+    HM  = (135, 35, 25, 255)
+    HML = (185, 65, 50, 255)
+    PLUME = (220, 30, 20, 255)
+    SP  = (155, 135, 72, 255)
+    SPT = (185, 190, 200, 255)
+    BT  = (40, 30, 20, 255)
+
+    yo = 1 if walk else 0
+
+    # ---- plume ----
+    for row in range(3):
+        px(img, ox+15, oy+row, PLUME)
+        px(img, ox+16, oy+row, PLUME)
+
+    # ---- helm ----
+    fill_rect(img, ox+12, oy+3, 8, 1, HML)
+    px(img, ox+11, oy+3, OUTLINE); px(img, ox+20, oy+3, OUTLINE)
+    fill_rect(img, ox+11, oy+4, 10, 2, HM)
+    px(img, ox+10, oy+4, OUTLINE); px(img, ox+21, oy+4, OUTLINE)
+    px(img, ox+10, oy+5, OUTLINE); px(img, ox+21, oy+5, OUTLINE)
+    # visor slit row 5
+    px(img, ox+13, oy+5, OUTLINE); px(img, ox+14, oy+5, OUTLINE)
+    px(img, ox+17, oy+5, OUTLINE); px(img, ox+18, oy+5, OUTLINE)
+    # chin guard row 6
+    fill_rect(img, ox+12, oy+6, 8, 2, HM)
+    px(img, ox+11, oy+6, OUTLINE); px(img, ox+20, oy+6, OUTLINE)
+    px(img, ox+11, oy+7, OUTLINE); px(img, ox+20, oy+7, OUTLINE)
+
+    # ---- chest ----
+    for row in range(8, 13):
+        px(img, ox+10, oy+row, OUTLINE)
+        fill_rect(img, ox+11, oy+row, 4, 1, AL)
+        fill_rect(img, ox+15, oy+row, 4, 1, A)
+        fill_rect(img, ox+19, oy+row, 2, 1, AD)
+        px(img, ox+21, oy+row, OUTLINE)
+    # belt row 13-14
+    fill_rect(img, ox+11, oy+13, 10, 2, AD)
+    px(img, ox+10, oy+13, OUTLINE); px(img, ox+21, oy+13, OUTLINE)
+    px(img, ox+10, oy+14, OUTLINE); px(img, ox+21, oy+14, OUTLINE)
+
+    # ---- spear (left side) ----
+    px(img, ox+8, oy+0, SPT); px(img, ox+9, oy+0, SPT)
+    px(img, ox+8, oy+1, SP);  px(img, ox+9, oy+1, SP)
+    for row in range(2, 16):
+        px(img, ox+9, oy+row, SP)
+
+    # ---- legs ----
+    base = oy + 15 + yo
+    fill_rect(img, ox+11, base,   5, 5, AD)
+    fill_rect(img, ox+17, base,   5, 5, A)
+    for row in range(5):
+        px(img, ox+10, base+row, OUTLINE)
+        px(img, ox+16, base+row, OUTLINE)
+        px(img, ox+22, base+row, OUTLINE)
+    # boots
+    fill_rect(img, ox+11, base+3, 5, 2, BT)
+    fill_rect(img, ox+17, base+3, 5, 2, BT)
+    for row in range(3, 5):
+        px(img, ox+10, base+row, OUTLINE)
+        px(img, ox+16, base+row, OUTLINE)
+        px(img, ox+22, base+row, OUTLINE)
+
+
+def make_royal_map():
+    img = Image.new("RGBA", (96, 32), T)
+    draw_royal_32(img,  0, 0, walk=False)
+    draw_royal_32(img, 32, 0, walk=True)
+    draw_royal_32(img, 64, 0, walk=False)
+    return img
+
+
+# =============================================================
+# PORTRAITS  48x48
+# =============================================================
+
+def draw_base_head(img, cx, top, hair_c, hair_h, has_helm=False, helm_c=None, helm_l=None):
+    if has_helm:
+        fill_rect(img, cx-6, top,    12, 3, helm_l)
+        px(img, cx-7, top,   OUTLINE); px(img, cx+6, top,   OUTLINE)
+        fill_rect(img, cx-7, top+3,  14, 5, helm_c)
+        px(img, cx-8, top+3, OUTLINE); px(img, cx+7, top+3, OUTLINE)
+        px(img, cx-8, top+4, OUTLINE); px(img, cx+7, top+4, OUTLINE)
+        px(img, cx-8, top+5, OUTLINE); px(img, cx+7, top+5, OUTLINE)
+        px(img, cx-8, top+6, OUTLINE); px(img, cx+7, top+6, OUTLINE)
+        px(img, cx-8, top+7, OUTLINE); px(img, cx+7, top+7, OUTLINE)
+    else:
+        fill_rect(img, cx-5, top,    10, 2, hair_h)
+        px(img, cx-6, top,   OUTLINE); px(img, cx+5, top,   OUTLINE)
+        fill_rect(img, cx-6, top+2,  12, 1, hair_c)
+        px(img, cx-7, top+2, OUTLINE); px(img, cx+6, top+2, OUTLINE)
+        fill_rect(img, cx-7, top+3,  14, 5, SKIN_L)
+        px(img, cx-8, top+3, OUTLINE); px(img, cx+7, top+3, OUTLINE)
+        for row in range(3, 8):
+            px(img, cx-8, top+row, OUTLINE)
+            px(img, cx+7, top+row, OUTLINE)
+
+
+def draw_eyes(img, cx, row):
+    px(img, cx-4, row, EYE); px(img, cx-3, row, EYE)
+    px(img, cx+2, row, EYE); px(img, cx+3, row, EYE)
+    px(img, cx-5, row, SKIN_L); px(img, cx-2, row, SKIN_L)
+    px(img, cx-1, row, SKIN_L); px(img, cx+0, row, SKIN_L)
+    px(img, cx+1, row, SKIN_L); px(img, cx+4, row, SKIN_L)
+
+
+def make_ned_portrait():
+    img = Image.new("RGBA", (48, 48), T)
+    H  = (48, 38, 25, 255)
+    HL = (75, 60, 40, 255)
+    A  = (88, 108, 138, 255)
+    AL = (118, 142, 172, 255)
+    AD = (58, 72, 98, 255)
+    CL = (65, 82, 108, 255)
+    SW = (195, 200, 215, 255)
+    SWH= (235, 240, 255, 255)
+    WP = (80, 60, 40, 255)
+    EMBLEM = (200, 210, 220, 255)
+
+    cx = 24
+
+    # --- hair ---
+    fill_rect(img, cx-7, 2, 14, 2, H)
+    for dx in range(-6, 7): px(img, cx+dx, 2, HL if -3<=dx<=3 else H)
+    px(img, cx-8, 2, OUTLINE); px(img, cx+7, 2, OUTLINE)
+    px(img, cx-8, 3, OUTLINE); px(img, cx+7, 3, OUTLINE)
+
+    # --- forehead ---
+    fill_rect(img, cx-8, 4, 16, 3, SKIN_L)
+    for row in range(4, 7):
+        px(img, cx-9, row, OUTLINE); px(img, cx+8, row, OUTLINE)
+
+    # --- eyes row 7 ---
+    fill_rect(img, cx-8, 7, 16, 2, SKIN_L)
+    px(img, cx-9, 7, OUTLINE); px(img, cx+8, 7, OUTLINE)
+    px(img, cx-9, 8, OUTLINE); px(img, cx+8, 8, OUTLINE)
+    draw_eyes(img, cx, 7)
+    # brow
+    px(img, cx-5, 6, H); px(img, cx-4, 6, H)
+    px(img, cx+3, 6, H); px(img, cx+4, 6, H)
+
+    # --- mid face ---
+    fill_rect(img, cx-8, 9, 16, 3, SKIN_L)
+    for row in range(9, 12):
+        px(img, cx-9, row, OUTLINE); px(img, cx+8, row, OUTLINE)
+    # nose
+    px(img, cx-1, 10, SKIN_D); px(img, cx, 10, SKIN_D); px(img, cx+1, 10, SKIN_D)
+    # mouth
+    px(img, cx-3, 11, SKIN_M); px(img, cx-2, 11, (130,90,70,255))
+    px(img, cx-1, 11, (130,90,70,255)); px(img, cx, 11, SKIN_M)
+    px(img, cx+1, 11, (130,90,70,255)); px(img, cx+2, 11, SKIN_M)
+
+    # --- chin/jaw ---
+    fill_rect(img, cx-7, 12, 14, 2, SKIN_M)
+    for row in range(12, 14):
+        px(img, cx-8, row, OUTLINE); px(img, cx+7, row, OUTLINE)
+
+    # --- neck ---
+    fill_rect(img, cx-3, 14, 6, 2, SKIN_D)
+    px(img, cx-4, 14, OUTLINE); px(img, cx+3, 14, OUTLINE)
+    px(img, cx-4, 15, OUTLINE); px(img, cx+3, 15, OUTLINE)
+
+    # --- pauldrons ---
+    fill_rect(img, 0,    16, 12, 8, AL)
+    fill_rect(img, 36,   16, 12, 8, AD)
+    px(img, 0, 16, OUTLINE); px(img, 47, 16, OUTLINE)
+    for row in range(16, 24):
+        px(img, 0, row, OUTLINE); px(img, 47, row, OUTLINE)
+
+    # --- chest ----
+    fill_rect(img, 12,  16, 24, 8, A)
+    fill_rect(img, 12,  16,  8, 4, AL)
+    fill_rect(img, 28,  16,  8, 4, AD)
+    # chest line
+    for row in range(16, 24):
+        px(img, 11, row, OUTLINE); px(img, 36, row, OUTLINE)
+
+    # --- emblem (direwolf outline on chest) ---
+    for dx in [-1,0,1]:
+        px(img, cx+dx, 18, EMBLEM)
+    px(img, cx-2, 19, EMBLEM); px(img, cx+2, 19, EMBLEM)
+    px(img, cx-3, 20, EMBLEM); px(img, cx+3, 20, EMBLEM)
+    px(img, cx-2, 21, EMBLEM); px(img, cx-1, 21, EMBLEM)
+    px(img, cx+1, 21, EMBLEM); px(img, cx+2, 21, EMBLEM)
+
+    # --- gorget / neck armor ---
+    fill_rect(img, cx-5, 24, 10, 3, CL)
+    for row in range(24, 27):
+        px(img, cx-6, row, OUTLINE); px(img, cx+5, row, OUTLINE)
+
+    # --- sword hilt (left side) ---
+    fill_rect(img, 2, 22, 4, 2, WP)
+    fill_rect(img, 0, 21, 8, 1, SW)
+    fill_rect(img, 2, 23, 4, 10, SW)
+    px(img, 3, 23, SWH); px(img, 3, 24, SWH)
+
+    # --- lower body hint ---
+    fill_rect(img, 10, 27, 28, 12, AD)
+    fill_rect(img, 10, 27, 10, 12, AL)
+    fill_rect(img, 28, 27, 10, 12, AD)
+    for row in range(27, 39):
+        px(img, 9, row, OUTLINE); px(img, 38, row, OUTLINE)
+    # cloak sides
+    fill_rect(img, 0, 27, 9, 21, CL)
+    fill_rect(img, 39, 27, 9, 21, CL)
+    for row in range(27, 48):
+        px(img, 0, row, OUTLINE if row<48 else T)
+
+    # --- hair long sides ---
+    fill_rect(img, 0, 4, 3, 20, H)
+    fill_rect(img, 45, 4, 3, 20, H)
 
     return img
 
-# =========================================
-# 奈德·史塔克 —— 剑士/领主 (蓝灰色调)
-# =========================================
-def ned_frame(offset_y=0):
-    """offset_y: 0=直立, 1=稍低(行走帧)"""
-    # 颜色
-    HAIR = (50, 40, 30, 255)         # 深棕黑发
-    HAIR_H = (80, 65, 45, 255)       # 发高光
-    ARMOR = (90, 110, 140, 255)      # 史塔克灰蓝盔甲
-    ARMOR_L = (120, 145, 175, 255)   # 盔甲亮面
-    ARMOR_D = (60, 75, 100, 255)     # 盔甲暗面
-    CLOAK = (70, 85, 110, 255)       # 深蓝披风
-    SWORD = (200, 200, 210, 255)     # 剑
-    SWORD_H = (240, 240, 255, 255)   # 剑刃高光
-    BOOT = (50, 40, 35, 255)         # 靴子深棕
-    OUTLINE = (20, 15, 10, 255)      # 轮廓黑
 
-    oy = offset_y
-    # 格式: (x, y, color)
-    return [
-        # === 头部（行中上方） ===
-        # 头发顶部
-        (7, 1+oy, OUTLINE), (8, 1+oy, OUTLINE),
-        (6, 2+oy, OUTLINE), (7, 2+oy, HAIR), (8, 2+oy, HAIR_H), (9, 2+oy, OUTLINE),
-        # 头部
-        (6, 3+oy, OUTLINE), (7, 3+oy, HAIR), (8, 3+oy, SKIN_L), (9, 3+oy, OUTLINE),
-        (5, 4+oy, OUTLINE), (6, 4+oy, SKIN_L), (7, 4+oy, SKIN_L), (8, 4+oy, SKIN_L), (9, 4+oy, SKIN_D), (10, 4+oy, OUTLINE),
-        # 眼睛
-        (5, 5+oy, OUTLINE), (6, 5+oy, SKIN_L), (7, 5+oy, EYE), (8, 5+oy, SKIN_L), (9, 5+oy, EYE), (10, 5+oy, OUTLINE),
-        # 下脸/颈
-        (6, 6+oy, OUTLINE), (7, 6+oy, SKIN_D), (8, 6+oy, SKIN_D), (9, 6+oy, OUTLINE),
+def make_robert_portrait():
+    img = Image.new("RGBA", (48, 48), T)
+    A  = (175, 135, 28, 255)
+    AL = (225, 190, 75, 255)
+    AD = (115, 85, 10, 255)
+    HM = (155, 115, 18, 255)
+    HML= (205, 170, 58, 255)
+    BD = (38, 24, 10, 255)
+    BDL= (65, 45, 20, 255)
+    ANG= (210, 175, 60, 255)
 
-        # === 身体（盔甲） ===
-        (5, 7+oy, OUTLINE), (6, 7+oy, ARMOR_L), (7, 7+oy, ARMOR_L), (8, 7+oy, ARMOR), (9, 7+oy, ARMOR_D), (10, 7+oy, OUTLINE),
-        (4, 8+oy, OUTLINE), (5, 8+oy, CLOAK), (6, 8+oy, ARMOR_L), (7, 8+oy, ARMOR), (8, 8+oy, ARMOR), (9, 8+oy, ARMOR_D), (10, 8+oy, CLOAK), (11, 8+oy, OUTLINE),
-        (4, 9+oy, OUTLINE), (5, 9+oy, CLOAK), (6, 9+oy, ARMOR), (7, 9+oy, ARMOR), (8, 9+oy, ARMOR_D), (9, 9+oy, ARMOR_D), (10, 9+oy, CLOAK), (11, 9+oy, OUTLINE),
+    cx = 24
 
-        # === 剑（右侧斜举） ===
-        (11, 7+oy, SWORD_H), (12, 6+oy, SWORD_H), (12, 7+oy, SWORD), (13, 5+oy, SWORD_H),
+    # --- helm top ---
+    fill_rect(img, cx-5, 1, 10, 1, HML)
+    px(img, cx-6, 1, OUTLINE); px(img, cx+5, 1, OUTLINE)
+    fill_rect(img, cx-7, 2, 14, 2, HML)
+    px(img, cx-8, 2, OUTLINE); px(img, cx+7, 2, OUTLINE)
+    px(img, cx-8, 3, OUTLINE); px(img, cx+7, 3, OUTLINE)
 
-        # === 腿部 ===
-        (5, 10+oy, OUTLINE), (6, 10+oy, ARMOR_D), (7, 10+oy, ARMOR_D), (8, 10+oy, CLOAK), (9, 10+oy, CLOAK), (10, 10+oy, OUTLINE),
-        (5, 11+oy, OUTLINE), (6, 11+oy, BOOT), (7, 11+oy, BOOT), (8, 11+oy, BOOT), (9, 11+oy, BOOT), (10, 11+oy, OUTLINE),
-        (6, 12+oy, OUTLINE), (7, 12+oy, BOOT), (8, 12+oy, BOOT), (9, 12+oy, OUTLINE),
-    ]
+    # antlers
+    px(img, cx-9, 1, ANG); px(img, cx-10, 0, ANG); px(img, cx-10, 1, ANG)
+    px(img, cx-11, 0, ANG); px(img, cx-9, 2, ANG)
+    px(img, cx+9, 1, ANG); px(img, cx+10, 0, ANG); px(img, cx+10, 1, ANG)
+    px(img, cx+11, 0, ANG); px(img, cx+9, 2, ANG)
 
-# 3帧：直立、行走低、直立
-ned_frames = [
-    ned_frame(0),   # 帧1：直立
-    ned_frame(1),   # 帧2：行走（稍低）
-    ned_frame(0),   # 帧3：直立（回来）
-]
-ned_img = make_spritesheet(ned_frames)
-ned_img.save(os.path.join(OUTPUT_DIR, "ned_stark_map.png"))
-print("生成: ned_stark_map.png")
+    # --- helm main ---
+    fill_rect(img, cx-8, 4, 16, 5, HM)
+    for row in range(4, 9):
+        px(img, cx-9, row, OUTLINE); px(img, cx+8, row, OUTLINE)
+    # eye slot row 6
+    for dx in range(-5, -2):
+        px(img, cx+dx, 6, OUTLINE)
+    for dx in range(2, 6):
+        px(img, cx+dx, 6, OUTLINE)
+    px(img, cx-2, 6, SKIN_M); px(img, cx-1, 6, EYE)
+    px(img, cx,   6, EYE);   px(img, cx+1,  6, EYE)
 
+    # --- cheeks / beard ---
+    fill_rect(img, cx-8, 9, 16, 6, BD)
+    for row in range(9, 15):
+        px(img, cx-9, row, OUTLINE); px(img, cx+8, row, OUTLINE)
+    # cheeks lighter
+    fill_rect(img, cx-7, 9, 5, 3, BDL)
+    fill_rect(img, cx+2, 9, 5, 3, BD)
+    # mustache highlight
+    px(img, cx-2, 10, BDL); px(img, cx-1, 10, BDL)
+    px(img, cx, 10, BDL);   px(img, cx+1, 10, BDL)
+    # chin
+    fill_rect(img, cx-5, 14, 10, 2, BD)
+    px(img, cx-6, 14, OUTLINE); px(img, cx+5, 14, OUTLINE)
+    px(img, cx-6, 15, OUTLINE); px(img, cx+5, 15, OUTLINE)
 
-# =========================================
-# 劳勃·拜拉席恩 —— 重装骑士 (黄黑色调)
-# =========================================
-def robert_frame(offset_y=0):
-    HAIR = (50, 35, 20, 255)          # 黑发
-    BEARD = (45, 30, 15, 255)         # 黑胡须
-    ARMOR = (180, 140, 30, 255)       # 金色盔甲
-    ARMOR_L = (230, 195, 80, 255)     # 盔甲亮面
-    ARMOR_D = (120, 90, 10, 255)      # 盔甲暗面
-    HELM = (160, 120, 20, 255)        # 头盔
-    HELM_L = (210, 175, 60, 255)      # 头盔高光
-    OUTLINE = (20, 15, 5, 255)
+    # --- neck ---
+    fill_rect(img, cx-3, 16, 6, 2, SKIN_D)
+    for row in range(16, 18):
+        px(img, cx-4, row, OUTLINE); px(img, cx+3, row, OUTLINE)
 
-    oy = offset_y
-    return [
-        # 头盔
-        (6, 1+oy, OUTLINE), (7, 1+oy, HELM_L), (8, 1+oy, HELM_L), (9, 1+oy, OUTLINE),
-        (5, 2+oy, OUTLINE), (6, 2+oy, HELM_L), (7, 2+oy, HELM_L), (8, 2+oy, HELM), (9, 2+oy, HELM), (10, 2+oy, OUTLINE),
-        (5, 3+oy, OUTLINE), (6, 3+oy, HELM), (7, 3+oy, SKIN_L), (8, 3+oy, SKIN_L), (9, 3+oy, HELM), (10, 3+oy, OUTLINE),
-        # 眼缝/脸
-        (5, 4+oy, OUTLINE), (6, 4+oy, HELM_L), (7, 4+oy, EYE), (8, 4+oy, SKIN_L), (9, 4+oy, EYE), (10, 4+oy, HELM_L), (5, 4+oy, OUTLINE), (10, 4+oy, OUTLINE),
-        (5, 5+oy, OUTLINE), (6, 5+oy, SKIN_D), (7, 5+oy, BEARD), (8, 5+oy, BEARD), (9, 5+oy, SKIN_D), (10, 5+oy, OUTLINE),
+    # --- massive pauldrons ---
+    fill_rect(img, 0,   18, 14, 10, AL)
+    fill_rect(img, 34,  18, 14, 10, AD)
+    for row in range(18, 28):
+        px(img, 0, row, OUTLINE); px(img, 47, row, OUTLINE)
 
-        # 宽肩重甲身体
-        (3, 6+oy, OUTLINE), (4, 6+oy, ARMOR_L), (5, 6+oy, ARMOR_L), (6, 6+oy, ARMOR_L), (7, 6+oy, ARMOR_L), (8, 6+oy, ARMOR), (9, 6+oy, ARMOR_D), (10, 6+oy, ARMOR_D), (11, 6+oy, ARMOR_D), (12, 6+oy, OUTLINE),
-        (3, 7+oy, OUTLINE), (4, 7+oy, ARMOR_L), (5, 7+oy, ARMOR_L), (6, 7+oy, ARMOR), (7, 7+oy, ARMOR), (8, 7+oy, ARMOR), (9, 7+oy, ARMOR_D), (10, 7+oy, ARMOR_D), (11, 7+oy, ARMOR_D), (12, 7+oy, OUTLINE),
-        (3, 8+oy, OUTLINE), (4, 8+oy, ARMOR), (5, 8+oy, ARMOR), (6, 8+oy, ARMOR), (7, 8+oy, ARMOR), (8, 8+oy, ARMOR_D), (9, 8+oy, ARMOR_D), (10, 8+oy, ARMOR_D), (11, 8+oy, OUTLINE),
-        (4, 9+oy, OUTLINE), (5, 9+oy, ARMOR_D), (6, 9+oy, ARMOR_D), (7, 9+oy, ARMOR_D), (8, 9+oy, ARMOR_D), (9, 9+oy, ARMOR_D), (10, 9+oy, OUTLINE),
+    # --- chest ---
+    fill_rect(img, 14, 18, 20, 10, A)
+    fill_rect(img, 14, 18,  8,  5, AL)
+    fill_rect(img, 30, 18,  4,  5, AD)
+    for row in range(18, 28):
+        px(img, 13, row, OUTLINE); px(img, 34, row, OUTLINE)
 
-        # 腿（粗壮）
-        (4, 10+oy, OUTLINE), (5, 10+oy, ARMOR_D), (6, 10+oy, ARMOR_D), (7, 10+oy, ARMOR_D), (8, 10+oy, ARMOR_D), (9, 10+oy, OUTLINE),
-        (4, 11+oy, OUTLINE), (5, 11+oy, ARMOR_D), (6, 11+oy, ARMOR_D), (7, 11+oy, ARMOR_D), (8, 11+oy, ARMOR_D), (9, 11+oy, OUTLINE),
-        (5, 12+oy, OUTLINE), (6, 12+oy, ARMOR_D), (7, 12+oy, ARMOR_D), (8, 12+oy, OUTLINE),
-    ]
+    # stag emblem
+    px(img, cx-1, 21, ANG); px(img, cx, 21, ANG); px(img, cx+1, 21, ANG)
+    px(img, cx-2, 22, ANG); px(img, cx+2, 22, ANG)
+    px(img, cx-3, 23, ANG); px(img, cx+3, 23, ANG)
+    px(img, cx-2, 24, ANG); px(img, cx, 24, ANG); px(img, cx+2, 24, ANG)
 
-robert_frames = [
-    robert_frame(0),
-    robert_frame(1),
-    robert_frame(0),
-]
-robert_img = make_spritesheet(robert_frames)
-robert_img.save(os.path.join(OUTPUT_DIR, "robert_baratheon_map.png"))
-print("生成: robert_baratheon_map.png")
+    # --- lower torso ---
+    fill_rect(img, 10, 28, 28, 10, AD)
+    fill_rect(img, 10, 28, 10,  5, A)
+    for row in range(28, 38):
+        px(img, 9, row, OUTLINE); px(img, 38, row, OUTLINE)
+    # warhammer hint bottom left
+    fill_rect(img, 0, 32, 8, 4, AD)
+    fill_rect(img, 0, 30, 6, 2, (140, 100, 20, 255))
+    for row in range(30, 36):
+        px(img, 0, row, OUTLINE)
+
+    # bottom fill
+    fill_rect(img, 8, 38, 32, 10, AD)
+    for row in range(38, 48):
+        px(img, 7, row, OUTLINE); px(img, 40, row, OUTLINE)
+
+    return img
 
 
-# =========================================
-# 豪兰·里德 —— 长枪兵/侦察兵 (绿色调)
-# =========================================
-def howland_frame(offset_y=0):
-    HAIR = (60, 80, 40, 255)          # 暗绿棕发
-    ARMOR = (70, 100, 60, 255)        # 沼泽绿皮革甲
-    ARMOR_L = (100, 135, 80, 255)     # 亮面
-    ARMOR_D = (45, 65, 35, 255)       # 暗面
-    CLOAK = (55, 80, 45, 255)         # 深绿披风
-    LANCE = (160, 140, 80, 255)       # 枪杆木色
-    LANCE_H = (200, 180, 110, 255)    # 枪杆高光
-    LANCE_TIP = (200, 205, 215, 255)  # 枪尖金属
-    OUTLINE = (20, 25, 10, 255)
+def make_howland_portrait():
+    img = Image.new("RGBA", (48, 48), T)
+    H  = (55, 72, 35, 255)
+    HL = (82, 105, 55, 255)
+    A  = (62, 92, 52, 255)
+    AL = (92, 125, 72, 255)
+    AD = (40, 60, 30, 255)
+    CL = (48, 72, 40, 255)
+    LN = (152, 132, 70, 255)
+    LNH= (192, 172, 102, 255)
+    LT = (192, 198, 208, 255)
+    FACE_M = (225, 180, 125, 255)
 
-    oy = offset_y
-    return [
-        # 头部
-        (7, 2+oy, OUTLINE), (8, 2+oy, OUTLINE),
-        (6, 3+oy, OUTLINE), (7, 3+oy, HAIR), (8, 3+oy, HAIR), (9, 3+oy, OUTLINE),
-        (6, 4+oy, OUTLINE), (7, 4+oy, SKIN_L), (8, 4+oy, SKIN_L), (9, 4+oy, SKIN_D), (10, 4+oy, OUTLINE),
-        (6, 5+oy, OUTLINE), (7, 5+oy, EYE), (8, 5+oy, SKIN_L), (9, 5+oy, EYE), (10, 5+oy, OUTLINE),
-        (7, 6+oy, OUTLINE), (8, 6+oy, SKIN_D), (9, 6+oy, OUTLINE),
+    cx = 24
 
-        # 身体（精瘦）
-        (5, 7+oy, OUTLINE), (6, 7+oy, ARMOR_L), (7, 7+oy, ARMOR_L), (8, 7+oy, ARMOR), (9, 7+oy, ARMOR_D), (10, 7+oy, OUTLINE),
-        (5, 8+oy, OUTLINE), (6, 8+oy, CLOAK), (7, 8+oy, ARMOR), (8, 8+oy, ARMOR_D), (9, 8+oy, CLOAK), (10, 8+oy, OUTLINE),
-        (5, 9+oy, OUTLINE), (6, 9+oy, CLOAK), (7, 9+oy, ARMOR_D), (8, 9+oy, ARMOR_D), (9, 9+oy, CLOAK), (10, 9+oy, OUTLINE),
+    # --- hair ---
+    fill_rect(img, cx-7, 1, 14, 3, H)
+    for dx in range(-5, 6): px(img, cx+dx, 1, HL if -2<=dx<=2 else H)
+    for row in range(1, 4):
+        px(img, cx-8, row, OUTLINE); px(img, cx+7, row, OUTLINE)
+    # hair sides long
+    fill_rect(img, 0, 4, 4, 16, H)
+    fill_rect(img, 44, 4, 4, 16, H)
+    for row in range(4, 20):
+        px(img, 0, row, OUTLINE); px(img, 47, row, OUTLINE)
 
-        # 长枪（从右侧举起）
-        (11, 2+oy, LANCE_TIP),
-        (11, 3+oy, LANCE_H), (11, 4+oy, LANCE_H),
-        (11, 5+oy, LANCE), (11, 6+oy, LANCE), (11, 7+oy, LANCE), (11, 8+oy, LANCE),
-        (11, 9+oy, LANCE), (11, 10+oy, LANCE),
+    # --- forehead ---
+    fill_rect(img, cx-8, 4, 16, 3, SKIN_L)
+    for row in range(4, 7):
+        px(img, cx-9, row, OUTLINE); px(img, cx+8, row, OUTLINE)
+    # brow
+    px(img, cx-5, 5, H); px(img, cx-4, 5, H)
+    px(img, cx+3, 5, H); px(img, cx+4, 5, H)
 
-        # 腿
-        (6, 10+oy, OUTLINE), (7, 10+oy, ARMOR_D), (8, 10+oy, ARMOR_D), (9, 10+oy, OUTLINE),
-        (6, 11+oy, OUTLINE), (7, 11+oy, ARMOR_D), (8, 11+oy, ARMOR_D), (9, 11+oy, OUTLINE),
-        (6, 12+oy, OUTLINE), (7, 12+oy, ARMOR_D), (8, 12+oy, OUTLINE),
-    ]
+    # --- eyes ---
+    fill_rect(img, cx-8, 7, 16, 2, SKIN_L)
+    for row in range(7, 9):
+        px(img, cx-9, row, OUTLINE); px(img, cx+8, row, OUTLINE)
+    draw_eyes(img, cx, 7)
+    # war paint under eyes (reed style)
+    px(img, cx-4, 9, (60, 80, 40, 200)); px(img, cx-3, 9, (60, 80, 40, 200))
+    px(img, cx+2, 9, (60, 80, 40, 200)); px(img, cx+3, 9, (60, 80, 40, 200))
 
-howland_frames = [
-    howland_frame(0),
-    howland_frame(1),
-    howland_frame(0),
-]
-howland_img = make_spritesheet(howland_frames)
-howland_img.save(os.path.join(OUTPUT_DIR, "howland_reed_map.png"))
-print("生成: howland_reed_map.png")
+    # --- mid face ---
+    fill_rect(img, cx-8, 9, 16, 4, SKIN_L)
+    for row in range(9, 13):
+        px(img, cx-9, row, OUTLINE); px(img, cx+8, row, OUTLINE)
+    px(img, cx, 10, SKIN_D); px(img, cx-1, 10, SKIN_D)
+    px(img, cx-2, 12, (125, 85, 65, 255))
+    px(img, cx-1, 12, (110, 70, 50, 255))
+    px(img, cx+1, 12, (110, 70, 50, 255))
+    px(img, cx+2, 12, (125, 85, 65, 255))
+
+    # --- jaw ---
+    fill_rect(img, cx-7, 13, 14, 3, SKIN_M)
+    for row in range(13, 16):
+        px(img, cx-8, row, OUTLINE); px(img, cx+7, row, OUTLINE)
+
+    # --- neck ---
+    fill_rect(img, cx-3, 16, 6, 2, SKIN_D)
+    for row in range(16, 18): px(img, cx-4, row, OUTLINE); px(img, cx+3, row, OUTLINE)
+
+    # --- leather pauldrons ---
+    fill_rect(img, 0,   18, 12, 8, AL)
+    fill_rect(img, 36,  18, 12, 8, AD)
+    for row in range(18, 26):
+        px(img, 0, row, OUTLINE); px(img, 47, row, OUTLINE)
+
+    # --- chest leather ---
+    fill_rect(img, 12, 18, 24, 10, A)
+    fill_rect(img, 12, 18,  8,  5, AL)
+    fill_rect(img, 28, 18,  6,  5, AD)
+    for row in range(18, 28):
+        px(img, 11, row, OUTLINE); px(img, 36, row, OUTLINE)
+    # leather strap details
+    for row in range(19, 28, 3):
+        px(img, cx-3, row, AD); px(img, cx+2, row, AD)
+
+    # --- waist / lower body ---
+    fill_rect(img, 10, 28, 28, 10, AD)
+    fill_rect(img, 10, 28, 8, 5, A)
+    for row in range(28, 38):
+        px(img, 9, row, OUTLINE); px(img, 38, row, OUTLINE)
+
+    # --- lance (right side prominent) ---
+    fill_rect(img, 40, 0, 3, 2, LT)
+    fill_rect(img, 40, 2, 3, 3, LNH)
+    for row in range(5, 48):
+        px(img, 41, row, LN)
+        if row < 20: px(img, 42, row, LNH)
+
+    # --- lower fill ---
+    fill_rect(img, 8, 38, 32, 10, CL)
+    for row in range(38, 48):
+        px(img, 7, row, OUTLINE); px(img, 40, row, OUTLINE)
+
+    return img
 
 
-# =========================================
-# 王军士兵 —— 步兵 (红棕色调，敌方)
-# =========================================
-def royal_soldier_frame(offset_y=0):
-    HAIR = (50, 30, 20, 255)
-    ARMOR = (160, 50, 40, 255)        # 红色盔甲（兰尼斯特风格）
-    ARMOR_L = (210, 80, 65, 255)      # 亮红面
-    ARMOR_D = (110, 30, 20, 255)      # 暗红面
-    HELM = (140, 40, 30, 255)         # 头盔红
-    HELM_L = (190, 70, 55, 255)       # 头盔高光
-    SPEAR = (160, 140, 80, 255)       # 矛杆
-    SPEAR_TIP = (190, 195, 205, 255)  # 矛尖
-    OUTLINE = (25, 10, 5, 255)
+def make_royal_portrait():
+    img = Image.new("RGBA", (48, 48), T)
+    A  = (155, 45, 35, 255)
+    AL = (205, 75, 60, 255)
+    AD = (105, 25, 15, 255)
+    HM = (135, 35, 25, 255)
+    HML= (185, 65, 50, 255)
+    PL = (215, 28, 18, 255)
+    SP = (152, 132, 70, 255)
+    SPT= (182, 188, 198, 255)
+    BT = (38, 28, 18, 255)
 
-    oy = offset_y
-    return [
-        # 头盔（有盔缨）
-        (8, 0+oy, ARMOR_L), (8, 0+oy, ARMOR_L),
-        (7, 1+oy, HELM_L), (8, 1+oy, HELM_L), (9, 1+oy, HELM_L),
-        (6, 2+oy, OUTLINE), (7, 2+oy, HELM_L), (8, 2+oy, HELM_L), (9, 2+oy, HELM), (10, 2+oy, OUTLINE),
-        (5, 3+oy, OUTLINE), (6, 3+oy, HELM), (7, 3+oy, SKIN_L), (8, 3+oy, SKIN_L), (9, 3+oy, SKIN_D), (10, 3+oy, HELM), (11, 3+oy, OUTLINE),
-        # 脸缝
-        (5, 4+oy, OUTLINE), (6, 4+oy, HELM), (7, 4+oy, EYE), (8, 4+oy, SKIN_L), (9, 4+oy, EYE), (10, 4+oy, HELM_L), (11, 4+oy, OUTLINE),
-        (6, 5+oy, OUTLINE), (7, 5+oy, SKIN_D), (8, 5+oy, SKIN_D), (9, 5+oy, HELM), (10, 5+oy, OUTLINE),
+    cx = 24
 
-        # 身体
-        (5, 6+oy, OUTLINE), (6, 6+oy, ARMOR_L), (7, 6+oy, ARMOR_L), (8, 6+oy, ARMOR), (9, 6+oy, ARMOR_D), (10, 6+oy, ARMOR_D), (11, 6+oy, OUTLINE),
-        (5, 7+oy, OUTLINE), (6, 7+oy, ARMOR_L), (7, 7+oy, ARMOR), (8, 7+oy, ARMOR), (9, 7+oy, ARMOR_D), (10, 7+oy, ARMOR_D), (11, 7+oy, OUTLINE),
-        (5, 8+oy, OUTLINE), (6, 8+oy, ARMOR), (7, 8+oy, ARMOR), (8, 8+oy, ARMOR_D), (9, 8+oy, ARMOR_D), (10, 8+oy, OUTLINE),
-        (5, 9+oy, OUTLINE), (6, 9+oy, ARMOR_D), (7, 9+oy, ARMOR_D), (8, 9+oy, ARMOR_D), (9, 9+oy, ARMOR_D), (10, 9+oy, OUTLINE),
+    # --- plume ---
+    fill_rect(img, cx-2, 0, 5, 4, PL)
+    px(img, cx-3, 0, OUTLINE); px(img, cx+3, 0, OUTLINE)
+    px(img, cx-3, 1, OUTLINE); px(img, cx+3, 1, OUTLINE)
+    px(img, cx-3, 2, OUTLINE); px(img, cx+3, 2, OUTLINE)
+    px(img, cx-3, 3, OUTLINE); px(img, cx+3, 3, OUTLINE)
 
-        # 矛（左侧竖举）
-        (4, 1+oy, SPEAR_TIP),
-        (4, 2+oy, SPEAR), (4, 3+oy, SPEAR), (4, 4+oy, SPEAR),
-        (4, 5+oy, SPEAR), (4, 6+oy, SPEAR), (4, 7+oy, SPEAR),
-        (4, 8+oy, SPEAR), (4, 9+oy, SPEAR), (4, 10+oy, SPEAR),
+    # --- helm top ---
+    fill_rect(img, cx-7, 4, 14, 2, HML)
+    for row in range(4, 6): px(img, cx-8, row, OUTLINE); px(img, cx+7, row, OUTLINE)
+    # helm main
+    fill_rect(img, cx-8, 6, 16, 6, HM)
+    for row in range(6, 12): px(img, cx-9, row, OUTLINE); px(img, cx+8, row, OUTLINE)
+    # visor row 8-9
+    fill_rect(img, cx-6, 8, 12, 2, AD)
+    px(img, cx-7, 8, OUTLINE); px(img, cx+6, 8, OUTLINE)
+    px(img, cx-7, 9, OUTLINE); px(img, cx+6, 9, OUTLINE)
+    # eye glow behind visor
+    px(img, cx-4, 8, (80, 20, 10, 255)); px(img, cx-3, 8, (80, 20, 10, 255))
+    px(img, cx+2, 8, (80, 20, 10, 255)); px(img, cx+3, 8, (80, 20, 10, 255))
+    # chin guard
+    fill_rect(img, cx-6, 12, 12, 3, HM)
+    for row in range(12, 15): px(img, cx-7, row, OUTLINE); px(img, cx+6, row, OUTLINE)
 
-        # 腿
-        (5, 10+oy, OUTLINE), (6, 10+oy, ARMOR_D), (7, 10+oy, ARMOR_D), (8, 10+oy, ARMOR_D), (9, 10+oy, OUTLINE),
-        (5, 11+oy, OUTLINE), (6, 11+oy, ARMOR_D), (7, 11+oy, ARMOR_D), (8, 11+oy, ARMOR_D), (9, 11+oy, OUTLINE),
-        (6, 12+oy, OUTLINE), (7, 12+oy, ARMOR_D), (8, 12+oy, OUTLINE),
-    ]
+    # --- gorget ---
+    fill_rect(img, cx-5, 15, 10, 3, A)
+    for row in range(15, 18): px(img, cx-6, row, OUTLINE); px(img, cx+5, row, OUTLINE)
 
-royal_frames = [
-    royal_soldier_frame(0),
-    royal_soldier_frame(1),
-    royal_soldier_frame(0),
-]
-royal_img = make_spritesheet(royal_frames)
-royal_img.save(os.path.join(OUTPUT_DIR, "royal_soldier_map.png"))
-print("生成: royal_soldier_map.png")
+    # --- massive pauldrons ---
+    fill_rect(img, 0,   18, 13, 12, AL)
+    fill_rect(img, 35,  18, 13, 12, AD)
+    for row in range(18, 30):
+        px(img, 0, row, OUTLINE); px(img, 47, row, OUTLINE)
+
+    # --- chest plate ---
+    fill_rect(img, 13, 18, 22, 12, A)
+    fill_rect(img, 13, 18,  8,  6, AL)
+    fill_rect(img, 29, 18,  6,  6, AD)
+    for row in range(18, 30):
+        px(img, 12, row, OUTLINE); px(img, 35, row, OUTLINE)
+    # center line
+    for row in range(18, 30): px(img, cx, row, AD)
+    # rivets
+    for row in range(20, 30, 3):
+        px(img, cx-5, row, AL); px(img, cx+4, row, AL)
+
+    # --- lower body ---
+    fill_rect(img, 10, 30, 28, 8, AD)
+    fill_rect(img, 10, 30, 10,  4, A)
+    for row in range(30, 38):
+        px(img, 9, row, OUTLINE); px(img, 38, row, OUTLINE)
+    fill_rect(img, 8, 38, 32, 10, AD)
+    for row in range(38, 48):
+        px(img, 7, row, OUTLINE); px(img, 40, row, OUTLINE)
+
+    # --- spear (left prominent) ---
+    fill_rect(img, 2, 0, 3, 3, SPT)
+    px(img, 1, 0, OUTLINE); px(img, 5, 0, OUTLINE)
+    for row in range(3, 48): px(img, 3, row, SP); px(img, 4, row, SP)
+    for row in range(3, 48): px(img, 2, row, OUTLINE); px(img, 5, row, OUTLINE)
+
+    return img
+
+
+# =============================================================
+# MAIN
+# =============================================================
+ned_map = make_ned_map()
+ned_map.save(os.path.join(OUTPUT_DIR, "ned_stark_map.png"))
+print(f"生成: ned_stark_map.png  {ned_map.size}")
+
+robert_map = make_robert_map()
+robert_map.save(os.path.join(OUTPUT_DIR, "robert_baratheon_map.png"))
+print(f"生成: robert_baratheon_map.png  {robert_map.size}")
+
+howland_map = make_howland_map()
+howland_map.save(os.path.join(OUTPUT_DIR, "howland_reed_map.png"))
+print(f"生成: howland_reed_map.png  {howland_map.size}")
+
+royal_map = make_royal_map()
+royal_map.save(os.path.join(OUTPUT_DIR, "royal_soldier_map.png"))
+print(f"生成: royal_soldier_map.png  {royal_map.size}")
+
+ned_portrait = make_ned_portrait()
+ned_portrait.save(os.path.join(OUTPUT_DIR, "ned_stark_portrait.png"))
+print(f"生成: ned_stark_portrait.png  {ned_portrait.size}")
+
+robert_portrait = make_robert_portrait()
+robert_portrait.save(os.path.join(OUTPUT_DIR, "robert_baratheon_portrait.png"))
+print(f"生成: robert_baratheon_portrait.png  {robert_portrait.size}")
+
+howland_portrait = make_howland_portrait()
+howland_portrait.save(os.path.join(OUTPUT_DIR, "howland_reed_portrait.png"))
+print(f"生成: howland_reed_portrait.png  {howland_portrait.size}")
+
+royal_portrait = make_royal_portrait()
+royal_portrait.save(os.path.join(OUTPUT_DIR, "royal_soldier_portrait.png"))
+print(f"生成: royal_soldier_portrait.png  {royal_portrait.size}")
 
 print("\n全部图标生成完成！保存到:", OUTPUT_DIR)
-print("每个文件：48x16像素，含3帧（直立/行走/直立）")
+print("地图精灵: 96x32 (3帧 32x32)")
+print("战斗立绘: 48x48 (单帧)")
