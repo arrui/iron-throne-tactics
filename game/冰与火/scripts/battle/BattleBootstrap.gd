@@ -31,6 +31,9 @@ const UNIT_PORTRAIT_MAP := {
 	"royal_soldier.json":    "royal_soldier_portrait.png",
 }
 
+# ── 部署选择（Ch4，由 DeployScreen_Ch4 设置）───────────────
+static var deploy_selection: Array[String] = []
+
 # ── 共享状态 ──────────────────────────────────────────────
 var _dialogue_box:  CanvasLayer    = null
 var _dialogue_sys:  DialogueSystem = null
@@ -168,7 +171,7 @@ func _setup_ch4() -> void:
 	super._ready()
 	_paint_from(_terrain_cache_ch4)
 	# 玩家单位（部署选择）
-	var selection := BattleBootstrap_Ch4.deploy_selection.duplicate()
+	var selection := deploy_selection.duplicate()
 	if selection.is_empty():
 		selection = ["ned_stark.json", "northern_knight.json", "northern_knight.json"]
 	var spawns: Array = [Vector2i(2,22),Vector2i(3,22),Vector2i(4,22),
