@@ -315,7 +315,7 @@ func _test_terrain_move_cost() -> void:
 # 测试套件 6：地图完整性（22×16）
 # ══════════════════════════════════════════════════════════
 func _test_map_integrity() -> void:
-	var terrain_map: Array = BootstrapClass.TERRAIN_MAP
+	var terrain_map: Array = BootstrapClass.TERRAIN_CH1
 
 	# 尺寸验证
 	_assert_eq(terrain_map.size(), 16, "地图行数=16")

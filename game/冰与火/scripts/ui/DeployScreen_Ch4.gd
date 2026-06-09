@@ -3,7 +3,7 @@
 extends CanvasLayer
 
 const MAX_KNIGHTS := 4
-const BATTLE_SCENE := "res://scenes/battle/BattleMap_Ch4.tscn"
+const BATTLE_SCENE := "res://scenes/battle/BattleMap.tscn"
 const DATA_PATH    := "res://data/units/"
 
 const AVAILABLE_UNITS := [
