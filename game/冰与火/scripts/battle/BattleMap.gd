@@ -781,12 +781,15 @@ func _restart() -> void:
 
 # ── 回合 ─────────────────────────────────────────────────
 func _check_all_acted() -> void:
+	# 只在我方回合且没有正在进行的回合切换时才检查
 	if _battle_over or _turn_ending: return
+	if current_phase != Phase.PLAYER_TURN: return   # ← 关键：敌方回合绝不重入
 	if not player_units.any(func(u: Unit) -> bool: return not u.is_dead() and u.can_act()):
 		_turn_ending = true
 		_update_support_adjacency()   # 回合结束时统计支援相邻
 		await get_tree().create_timer(0.5).timeout
 		_turn_ending = false
+		if _battle_over: return        # await 期间战斗可能结束
 		_start_enemy_turn()
 
 func _start_enemy_turn() -> void:
@@ -823,10 +826,12 @@ func _start_enemy_turn() -> void:
 			enemy.position = _g2p(action["move_to"])
 		_animating_battle = false
 
-		if action["attack"] != null:
+		if action["attack"] != null and is_instance_valid(enemy):
 			var target: Unit = action["attack"] as Unit
 			if is_instance_valid(target) and not target.is_dead():
 				await _start_battle_with_animation(enemy, target)
+			# await 后再次确认 enemy 仍然有效（可能被反击击杀）
+			if not is_instance_valid(enemy): continue
 
 		await get_tree().create_timer(0.15).timeout
 
