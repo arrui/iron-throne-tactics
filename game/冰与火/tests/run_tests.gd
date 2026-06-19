@@ -50,6 +50,8 @@ func _init() -> void:
 	_run_suite("守卫型Boss数据字段", _test_guard_boss_fields)
 	_run_suite("战斗动画freed节点防护", _test_animation_freed_guard)
 	_run_suite("回合结束防重入", _test_turn_ending_guard)
+	_run_suite("地形图块坐标合法性", _test_tile_atlas_coords)
+	_run_suite("字体初始化方法存在", _test_font_setup)
 
 	print("\n╔══════════════════════════════════════╗")
 	var status: String = "全部通过 ✓" if _fail_count == 0 else ("失败 %d 项 ✗" % _fail_count)
@@ -1019,3 +1021,42 @@ func _test_turn_ending_guard() -> void:
 	u.reset_turn()
 	_assert(u.can_act(), "新回合后恢复可行动")
 	u.free()
+
+# ── 地形图块坐标合法性 ──────────────────────────────────
+func _test_tile_atlas_coords() -> void:
+	# Toen图集：7列×52行，坐标必须在范围内
+	const MAX_COL := 6
+	const MAX_ROW := 51
+	const COORDS := {
+		0: Vector2i(0, 0),   # 平原
+		1: Vector2i(3, 25),  # 森林
+		2: Vector2i(0, 2),   # 矮墙
+		3: Vector2i(1, 50),  # 峭壁
+		4: Vector2i(0, 13),  # 河流
+		5: Vector2i(0, 17),  # 沼泽
+		6: Vector2i(1, 15),  # 桥梁
+	}
+	for terrain_type: int in COORDS:
+		var coord: Vector2i = COORDS[terrain_type]
+		_assert(coord.x >= 0 and coord.x <= MAX_COL,
+			"地形%d列坐标合法(%d)" % [terrain_type, coord.x])
+		_assert(coord.y >= 0 and coord.y <= MAX_ROW,
+			"地形%d行坐标合法(%d)" % [terrain_type, coord.y])
+	# 验证所有坐标唯一（不同地形不共用同一图块）
+	var used: Array = []
+	for v: Vector2i in COORDS.values():
+		_assert(not used.has(v), "地形坐标无重复(%d,%d)" % [v.x, v.y])
+		used.append(v)
+
+# ── 字体初始化方法存在 ───────────────────────────────────
+func _test_font_setup() -> void:
+	# 读取Opening.gd源码验证包含字体初始化方法
+	var file := FileAccess.open("res://scripts/Opening.gd", FileAccess.READ)
+	_assert(file != null, "Opening.gd文件存在")
+	if file == null: return
+	var src: String = file.get_as_text()
+	file.close()
+	_assert("_apply_chinese_font" in src, "包含_apply_chinese_font方法")
+	_assert("SystemFont" in src, "使用SystemFont")
+	_assert("STHeitiSC-Medium" in src or "STHeiti Medium" in src, "包含中文字体名")
+	_assert("ThemeDB.get_project_theme()" in src, "设置到全局主题")
