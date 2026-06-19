@@ -17,8 +17,9 @@ const CHAPTER_SCENE_MAP := {
 var _cutscene: CutscenePlayer = null
 
 func _ready() -> void:
-	# ── 设置支持中文的系统字体（STHeitiSC = macOS黑体）──
-	_apply_chinese_font()
+	# 设置中文字体（仅在有显示器时）
+	if DisplayServer.get_name() != "headless":
+		_apply_chinese_font()
 
 	# DEBUG 模式：显示章节选择器
 	if OS.is_debug_build():
@@ -137,12 +138,12 @@ func _on_cutscene_finished() -> void:
 # ── 全局字体：使用系统黑体支持中文显示 ──────────────────
 func _apply_chinese_font() -> void:
 	var font := SystemFont.new()
-	# macOS 优先，Windows/Linux 备用
 	font.font_names = PackedStringArray([
 		"STHeitiSC-Medium", "STHeiti Medium",
 		"PingFang SC", "Microsoft YaHei",
 		"WenQuanYi Micro Hei", "Noto Sans CJK SC"
 	])
-	font.antialiasing = TextServer.FONT_ANTIALIASING_GRAY
-	ThemeDB.get_project_theme().set_default_font(font)
-	ThemeDB.get_project_theme().set_default_font_size(14)
+	var theme := ThemeDB.get_project_theme()
+	if theme != null:
+		theme.default_font = font
+		theme.default_font_size = 14
