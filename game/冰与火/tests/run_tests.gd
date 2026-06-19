@@ -1060,3 +1060,5 @@ func _test_font_setup() -> void:
 	_assert("SystemFont" in src, "使用SystemFont")
 	_assert("STHeitiSC-Medium" in src or "STHeiti Medium" in src, "包含中文字体名")
 	_assert("ThemeDB.get_project_theme()" in src, "设置到全局主题")
+	_assert("DisplayServer.get_name()" in src or "headless" in src,
+		"包含headless环境检测（防止无显示器时崩溃）")
