@@ -20,9 +20,29 @@ var _unit_cards: Array = []
 var _confirm_btn: Button = null
 var _count_label: Label = null
 
+func _get_cjk_font() -> Font:
+	const BUNDLED := "res://assets/fonts/ArialUnicode.ttf"
+	if ResourceLoader.exists(BUNDLED):
+		var f := load(BUNDLED) as Font
+		if f != null: return f
+	var sf := SystemFont.new()
+	sf.font_names = PackedStringArray(["Heiti SC", "Arial Unicode MS", "Microsoft YaHei"])
+	return sf
+
+func _apply_cjk_font_to_node(node: Node) -> void:
+	var font := _get_cjk_font()
+	if node is Label:
+		(node as Label).add_theme_font_override("font", font)
+	elif node is Button:
+		(node as Button).add_theme_font_override("font", font)
+	for child in node.get_children():
+		_apply_cjk_font_to_node(child)
+
 func _ready() -> void:
 	layer = 40
 	_build_ui()
+	# 为所有动态创建的UI控件应用中文字体
+	call_deferred("_apply_cjk_font_to_node", self)
 
 func _build_ui() -> void:
 	# 背景

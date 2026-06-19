@@ -96,9 +96,77 @@ const PATH_COLOR     := Color(1.00, 0.95, 0.15, 0.90)
 
 # ════════════════════════════════════════════════════════
 func _ready() -> void:
+	# 确保战斗场景中的中文字体正确显示
+	if DisplayServer.get_name() != "headless":
+		_apply_battle_font()
 	_bind_ui()
 	_update_turn_label()
 	_update_danger_zone()
+
+var _cjk_font: Font = null
+
+func _get_cjk_font() -> Font:
+	if _cjk_font != null:
+		return _cjk_font
+	# 方案一：加载项目内置 Arial Unicode 字体（最可靠）
+	const BUNDLED_FONT := "res://assets/fonts/ArialUnicode.ttf"
+	if ResourceLoader.exists(BUNDLED_FONT):
+		var ff := load(BUNDLED_FONT) as Font
+		if ff != null:
+			_cjk_font = ff
+			return _cjk_font
+	# 方案二：直接加载系统字体文件（优先 .ttf 格式）
+	var os_font_paths := [
+		"/System/Library/Fonts/Supplemental/Arial Unicode.ttf",  # macOS，含全套CJK
+		"/Library/Fonts/Arial Unicode.ttf",           # macOS 备选路径
+		"/System/Library/Fonts/STHeiti Medium.ttc",   # macOS 简体中文黑体
+		"/System/Library/Fonts/Hiragino Sans GB.ttc", # macOS 备选
+		"C:/Windows/Fonts/msyh.ttc",                  # Windows 微软雅黑
+		"C:/Windows/Fonts/simhei.ttf",                # Windows 黑体
+		"/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",  # Linux
+	]
+	for path in os_font_paths:
+		if FileAccess.file_exists(path):
+			var ff := load(path) as Font
+			if ff != null:
+				_cjk_font = ff
+				return _cjk_font
+	# 方案二：使用 SystemFont（名称匹配）
+	var sf := SystemFont.new()
+	sf.font_names = PackedStringArray([
+		"Heiti SC",          # macOS 简体中文黑体（fc-list 确认名称）
+		"Hiragino Sans GB",  # macOS 备选中文字体
+		"Arial Unicode MS",  # 通用 Unicode 字体（含 CJK）
+		"Microsoft YaHei",   # Windows 微软雅黑
+		"PingFang SC",       # macOS 苹方（新版）
+		"STHeitiSC-Medium",  # macOS 华文黑体（PostScript 名）
+		"WenQuanYi Micro Hei", # Linux 文泉驿
+		"Noto Sans CJK SC",  # Linux/Android Noto
+	])
+	_cjk_font = sf
+	return _cjk_font
+
+# 递归给所有 Label/Button 节点设置中文字体（最可靠的方案）
+func _apply_font_to_controls(node: Node) -> void:
+	if node is Label:
+		(node as Label).add_theme_font_override("font", _get_cjk_font())
+	elif node is Button:
+		(node as Button).add_theme_font_override("font", _get_cjk_font())
+	for child in node.get_children():
+		_apply_font_to_controls(child)
+
+func _apply_battle_font() -> void:
+	var font := _get_cjk_font()
+	# 全局回退字体
+	ThemeDB.fallback_font = font
+	ThemeDB.fallback_font_size = 14
+	# 项目主题
+	var theme := ThemeDB.get_project_theme()
+	if theme != null:
+		theme.default_font = font
+		theme.default_font_size = 14
+	# 对场景中所有文字控件显式设置字体（最彻底的方案）
+	call_deferred("_apply_font_to_controls", self)
 
 # 每次触发重绘时同步刷新高亮层
 func _redraw_all() -> void:
@@ -377,10 +445,15 @@ func add_unit(unit: Unit) -> void:
 	get_node("UnitLayer").add_child(unit)
 	unit.position = _g2p(unit.grid_pos)
 	unit.unit_died.connect(_on_unit_died)
+	var _font := _get_cjk_font()
 	var lbl: Label = unit.get_node_or_null("Label") as Label
-	if lbl: lbl.text = unit.data.name.substr(0, 1)
+	if lbl:
+		lbl.add_theme_font_override("font", _font)
+		lbl.text = unit.data.name.substr(0, 1)
 	var hp: Label = unit.get_node_or_null("HPLabel") as Label
-	if hp: hp.text = str(unit.data.hp)
+	if hp:
+		hp.add_theme_font_override("font", _font)
+		hp.text = str(unit.data.hp)
 
 func _g2p(pos: Vector2i) -> Vector2:
 	return Vector2(pos.x * TILE_SIZE + TILE_SIZE * 0.5,
@@ -977,6 +1050,7 @@ func _show_items_panel(unit: Unit) -> void:
 	var title := Label.new()
 	title.text = "使用道具"
 	title.add_theme_font_size_override("font_size", 15)
+	title.add_theme_font_override("font", _get_cjk_font())
 	vbox.add_child(title)
 	var has_items := false
 	for i: int in unit.data.items.size():
@@ -986,16 +1060,19 @@ func _show_items_panel(unit: Unit) -> void:
 		var btn := Button.new()
 		btn.text = "%s  ×%d" % [item.get("name", "?"), item.get("uses", 0)]
 		btn.custom_minimum_size = Vector2(180, 32)
+		btn.add_theme_font_override("font", _get_cjk_font())
 		var ci := i
 		btn.pressed.connect(func() -> void: _on_item_used(unit, ci))
 		vbox.add_child(btn)
 	if not has_items:
 		var lbl := Label.new()
 		lbl.text = "（无可用道具）"
+		lbl.add_theme_font_override("font", _get_cjk_font())
 		vbox.add_child(lbl)
 	var cancel := Button.new()
 	cancel.text = "取消"
 	cancel.custom_minimum_size = Vector2(180, 30)
+	cancel.add_theme_font_override("font", _get_cjk_font())
 	cancel.pressed.connect(func() -> void:
 		if _active_items_panel: _active_items_panel.queue_free(); _active_items_panel = null
 		_show_action_menu(unit.grid_pos, not _adj_enemies(unit.grid_pos).is_empty()))

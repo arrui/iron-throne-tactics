@@ -17,6 +17,21 @@ var _is_typing:   bool   = false
 var _tween:       Tween  = null
 var _active:      bool   = false
 
+func _ready() -> void:
+	# 为对话系统标签应用中文字体
+	var font: Font = null
+	const BUNDLED_FONT := "res://assets/fonts/ArialUnicode.ttf"
+	if ResourceLoader.exists(BUNDLED_FONT):
+		font = load(BUNDLED_FONT) as Font
+	if font == null:
+		var sf := SystemFont.new()
+		sf.font_names = PackedStringArray(["Heiti SC", "Arial Unicode MS", "Microsoft YaHei"])
+		font = sf
+	if font:
+		for child in get_children():
+			if child is Label:
+				(child as Label).add_theme_font_override("font", font)
+
 func play(dialogue_path: String) -> void:
 	var data := _load_json(dialogue_path)
 	if data.is_empty():

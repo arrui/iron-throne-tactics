@@ -20,6 +20,8 @@ var _skip_requested: bool = false
 @onready var _scene_art: CutsceneArt = $SceneArt
 
 func _ready() -> void:
+	# 为过场动画标签应用中文字体
+	_apply_cjk_font()
 	if _label:
 		_label.modulate    = Color(1, 1, 1, 0)
 	if _sublabel:
@@ -29,6 +31,23 @@ func _ready() -> void:
 	if _scene_art:
 		_scene_art.alpha = 0.0
 		_scene_art.modulate = Color(1, 1, 1, 0)
+
+func _apply_cjk_font() -> void:
+	# 直接加载内置 Arial Unicode 字体
+	var font: Font = null
+	const BUNDLED_FONT := "res://assets/fonts/ArialUnicode.ttf"
+	if ResourceLoader.exists(BUNDLED_FONT):
+		font = load(BUNDLED_FONT) as Font
+	# 回退到系统字体
+	if font == null:
+		var sf := SystemFont.new()
+		sf.font_names = PackedStringArray(["Heiti SC", "Arial Unicode MS", "Microsoft YaHei"])
+		font = sf
+	# 应用到所有标签
+	if font:
+		for child in get_children():
+			if child is Label:
+				(child as Label).add_theme_font_override("font", font)
 
 func play(json_path: String) -> void:
 	var data: Dictionary = _load_json(json_path)

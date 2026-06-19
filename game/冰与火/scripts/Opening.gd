@@ -45,10 +45,13 @@ func _show_debug_menu() -> void:
 	vbox.add_theme_constant_override("separation", 14)
 	canvas.add_child(vbox)
 
+	var _font := _get_cjk_font()
+
 	var title := Label.new()
 	title.text = "DEBUG — 选择章节"
 	title.add_theme_font_size_override("font_size", 22)
 	title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2))
+	title.add_theme_font_override("font", _font)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
 
@@ -56,6 +59,7 @@ func _show_debug_menu() -> void:
 	hint.text = "（仅在 DEBUG 构建中显示）"
 	hint.add_theme_font_size_override("font_size", 12)
 	hint.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
+	hint.add_theme_font_override("font", _font)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(hint)
 
@@ -74,6 +78,7 @@ func _show_debug_menu() -> void:
 		btn.text = label
 		btn.custom_minimum_size = Vector2(320, 48)
 		btn.add_theme_font_size_override("font_size", 15)
+		btn.add_theme_font_override("font", _font)
 		btn.pressed.connect(func() -> void:
 			canvas.queue_free()
 			if scene == null:
@@ -91,6 +96,7 @@ func _show_debug_menu() -> void:
 	clear_btn.text = "↺  清除存档（从头开始）"
 	clear_btn.custom_minimum_size = Vector2(320, 38)
 	clear_btn.add_theme_color_override("font_color", Color(1.0, 0.5, 0.4))
+	clear_btn.add_theme_font_override("font", _font)
 	clear_btn.pressed.connect(func() -> void:
 		const SAVE_SYS_PATH := "res://scripts/systems/SaveSystem.gd"
 		if ResourceLoader.exists(SAVE_SYS_PATH):
@@ -136,14 +142,49 @@ func _on_cutscene_finished() -> void:
 	_play_next()
 
 # ── 全局字体：使用系统黑体支持中文显示 ──────────────────
-func _apply_chinese_font() -> void:
-	var font := SystemFont.new()
-	font.font_names = PackedStringArray([
-		"STHeitiSC-Medium", "STHeiti Medium",
-		"PingFang SC", "Microsoft YaHei",
-		"WenQuanYi Micro Hei", "Noto Sans CJK SC"
+func _get_cjk_font() -> Font:
+	# 方案一：加载项目内置 Arial Unicode 字体（最可靠）
+	const BUNDLED_FONT := "res://assets/fonts/ArialUnicode.ttf"
+	if ResourceLoader.exists(BUNDLED_FONT):
+		var ff := load(BUNDLED_FONT) as Font
+		if ff != null:
+			return ff
+	# 方案二：直接加载系统字体文件（优先 .ttf 格式）
+	var os_font_paths := [
+		"/System/Library/Fonts/Supplemental/Arial Unicode.ttf",  # macOS，含全套CJK
+		"/Library/Fonts/Arial Unicode.ttf",           # macOS 备选路径
+		"/System/Library/Fonts/STHeiti Medium.ttc",   # macOS 简体中文黑体
+		"/System/Library/Fonts/Hiragino Sans GB.ttc", # macOS 备选
+		"C:/Windows/Fonts/msyh.ttc",                  # Windows 微软雅黑
+		"C:/Windows/Fonts/simhei.ttf",                # Windows 黑体
+		"/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",  # Linux
+	]
+	for path in os_font_paths:
+		if FileAccess.file_exists(path):
+			var ff := load(path) as Font
+			if ff != null:
+				return ff
+	# 方案二：使用 SystemFont（名称匹配）
+	var sf := SystemFont.new()
+	sf.font_names = PackedStringArray([
+		"Heiti SC",          # macOS 简体中文黑体
+		"Hiragino Sans GB",  # macOS 备选
+		"Arial Unicode MS",  # 通用 Unicode
+		"Microsoft YaHei",   # Windows 微软雅黑
+		"PingFang SC",       # macOS 苹方
+		"STHeitiSC-Medium",  # macOS PostScript 名
+		"WenQuanYi Micro Hei", # Linux
+		"Noto Sans CJK SC",  # Linux/Android
 	])
+	return sf
+
+func _apply_chinese_font() -> void:
+	var font := _get_cjk_font()
+	# 设置项目主题默认字体
 	var theme := ThemeDB.get_project_theme()
 	if theme != null:
 		theme.default_font = font
 		theme.default_font_size = 14
+	# 同时设置全局回退字体（确保即使没有项目主题也能显示中文）
+	ThemeDB.fallback_font = font
+	ThemeDB.fallback_font_size = 14

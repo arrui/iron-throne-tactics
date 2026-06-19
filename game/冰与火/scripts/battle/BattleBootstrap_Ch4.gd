@@ -21,8 +21,14 @@ const UNIT_SPRITE_MAP := {
 }
 
 const TILE_ATLAS_COORDS := {
-	0: Vector2i(0, 0), 1: Vector2i(2, 4), 2: Vector2i(1, 20),
-	3: Vector2i(0, 12), 4: Vector2i(0, 8), 5: Vector2i(1, 9), 6: Vector2i(3, 2),
+	# 第四章（铁王座·君临城）: 城市地图，道路是石板而非草地
+	0: Vector2i(4, 1),   # 城市道路：灰褐色石板（君临城街道，而非草地）
+	1: Vector2i(6, 0),   # 森林：深绿树木（有树形纹理）
+	2: Vector2i(0, 2),   # 矮墙/城市建筑：城堡石砖纹理
+	3: Vector2i(1, 50),  # 峭壁：极暗色（不可通行）
+	4: Vector2i(0, 13),  # 河流：淡蓝水色
+	5: Vector2i(1, 19),  # 沼泽：灰绿色（沼泽草地）
+	6: Vector2i(4, 2),   # 桥梁：浅蓝灰色（石桥跨河）
 }
 
 # 部署选择（由 DeployScreen_Ch4 设置）

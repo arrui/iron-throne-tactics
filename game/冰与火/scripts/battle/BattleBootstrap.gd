@@ -55,12 +55,25 @@ const TERRAIN_CH3: Array = [
 # 0=平原 1=森林 2=矮墙 3=峭壁 4=河流 5=沼泽 6=桥梁
 const TILE_ATLAS_COORDS := {
 	0: Vector2i(0, 0),   # 平原：亮绿草地
-	1: Vector2i(3, 25),  # 森林：深绿树木
+	1: Vector2i(6, 0),   # 森林：深绿树木（col6,row0 有树形纹理）
 	2: Vector2i(0, 2),   # 矮墙：浅石墙
 	3: Vector2i(1, 50),  # 峭壁：极暗色（不可通行）
 	4: Vector2i(0, 13),  # 河流：淡蓝水色
-	5: Vector2i(0, 17),  # 沼泽：棕绿混合
-	6: Vector2i(1, 15),  # 桥梁：石桥（介于水和路之间）
+	5: Vector2i(1, 19),   # 沼泽：灰绿色（沼泽草地，区别于棕褐色桥梁）
+	6: Vector2i(4, 2),    # 桥梁：浅蓝灰色（石桥跨河，区别于蓝色河流和绿色沼泽）
+}
+
+# 第四章（铁王座·君临城）专用瓦片坐标
+# 道路用明亮草地（和建筑形成强烈对比，清晰可辨）
+# 红堡区域用护城河、城堡墙、石桥
+const TILE_ATLAS_COORDS_CH4 := {
+	0: Vector2i(0, 0),   # 道路/空地（亮绿草地，与建筑形成强对比）
+	1: Vector2i(6, 0),   # 花园/植被（深绿树木，区别于道路草地）
+	2: Vector2i(0, 2),   # 城市建筑/城堡墙体（棕褐）
+	3: Vector2i(1, 50),  # 峭壁（边界，不可通行）
+	4: Vector2i(0, 13),  # 护城河（淡蓝水色）
+	5: Vector2i(1, 19),  # 沼泽/废墟地
+	6: Vector2i(4, 2),   # 桥梁（穿越护城河，浅蓝灰色石桥）
 }
 
 # ── 章节专属状态 ──────────────────────────────────────────
@@ -170,40 +183,42 @@ func _setup_ch3() -> void:
 # ══════════════════════════════════════════════════════════
 func _setup_ch4() -> void:
 	map_width   = 36;  map_height = 26
-	victory_pos = Vector2i(30, 12)
+	victory_pos = Vector2i(31, 12)
 	_terrain_cache_ch4 = _build_map_ch4()
 	_apply_cam_limits()
 	if is_instance_valid(_cam):
-		_cam.position = Vector2(640, 1152)
+		_cam.position = Vector2(320, 1440)  # 初始视角：玩家出发区（城市南部）
 	super._ready()
-	_paint_from(_terrain_cache_ch4)
+	_paint_from_ch4(_terrain_cache_ch4)  # 使用君临城专属瓦片
 	# 玩家单位（部署选择）
 	var selection := GameState.deploy_selection.duplicate()
 	if selection.is_empty():
 		selection = ["ned_stark.json", "northern_knight.json", "northern_knight.json"]
-	var spawns: Array = [Vector2i(2,22),Vector2i(3,22),Vector2i(4,22),
-		Vector2i(2,23),Vector2i(3,23),Vector2i(4,23)]
+	var spawns: Array = [Vector2i(2,20),Vector2i(3,20),Vector2i(4,20),
+		Vector2i(2,21),Vector2i(3,21),Vector2i(4,21)]
 	for i: int in min(selection.size(), spawns.size()):
 		var u := _make_unit_r(selection[i], 0, spawns[i])
 		if u != null and selection[i] == "ned_stark.json":
 			_ned_unit = u
-	# 兰尼斯特中立军
-	for pos: Vector2i in [Vector2i(4,3),Vector2i(9,3),Vector2i(15,3),Vector2i(19,3)]:
+	# 兰尼斯特中立军（守卫防线，不主动移动）
+	for pos: Vector2i in [Vector2i(2,4), Vector2i(5,4), Vector2i(8,4), Vector2i(10,4)]:
 		var u := _make_unit_r("lannister_soldier.json", 1, pos)
 		if u != null:
 			u.data.move = 0
 			_lannister_units.append(u)
-	# 王军
-	_make_unit("royal_soldier.json", 1, Vector2i(6, 10))
-	_make_unit("royal_soldier.json", 1, Vector2i(12, 10))
-	_make_unit("royal_soldier.json", 1, Vector2i(6, 16))
-	_make_unit("royal_soldier.json", 1, Vector2i(12, 16))
-	_make_unit("royal_soldier.json", 1, Vector2i(18, 8))
-	_make_unit("royal_soldier.json", 1, Vector2i(18, 16))
-	_royal_commander = _make_unit_r("royal_guard_captain.json", 1, Vector2i(20, 12))
-	_make_unit("royal_soldier.json", 1, Vector2i(26, 10))
-	_make_unit("royal_soldier.json", 1, Vector2i(26, 14))
-	_make_unit("royal_soldier.json", 1, Vector2i(29, 11))
+	# 外院王军（守卫外院和护城河）
+	_make_unit("royal_soldier.json", 1, Vector2i(15, 8))
+	_make_unit("royal_soldier.json", 1, Vector2i(15, 17))
+	_make_unit("royal_soldier.json", 1, Vector2i(17, 12))
+	# 红堡王军（守卫内院）
+	_make_unit("royal_soldier.json", 1, Vector2i(23, 9))
+	_make_unit("royal_soldier.json", 1, Vector2i(23, 16))
+	_make_unit("royal_soldier.json", 1, Vector2i(25, 12))
+	# 王军指挥官（铁王座入口）
+	_royal_commander = _make_unit_r("royal_guard_captain.json", 1, Vector2i(29, 12))
+	# 最后防线
+	_make_unit("royal_soldier.json", 1, Vector2i(27, 10))
+	_make_unit("royal_soldier.json", 1, Vector2i(27, 15))
 	_redraw_all()
 	await _play_dialogue("res://data/dialogues/ch4_pre.json")
 
@@ -212,23 +227,83 @@ func _build_map_ch4() -> Array:
 	var m: Array = []
 	for _y: int in H:
 		var row: Array = []; for _x: int in W: row.append(0); m.append(row)
+
+	# === 边界峭壁 ===
 	for x: int in W: m[0][x] = 3; m[H-1][x] = 3
 	for y: int in H: m[y][0] = 3; m[y][W-1] = 3
-	for by: int in [2, 8, 14, 20]:
-		for bx: int in [2, 8, 14, 20]:
-			if by+2 < H-1 and bx+2 < W-1:
-				for dy: int in 3:
-					for dx: int in 3:
-						if dy == 1 and dx == 1: continue
-						m[by+dy][bx+dx] = 2
-	for x: int in range(24, 35): m[7][x] = 2; m[18][x] = 2
-	for y: int in range(7, 19):  m[y][24] = 2; m[y][34] = 2
-	m[12][24] = 0
-	for x: int in range(27, 34): m[9][x] = 2; m[16][x] = 2
-	for y: int in range(9, 17):  m[y][27] = 2; m[y][33] = 2
-	m[12][27] = 0; m[12][33] = 0
-	for x: int in range(1, 24): m[5][x] = 2
-	m[5][6] = 0; m[5][12] = 0; m[5][18] = 0
+
+	# === 区域一：君临城街道 (cols 1-11) ===
+	# 少量标志性建筑，确保街道宽阔（上下各2行建筑，中间全通）
+	# 上方建筑区（rows 1-3）
+	for bx: int in [1, 5, 9]:
+		for dy: int in 2:
+			for dx: int in 2:
+				if bx + dx < 11: m[1+dy][bx+dx] = 2
+	# 下方建筑区（rows 22-24）
+	for bx: int in [1, 5, 9]:
+		for dy: int in 2:
+			for dx: int in 2:
+				if bx + dx < 11: m[22+dy][bx+dx] = 2
+	# 中间区域只在两侧放少量建筑（创造街道感）
+	for by: int in [8, 14, 18]:
+		m[by][1] = 2; m[by][2] = 2  # 左侧建筑
+		m[by][9] = 2; m[by][10] = 2  # 右侧建筑
+
+	# === 区域二：兰尼斯特防线 (row 5, cols 1-11) ===
+	# 城中横向防线，玩家需从下方绕过或突破
+	for x: int in range(1, 12): m[5][x] = 2
+	m[5][4] = 0; m[5][8] = 0  # 两处通道（避开左右两侧建筑）
+
+	# === 区域三：城外主城墙 (cols 12-13) ===
+	for y: int in range(1, H-1): m[y][12] = 2; m[y][13] = 2
+	for y: int in range(10, 16): m[y][12] = 0; m[y][13] = 0  # 主城门（宽大）
+	# 上下两处辅助开口
+	for y: int in [2, 3]: m[y][12] = 0
+	for y: int in [22, 23]: m[y][12] = 0
+
+	# === 区域四：外院 + 花园 (cols 14-18) ===
+	# 中央区域全部开放，上下两侧植被
+	for y: int in range(1, 6):
+		for x: int in range(14, 19): m[y][x] = 1  # 上方深绿植被
+	for y: int in range(20, 25):
+		for x: int in range(14, 19): m[y][x] = 1  # 下方深绿植被
+	# 中央大道完全开放（rows 6-19）
+
+	# === 区域五：护城河 (cols 19-20) ===
+	for y: int in range(1, H-1): m[y][19] = 4; m[y][20] = 4
+	# 顶底护城河延伸（环绕红堡）
+	for x: int in range(19, 34): m[1][x] = 4; m[H-2][x] = 4
+	# 吊桥（唯一通道，行10-15）
+	for y: int in range(10, 16): m[y][19] = 6; m[y][20] = 6
+
+	# === 区域六：红堡外墙 (cols 21-22) ===
+	for y: int in range(2, H-2): m[y][21] = 2; m[y][22] = 2
+	for y: int in range(10, 16): m[y][21] = 0; m[y][22] = 0  # 城堡正门
+	# 顶底城垛
+	for x: int in range(21, 35): m[2][x] = 2; m[H-3][x] = 2
+
+	# === 区域七：红堡内院 (cols 23-26) ===
+	# 内院两侧走廊墙（中央开放区域）
+	for y: int in range(3, 10): m[y][23] = 2; m[y][26] = 2
+	for y: int in range(17, H-3): m[y][23] = 2; m[y][26] = 2
+
+	# === 区域八：铁王座内门 (cols 27-28) ===
+	for y: int in range(3, H-3): m[y][27] = 2; m[y][28] = 2
+	for y: int in range(10, 16): m[y][27] = 0; m[y][28] = 0  # 内殿之门
+	# 侧门（增加战术选项）
+	for y: int in [4, 5]: m[y][27] = 0
+	for y: int in [20, 21]: m[y][27] = 0
+
+	# === 区域九：铁王座大厅 (cols 29-34) ===
+	for y: int in range(4, H-4): m[y][29] = 2; m[y][34] = 2
+	for x: int in range(29, 35): m[4][x] = 2; m[H-5][x] = 2
+	# 王座中央走廊（行10-15开放）
+	for y: int in range(10, 16):
+		for x: int in range(29, 35): m[y][x] = 0
+	# 两侧隔断墙（形成庄严大厅感）
+	for y: int in range(5, 10): m[y][31] = 2; m[y][32] = 2
+	for y: int in range(16, H-5): m[y][31] = 2; m[y][32] = 2
+
 	return m
 
 # ══════════════════════════════════════════════════════════
@@ -396,6 +471,16 @@ func _paint_from(terrain: Array) -> void:
 		var row: Array = terrain[y]
 		for x: int in row.size():
 			tilemap.set_cell(Vector2i(x, y), 0, TILE_ATLAS_COORDS.get(int(row[x]), Vector2i(0,0)))
+
+# 第四章专用绘图：使用君临城专属瓦片坐标
+func _paint_from_ch4(terrain: Array) -> void:
+	var tilemap: TileMapLayer = get_node_or_null("TileLayer/TileMapLayer") as TileMapLayer
+	if tilemap == null: return
+	tilemap.clear()
+	for y: int in terrain.size():
+		var row: Array = terrain[y]
+		for x: int in row.size():
+			tilemap.set_cell(Vector2i(x, y), 0, TILE_ATLAS_COORDS_CH4.get(int(row[x]), Vector2i(0,0)))
 
 func _play_dialogue(path: String) -> void:
 	if not FileAccess.file_exists(path): return

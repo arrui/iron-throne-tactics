@@ -9,6 +9,23 @@ signal transition_finished
 @onready var _time_label:      Label     = $TimeLabel
 @onready var _sub_label:       Label     = $SubLabel
 
+func _ready() -> void:
+	# 为章节转场标签应用中文字体
+	var font := _get_cjk_font()
+	if font:
+		for child in get_children():
+			if child is Label:
+				(child as Label).add_theme_font_override("font", font)
+
+func _get_cjk_font() -> Font:
+	const BUNDLED := "res://assets/fonts/ArialUnicode.ttf"
+	if ResourceLoader.exists(BUNDLED):
+		var f := load(BUNDLED) as Font
+		if f != null: return f
+	var sf := SystemFont.new()
+	sf.font_names = PackedStringArray(["Heiti SC", "Arial Unicode MS", "Microsoft YaHei"])
+	return sf
+
 func show_chapter(number: String, title: String,
 		time_label: String, sub_label: String = "") -> void:
 	_chapter_number.text = number

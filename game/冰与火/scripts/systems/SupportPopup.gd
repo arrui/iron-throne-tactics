@@ -7,6 +7,21 @@ signal popup_closed
 @onready var _rank_label: Label = $Background/VBox/RankLabel
 @onready var _close_btn: Button = $Background/VBox/CloseBtn
 
+func _ready() -> void:
+	const BUNDLED := "res://assets/fonts/ArialUnicode.ttf"
+	var font: Font = load(BUNDLED) as Font if ResourceLoader.exists(BUNDLED) else null
+	if font == null:
+		var sf := SystemFont.new()
+		sf.font_names = PackedStringArray(["Heiti SC", "Arial Unicode MS", "Microsoft YaHei"])
+		font = sf
+	for child in get_children():
+		_apply_font_recursive(child, font)
+
+func _apply_font_recursive(node: Node, font: Font) -> void:
+	if node is Label: (node as Label).add_theme_font_override("font", font)
+	elif node is Button: (node as Button).add_theme_font_override("font", font)
+	for child in node.get_children(): _apply_font_recursive(child, font)
+
 func show_support(unit_a: String, unit_b: String, rank: String, bonus: Dictionary) -> void:
 	_content_label.text = "当两名单位相邻站立时，战场上的默契会转化为实际加成。\n支援等级越高，加成越强。序章目前仅支持 C 级支援。"
 	var hit: int = bonus.get("hit", 0)

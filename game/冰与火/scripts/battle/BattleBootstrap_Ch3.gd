@@ -43,8 +43,13 @@ const TERRAIN_MAP: Array = [
 ]
 
 const TILE_ATLAS_COORDS := {
-	0: Vector2i(0, 0), 1: Vector2i(2, 4), 2: Vector2i(1, 20),
-	3: Vector2i(0, 12), 4: Vector2i(0, 8), 5: Vector2i(1, 9), 6: Vector2i(3, 2),
+	0: Vector2i(0, 0),   # 平原：亮绿草地
+	1: Vector2i(6, 0),   # 森林：深绿树木（有树形纹理）
+	2: Vector2i(0, 2),   # 矮墙：浅石墙
+	3: Vector2i(1, 50),  # 峭壁：极暗色（不可通行）
+	4: Vector2i(0, 13),  # 河流：淡蓝水色
+	5: Vector2i(1, 19),   # 沼泽：灰绿色（沼泽草地，区别于棕褐色桥梁）
+	6: Vector2i(4, 2),    # 桥梁：浅蓝灰色（石桥跨河，区别于蓝色河流和绿色沼泽）
 }
 
 var _dialogue_box:   CanvasLayer    = null
