@@ -63,17 +63,24 @@ func _show_debug_menu() -> void:
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(hint)
 
-	# 章节按钮数据：[显示名, 场景路径或null（null=正常流程）]
+	# 章节按钮数据：[显示名, chapter_num]
+	# chapter_num=1 → 直接启动ch1流程（不走存档路由）
+	# chapter_num=2/3/4 → 跳转对应 Opening 场景
 	var chapters: Array = [
-		["序章·一《风暴地》  (22×16)",   null],
-		["序章·二《三叉戟》  (28×20)",   "res://scenes/chapter/Ch2_Opening.tscn"],
-		["序章·三《极乐塔》  (24×18)",   "res://scenes/chapter/Ch3_Opening.tscn"],
-		["序章·四《铁王座》  (36×26)",   "res://scenes/chapter/Ch4_Opening.tscn"],
+		["序章·一《风暴地》  (10×8)",    1],
+		["序章·二《三叉戟》  (28×20)",   2],
+		["序章·三《极乐塔》  (24×18)",   3],
+		["序章·四《铁王座》  (36×26)",   4],
 	]
+	var chapter_scene_map := {
+		2: "res://scenes/chapter/Ch2_Opening.tscn",
+		3: "res://scenes/chapter/Ch3_Opening.tscn",
+		4: "res://scenes/chapter/Ch4_Opening.tscn",
+	}
 
 	for entry: Array in chapters:
-		var label: String = entry[0] as String
-		var scene          = entry[1]
+		var label:   String = entry[0] as String
+		var ch_num:  int    = entry[1] as int
 		var btn := Button.new()
 		btn.text = label
 		btn.custom_minimum_size = Vector2(320, 48)
@@ -81,11 +88,13 @@ func _show_debug_menu() -> void:
 		btn.add_theme_font_override("font", _font)
 		btn.pressed.connect(func() -> void:
 			canvas.queue_free()
-			if scene == null:
-				_start_normal_flow()
+			GameState.current_chapter = ch_num   # ← 必须先设置，BattleBootstrap 靠此分发
+			if ch_num == 1:
+				# 序章一：直接进入战斗场景，不走存档路由
+				_play_chapter_1()
 			else:
-				var path: String = scene as String
-				if ResourceLoader.exists(path):
+				var path: String = chapter_scene_map.get(ch_num, "") as String
+				if path != "" and ResourceLoader.exists(path):
 					get_tree().change_scene_to_file(path))
 		vbox.add_child(btn)
 

@@ -53,6 +53,19 @@ var _danger_tiles:  Dictionary = {}               # 敌方威胁格
 var _show_danger:   bool = false                  # 危险区开关
 var _turn_count:    int  = 1                      # 回合计数
 
+# ── 敌方单位安全距离预览（点击敌方单位时显示）────────────
+var _preview_enemy:        Unit             = null   # 当前被预览的敌方单位
+var _preview_move_range:   Array[Vector2i] = []      # 其移动范围（橙色）
+var _preview_attack_tiles: Array[Vector2i] = []      # 其攻击覆盖（红色）
+
+# ── 自动托管（A 键切换，随时可中止）─────────────────────
+var _autopilot:         bool  = false   # 是否启用自动托管
+var _autopilot_running: bool  = false   # 协程正在运行中
+var _autopilot_label:   Label = null    # UI 状态提示标签
+
+# ── 小地图（M 键切换）────────────────────────────────────
+var _minimap: MiniMap = null
+
 # ── Camera2D ────────────────────────────────────────────
 @onready var _cam: Camera2D = $Camera2D
 
@@ -93,6 +106,9 @@ const MOVED_COLOR    := Color(0.20, 0.90, 0.55, 0.52)
 const VICTORY_COLOR  := Color(1.00, 0.85, 0.10, 0.48)
 const DANGER_COLOR   := Color(1.00, 0.18, 0.08, 0.22)
 const PATH_COLOR     := Color(1.00, 0.95, 0.15, 0.90)
+# 敌方安全距离预览专用色
+const ENEMY_MOVE_COLOR   := Color(0.92, 0.52, 0.10, 0.24)  # 橙色：敌方可移动格
+const ENEMY_THREAT_COLOR := Color(1.00, 0.15, 0.10, 0.42)  # 深红：敌方攻击覆盖
 
 # ════════════════════════════════════════════════════════
 func _ready() -> void:
@@ -102,6 +118,12 @@ func _ready() -> void:
 	_bind_ui()
 	_update_turn_label()
 	_update_danger_zone()
+	# 延迟隐藏PNG瓦片——改用程序化地形渲染（call_deferred确保Bootstrap先完成_paint_tilemap）
+	call_deferred("_hide_tilemap_png")
+
+func _hide_tilemap_png() -> void:
+	var tl := get_node_or_null("TileLayer/TileMapLayer") as TileMapLayer
+	if tl: tl.visible = false
 
 var _cjk_font: Font = null
 
@@ -157,16 +179,70 @@ func _apply_font_to_controls(node: Node) -> void:
 
 func _apply_battle_font() -> void:
 	var font := _get_cjk_font()
-	# 全局回退字体
-	ThemeDB.fallback_font = font
+	ThemeDB.fallback_font      = font
 	ThemeDB.fallback_font_size = 14
-	# 项目主题
 	var theme := ThemeDB.get_project_theme()
 	if theme != null:
-		theme.default_font = font
+		theme.default_font      = font
 		theme.default_font_size = 14
-	# 对场景中所有文字控件显式设置字体（最彻底的方案）
 	call_deferred("_apply_font_to_controls", self)
+	call_deferred("_apply_dark_ui_theme")
+	# 深色全局背景（GDD色盘：接近黑）
+	RenderingServer.set_default_clear_color(Color(0.05, 0.05, 0.05))
+
+# 深色 UI 主题（GDD色盘：铁灰 + 烛珀高亮）
+func _apply_dark_ui_theme() -> void:
+	# 面板底色
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color          = Color(0.10, 0.09, 0.08, 0.96)
+	panel_style.border_color      = Color(0.55, 0.46, 0.26, 1.00)
+	panel_style.border_width_top    = 1; panel_style.border_width_bottom = 1
+	panel_style.border_width_left   = 1; panel_style.border_width_right  = 1
+	panel_style.corner_radius_top_left     = 4; panel_style.corner_radius_top_right    = 4
+	panel_style.corner_radius_bottom_left  = 4; panel_style.corner_radius_bottom_right = 4
+
+	# 按钮普通态
+	var btn_normal := StyleBoxFlat.new()
+	btn_normal.bg_color     = Color(0.16, 0.14, 0.10, 0.95)
+	btn_normal.border_color = Color(0.50, 0.42, 0.22, 1.00)
+	btn_normal.set_border_width_all(1)
+	btn_normal.set_corner_radius_all(3)
+
+	# 按钮悬停态
+	var btn_hover := StyleBoxFlat.new()
+	btn_hover.bg_color     = Color(0.26, 0.22, 0.12, 0.98)
+	btn_hover.border_color = Color(0.78, 0.66, 0.36, 1.00)
+	btn_hover.set_border_width_all(1)
+	btn_hover.set_corner_radius_all(3)
+
+	# 按钮按下态
+	var btn_press := StyleBoxFlat.new()
+	btn_press.bg_color     = Color(0.36, 0.28, 0.14, 1.00)
+	btn_press.border_color = Color(0.95, 0.80, 0.40, 1.00)
+	btn_press.set_border_width_all(2)
+	btn_press.set_corner_radius_all(3)
+
+	_apply_dark_style_recursive(self, panel_style, btn_normal, btn_hover, btn_press)
+
+func _apply_dark_style_recursive(
+		node: Node,
+		panel_s: StyleBoxFlat, btn_n: StyleBoxFlat,
+		btn_h: StyleBoxFlat,   btn_p: StyleBoxFlat) -> void:
+	if node is PanelContainer:
+		(node as PanelContainer).add_theme_stylebox_override("panel", panel_s)
+	if node is Button:
+		var b := node as Button
+		b.add_theme_stylebox_override("normal",   btn_n)
+		b.add_theme_stylebox_override("hover",    btn_h)
+		b.add_theme_stylebox_override("pressed",  btn_p)
+		b.add_theme_stylebox_override("focus",    btn_h)
+		b.add_theme_color_override("font_color",          Color(0.92, 0.88, 0.76))
+		b.add_theme_color_override("font_hover_color",    Color(1.00, 0.96, 0.82))
+		b.add_theme_color_override("font_pressed_color",  Color(1.00, 0.90, 0.50))
+	if node is Label and node.get_parent() is PanelContainer:
+		(node as Label).add_theme_color_override("font_color", Color(0.90, 0.88, 0.78))
+	for child in node.get_children():
+		_apply_dark_style_recursive(child, panel_s, btn_n, btn_h, btn_p)
 
 # 每次触发重绘时同步刷新高亮层
 func _redraw_all() -> void:
@@ -246,9 +322,67 @@ func _bind_ui() -> void:
 	if _end_turn_btn and not _end_turn_btn.pressed.is_connected(_on_end_turn_pressed):
 		_end_turn_btn.pressed.connect(_on_end_turn_pressed)
 
-# ── 高亮绘制（由 HighlightLayer 调用，保证在地形之上、单位之下）────
+	# 自动托管状态标签（右下角，EndTurnBtn旁）
+	call_deferred("_setup_autopilot_ui")
+	call_deferred("_setup_minimap")
+
+func _setup_minimap() -> void:
+	_minimap = MiniMap.new()
+	add_child(_minimap)
+	_minimap.setup(self)
+
+func _setup_autopilot_ui() -> void:
+	var ui_layer := get_node_or_null("UI") as CanvasLayer
+	if ui_layer == null: return
+	_autopilot_label = Label.new()
+	_autopilot_label.text = ""
+	_autopilot_label.add_theme_font_size_override("font_size", 13)
+	_autopilot_label.add_theme_font_override("font", _get_cjk_font())
+	_autopilot_label.add_theme_color_override("font_color", Color(0.30, 1.00, 0.55))
+	# 定位：右上角，EndTurnBtn 正下方
+	_autopilot_label.anchor_left   = 1.0; _autopilot_label.anchor_right  = 1.0
+	_autopilot_label.offset_left   = -168.0; _autopilot_label.offset_right  = -6.0
+	_autopilot_label.offset_top    = 44.0;   _autopilot_label.offset_bottom = 64.0
+	_autopilot_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ui_layer.add_child(_autopilot_label)
+
+# ── 程序化地形背景渲染（GDD暗色系，替代Q版PNG瓦片）─────────
 func _draw() -> void:
-	pass  # BattleMap 本身不绘制，由 HighlightLayer._draw() → _draw_highlights() 处理
+	_draw_terrain_bg()
+
+func _draw_terrain_bg() -> void:
+	if map_width <= 0 or map_height <= 0: return
+	# 全图深色底（覆盖摄像机滚动区域边缘）
+	draw_rect(Rect2(-TILE_SIZE * 2, -TILE_SIZE * 2,
+		(map_width + 4) * TILE_SIZE, (map_height + 4) * TILE_SIZE),
+		Color(0.05, 0.05, 0.05))
+	# 逐格绘制地形色块
+	for y: int in map_height:
+		for x: int in map_width:
+			var pos  := Vector2i(x, y)
+			var rect := Rect2(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
+			var col  := _terrain_draw_color(_get_terrain_type(pos))
+			# 棋盘微变色——增加视觉深度
+			if (x + y) % 2 == 1:
+				col = col.darkened(0.07)
+			draw_rect(rect, col)
+			draw_rect(rect, Color(0.0, 0.0, 0.0, 0.25), false, 1.0)  # 格线
+	# 地图边框（烛珀色）
+	draw_rect(Rect2(0, 0, map_width * TILE_SIZE, map_height * TILE_SIZE),
+		Color(0.60, 0.50, 0.28, 0.75), false, 2.5)
+
+func _terrain_draw_color(terrain: int) -> Color:
+	match terrain:
+		TERRAIN_PLAIN:  return Color(0.22, 0.20, 0.16)  # 暗石板路
+		TERRAIN_FOREST: return Color(0.10, 0.18, 0.08)  # 深绿树林
+		TERRAIN_WALL:   return Color(0.30, 0.24, 0.14)  # 石砖城墙
+		TERRAIN_CLIFF:  return Color(0.08, 0.08, 0.08)  # 近黑峭壁
+		TERRAIN_RIVER:  return Color(0.08, 0.12, 0.28)  # 深蓝河流
+		TERRAIN_SWAMP:  return Color(0.12, 0.16, 0.08)  # 沼泽暗绿
+		TERRAIN_BRIDGE: return Color(0.30, 0.24, 0.16)  # 石桥
+		_:              return Color(0.16, 0.16, 0.14)
+
+# ── 高亮绘制（由 HighlightLayer 调用，保证在地形之上、单位之下）────
 
 # HighlightLayer.gd 的 _draw() 回调此方法
 func _draw_highlights(canvas: Node2D) -> void:
@@ -256,6 +390,18 @@ func _draw_highlights(canvas: Node2D) -> void:
 	if _show_danger:
 		for pos: Vector2i in _danger_tiles.keys():
 			_draw_tile_highlight(canvas, pos, DANGER_COLOR)
+
+	# 1.5 敌方单位安全距离预览（点击敌方单位时显示）
+	if _preview_enemy != null and is_instance_valid(_preview_enemy):
+		# 攻击覆盖（深红，画在移动范围下方）
+		for pos: Vector2i in _preview_attack_tiles:
+			_draw_tile_highlight(canvas, pos, ENEMY_THREAT_COLOR)
+		# 移动范围（橙色，画在攻击覆盖上方）
+		for pos: Vector2i in _preview_move_range:
+			_draw_tile_highlight(canvas, pos, ENEMY_MOVE_COLOR)
+		# 单位所在格加亮边框标记
+		_draw_tile_highlight(canvas, _preview_enemy.grid_pos,
+			Color(ENEMY_MOVE_COLOR.r, ENEMY_MOVE_COLOR.g, ENEMY_MOVE_COLOR.b, 0.65))
 
 	# 2. 胜利格
 	_draw_tile_highlight(canvas, victory_pos, VICTORY_COLOR)
@@ -348,6 +494,7 @@ func _update_danger_zone() -> void:
 	_danger_tiles.clear()
 	for enemy: Unit in enemy_units:
 		if not is_instance_valid(enemy) or enemy.is_dead(): continue
+		if enemy.team == 2: continue   # 跳过中立单位（不产生危险区）
 		for pos: Vector2i in _calc_move_range(enemy):
 			for d: Vector2i in [Vector2i(1,0), Vector2i(-1,0), Vector2i(0,1), Vector2i(0,-1)]:
 				var ap: Vector2i = pos + d
@@ -379,7 +526,7 @@ func _update_hover() -> void:
 				info += "  回避+%d%%" % bonus["avoid"]
 			for u: Unit in (player_units + enemy_units):
 				if is_instance_valid(u) and u.grid_pos == hovered and not u.is_dead():
-					var tag := "我" if u.team == 0 else "敌"
+					var tag := "我" if u.team == 0 else ("中立" if u.team == 2 else "敌")
 					info = "[%s] %s  HP:%d/%d    %s" % [
 						tag, u.data.name, u.data.hp, u.data.max_hp, info]
 					break
@@ -519,10 +666,48 @@ func _input(event: InputEvent) -> void:
 			_set_status("危险区 %s（D 键切换）" % ("已显示" if _show_danger else "已隐藏"))
 			get_viewport().set_input_as_handled()
 			return
+		if key == KEY_M:
+			if _minimap != null: _minimap.toggle()
+			get_viewport().set_input_as_handled()
+			return
+		if key == KEY_A:
+			_toggle_autopilot()
+			get_viewport().set_input_as_handled()
+			return
 		if key == KEY_ESCAPE:
+			# ESC 同时关闭自动托管
+			if _autopilot:
+				_autopilot = false
+				_autopilot_running = false
+				_update_autopilot_label()
+				_set_status("自动托管已中止（ESC）")
+				get_viewport().set_input_as_handled()
+				return
 			_handle_escape()
 			get_viewport().set_input_as_handled()
 			return
+
+	# ── 敌方单位安全距离预览（任意回合均可点击查看）──────────
+	# 放在回合检查之前，使敌方回合也能查看
+	if not _battle_over and not _animating_battle:
+		if event is InputEventMouseButton and (event as InputEventMouseButton).pressed \
+				and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+			if not (_action_menu and _action_menu.visible) \
+					and not (_predict_panel and _predict_panel.visible):
+				var clicked_ev := _p2g(to_local(get_global_mouse_position()))
+				var enemy_ev   := _unit_at(clicked_ev, 1)
+				if enemy_ev != null and not enemy_ev.is_dead():
+					# 再次点击同一敌方单位 → 关闭预览
+					if _preview_enemy == enemy_ev:
+						_clear_enemy_preview(); _redraw_all(); _set_status("")
+					else:
+						_show_enemy_preview(enemy_ev)
+					get_viewport().set_input_as_handled()
+					return
+				elif _preview_enemy != null:
+					# 点击到非敌方格子 → 关闭预览（不 return，让后续逻辑继续）
+					_clear_enemy_preview()
+					_redraw_all()
 
 	if _battle_over or _animating_battle or current_phase != Phase.PLAYER_TURN:
 		return
@@ -554,6 +739,7 @@ func _input(event: InputEvent) -> void:
 				if clicked in attack_tiles:
 					var enemy: Unit = _unit_at(clicked, 1)
 					if enemy != null:
+						if not _honor_check_attack(selected_unit, enemy): return
 						_open_predict(selected_unit, enemy)
 
 	elif me.button_index == MOUSE_BUTTON_RIGHT:
@@ -565,6 +751,10 @@ func _input(event: InputEvent) -> void:
 				_deselect()
 
 func _handle_escape() -> void:
+	# ESC 同时关闭敌方预览
+	if _preview_enemy != null:
+		_clear_enemy_preview(); _redraw_all(); _set_status("")
+		return
 	if _predict_panel and _predict_panel.visible:
 		_on_cancel_attack()
 		return
@@ -597,6 +787,7 @@ func _try_select(pos: Vector2i) -> void:
 	var unit: Unit = _unit_at(pos, 0)
 	if unit == null or not unit.can_act():
 		return
+	_clear_enemy_preview()   # 选中我方单位时关闭敌方预览
 	selected_unit = unit
 	move_range    = _calc_move_range(unit)
 	attack_tiles  = _calc_attack_tiles(move_range)
@@ -617,8 +808,28 @@ func _deselect() -> void:
 	_path_preview.clear()
 	player_state = PlayerState.IDLE
 	_hide_all_panels()
+	_clear_enemy_preview()
 	_redraw_all()
 	_set_status("")
+
+# ── 敌方安全距离预览 ─────────────────────────────────────
+func _show_enemy_preview(unit: Unit) -> void:
+	if not is_instance_valid(unit) or unit.is_dead(): return
+	_preview_enemy = unit
+	_preview_move_range   = _calc_move_range(unit)
+	_preview_attack_tiles = _calc_attack_tiles(_preview_move_range)
+	_redraw_all()
+	# 底部状态栏显示提示
+	var t_name := get_terrain_name(unit.grid_pos)
+	_set_status("【%s】HP:%d/%d  移动:%d  攻击覆盖:%d格  [%s]（点击其他位置关闭）" % [
+		unit.data.name, unit.data.hp, unit.data.max_hp,
+		unit.data.move, _preview_attack_tiles.size(), t_name])
+
+func _clear_enemy_preview() -> void:
+	if _preview_enemy == null: return
+	_preview_enemy = null
+	_preview_move_range.clear()
+	_preview_attack_tiles.clear()
 
 # ── 行动菜单 ─────────────────────────────────────────────
 func _show_action_menu(grid_pos: Vector2i, can_attack: bool) -> void:
@@ -636,11 +847,25 @@ func _show_action_menu(grid_pos: Vector2i, can_attack: bool) -> void:
 		_items_btn.visible = selected_unit != null and selected_unit.data.has_usable_items()
 	_action_menu.visible = true
 
+# 荣耀系统：奈德不攻击低血量（投降）的敌人
+func _honor_check_attack(attacker: Unit, defender: Unit) -> bool:
+	if not is_instance_valid(attacker) or not is_instance_valid(defender): return true
+	# 只约束奈德（主角）
+	if not attacker.data.is_protagonist: return true
+	# 荣耀系统：只保护被关卡设计者明确标记为「不可击杀」的单位（min_hp > 0）
+	# 例如：亚瑟·戴恩（min_hp=1，他撤退而非死亡，符合原著）
+	# 教学关普通士兵 min_hp=0，不受此保护，可以正常攻击
+	if defender.data.min_hp > 0 and defender.data.hp <= defender.data.min_hp:
+		_set_status("%s 已无力再战，奈德放弃攻击。" % defender.data.name)
+		return false
+	return true
+
 func _on_attack_pressed() -> void:
 	_hide_all_panels()
 	if attack_tiles.size() == 1:
 		var enemy: Unit = _unit_at(attack_tiles[0], 1)
 		if enemy != null:
+			if not _honor_check_attack(selected_unit, enemy): return
 			_open_predict(selected_unit, enemy)
 	else:
 		player_state = PlayerState.UNIT_MOVED
@@ -708,6 +933,10 @@ func _open_predict(attacker: Unit, defender: Unit) -> void:
 func _on_confirm_attack() -> void:
 	_hide_all_panels()
 	if selected_unit != null and target_enemy != null:
+		# 二次荣耀检查：防止快速点击绕过
+		if not _honor_check_attack(selected_unit, target_enemy):
+			target_enemy = null
+			return
 		await _start_battle_with_animation(selected_unit, target_enemy)
 	target_enemy  = null
 	_pre_move_pos = Vector2i(-1, -1)
@@ -805,14 +1034,13 @@ func _roll(rate: int) -> bool:
 
 # ── 颜色反馈 ─────────────────────────────────────────────
 func _refresh_unit_color(unit: Unit) -> void:
-	var node := unit.get_node_or_null("Sprite")
-	if node and unit.state == Unit.State.DONE:
-		node.modulate = Color(0.5, 0.5, 0.5, 1.0)
+	# 精灵已隐藏，改用程序化渲染——触发重绘即可（_draw()内_fill_col处理DONE灰化）
+	if is_instance_valid(unit):
+		unit.queue_redraw()
 
 func _restore_unit_color(unit: Unit) -> void:
-	var node := unit.get_node_or_null("Sprite")
-	if node:
-		node.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	if is_instance_valid(unit):
+		unit.queue_redraw()
 
 # ── 胜败 ─────────────────────────────────────────────────
 func _check_victory() -> void:
@@ -877,6 +1105,7 @@ func _start_enemy_turn() -> void:
 		if _battle_over: break
 		var enemy: Unit = enemies_this_turn[i]
 		if not is_instance_valid(enemy) or enemy.is_dead(): continue
+		if enemy.team == 2: continue   # 中立单位不参与敌方回合
 
 		var action: Dictionary = EnemyAI.decide(enemy, player_units, _calc_move_range(enemy))
 		if not is_instance_valid(enemy): continue
@@ -923,6 +1152,113 @@ func _start_player_turn() -> void:
 	_update_danger_zone()
 	_check_defeat()
 	_redraw_all()
+	# 自动托管：若启用则接管本回合所有玩家单位行动
+	if _autopilot and not _battle_over:
+		_run_autopilot_turn()
+
+# ════════════════════════════════════════════════════════
+# 自动托管系统（A 键切换，ESC 随时中止）
+# ════════════════════════════════════════════════════════
+
+func _toggle_autopilot() -> void:
+	_autopilot = not _autopilot
+	_update_autopilot_label()
+	if _autopilot:
+		_set_status("⚡ 自动托管已启动（A 键或 ESC 可随时中止）")
+		# 若当前正是玩家回合且没有在运行，立即开始
+		if current_phase == Phase.PLAYER_TURN and not _autopilot_running and not _battle_over:
+			_run_autopilot_turn()
+	else:
+		_autopilot_running = false
+		_set_status("⏸ 自动托管已暂停（A 键重新启动）")
+
+func _update_autopilot_label() -> void:
+	if _autopilot_label == null: return
+	if _autopilot:
+		_autopilot_label.text = "⚡ AUTO"
+		_autopilot_label.add_theme_color_override("font_color", Color(0.30, 1.00, 0.55))
+	else:
+		_autopilot_label.text = ""
+
+func _run_autopilot_turn() -> void:
+	if _autopilot_running: return   # 防止重入
+	_autopilot_running = true
+
+	# 短暂延迟，让玩家看清画面
+	await get_tree().create_timer(0.3).timeout
+
+	# 逐一处理所有可行动的玩家单位
+	while _autopilot and not _battle_over and current_phase == Phase.PLAYER_TURN:
+		if not is_inside_tree(): break
+
+		# 找下一个还能行动的单位
+		var acting: Unit = null
+		for u: Unit in player_units:
+			if is_instance_valid(u) and not u.is_dead() and u.can_act():
+				acting = u
+				break
+
+		if acting == null:
+			break   # 所有单位已行动，结束回合
+
+		# 计算决策
+		var walkable := _calc_move_range(acting)
+		var action   := AutopilotAI.decide(acting, enemy_units, walkable)
+
+		# ── 优先：自救道具（主角 HP 不足时原地使用）────────────
+		var use_item_idx: int = int(action.get("use_item", -1))
+		if use_item_idx >= 0:
+			var item := acting.data.use_item(use_item_idx)
+			if not item.is_empty() and item.get("type", "") == "heal":
+				var amount: int = int(item.get("heal_amount", 10))
+				acting.data.hp = mini(acting.data.hp + amount, acting.data.max_hp)
+				acting._refresh_hp_label()
+				_set_status("⚕ %s 使用【%s】自救，恢复 %d HP（当前 %d/%d）" % [
+					acting.data.name, item.get("name", "急救药"),
+					amount, acting.data.hp, acting.data.max_hp])
+			acting.mark_acted()
+			_refresh_unit_color(acting)
+			_deselect()
+			_redraw_all()
+			await get_tree().create_timer(0.40).timeout
+			if not is_inside_tree() or not _autopilot: break
+			continue   # 直接找下一个可行动单位
+
+		# ── 执行移动动画 ──────────────────────────────────────
+		var target_pos: Vector2i = action["move_to"]
+		if target_pos != acting.grid_pos:
+			await _do_move_animated(acting, target_pos)
+			if not is_inside_tree() or not _autopilot: break
+			await get_tree().create_timer(0.15).timeout
+
+		# ── 执行攻击 ──────────────────────────────────────────
+		var attack_target: Unit = action.get("attack") as Unit
+		if attack_target != null and is_instance_valid(attack_target) \
+				and not attack_target.is_dead():
+			if _honor_check_attack(acting, attack_target):
+				await _start_battle_with_animation(acting, attack_target)
+				if not is_inside_tree() or not _autopilot: break
+				await get_tree().create_timer(0.2).timeout
+			else:
+				# 荣耀保护：等待
+				acting.mark_acted()
+				_refresh_unit_color(acting)
+		else:
+			# 无法攻击：等待
+			acting.mark_acted()
+			_refresh_unit_color(acting)
+
+		_deselect()
+		_check_victory()
+		if _battle_over: break
+		await get_tree().create_timer(0.2).timeout
+
+	# 回合结束
+	_autopilot_running = false
+	if _autopilot and not _battle_over and current_phase == Phase.PLAYER_TURN:
+		await get_tree().create_timer(0.3).timeout
+		if _autopilot and not _battle_over:
+			_on_end_turn_pressed()
 
 func _update_turn_label() -> void:
 	if not _turn_label: return

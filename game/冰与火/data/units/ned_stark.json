@@ -2,17 +2,33 @@
   "name": "奈德",
   "class": "剑士",
   "level": 5,
-  "hp": 38, "max_hp": 38,
-  "pow": 12, "spd": 11, "skl": 12, "def": 9, "lck": 7, "con": 10,
+  "hp": 40,
+  "max_hp": 40,
+  "pow": 14,
+  "spd": 9,
+  "skl": 11,
+  "def": 10,
+  "lck": 7,
+  "con": 10,
   "move": 5,
   "weapon_type": "sword",
   "weapon_rank": "C",
   "weapon_uses": 35,
   "weapon_max_uses": 35,
+  "weapon_stats": {
+    "might": 9,
+    "hit": 85,
+    "weight": 7
+  },
   "is_protagonist": true,
   "is_boss": false,
   "min_hp": 0,
   "items": [
-    {"name": "急救药", "type": "heal", "heal_amount": 10, "uses": 2}
+    {
+      "name": "急救药",
+      "type": "heal",
+      "heal_amount": 10,
+      "uses": 2
+    }
   ]
 }

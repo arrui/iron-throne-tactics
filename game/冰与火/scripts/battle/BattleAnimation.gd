@@ -37,6 +37,28 @@ func _ready() -> void:
 	_panel_shown_y  = vs.y - 200.0
 	if _panel:
 		_panel.position.y = _panel_hidden_y
+	# 动态实例化后需主动应用 CJK 字体（不在初始 call_deferred 范围内）
+	_apply_cjk_font_to_all()
+
+func _get_cjk_font() -> Font:
+	const BUNDLED := "res://assets/fonts/ArialUnicode.ttf"
+	if ResourceLoader.exists(BUNDLED):
+		var f := load(BUNDLED) as Font
+		if f: return f
+	var sf := SystemFont.new()
+	sf.font_names = PackedStringArray(["Heiti SC", "Arial Unicode MS",
+		"Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC"])
+	return sf
+
+func _apply_cjk_font_to_all() -> void:
+	var font := _get_cjk_font()
+	_apply_font_recursive(self, font)
+
+func _apply_font_recursive(node: Node, font: Font) -> void:
+	if node is Label:
+		(node as Label).add_theme_font_override("font", font)
+	for child in node.get_children():
+		_apply_font_recursive(child, font)
 
 func play(attacker: Unit, defender: Unit, pred: Dictionary) -> void:
 	# ── 在任何await之前提取所有需要的数据 ──────────────────
@@ -219,6 +241,7 @@ func _update_hp_bar(bar: ProgressBar, lbl: Label,
 func _spawn_damage_label(near: Sprite2D, damage: int, crit: bool) -> void:
 	var lbl := Label.new()
 	lbl.text = ("暴击！%d" % damage) if crit else str(damage)
+	lbl.add_theme_font_override("font", _get_cjk_font())
 	lbl.add_theme_color_override("font_color",
 		Color(1.0, 0.85, 0.1) if crit else Color(1.0, 0.25, 0.25))
 	lbl.add_theme_font_size_override("font_size", 22 if crit else 18)

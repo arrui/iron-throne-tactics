@@ -31,9 +31,6 @@ const UNIT_PORTRAIT_MAP := {
 	"royal_soldier.json":    "royal_soldier_portrait.png",
 }
 
-# ── 部署选择（Ch4，由 DeployScreen_Ch4 设置）───────────────
-# deploy_selection 已移至 GameState.deploy_selection
-
 # ── 共享状态 ──────────────────────────────────────────────
 var _dialogue_box:  CanvasLayer    = null
 var _dialogue_sys:  DialogueSystem = null
@@ -41,39 +38,90 @@ var _cutscene_node: CutscenePlayer = null
 
 # ── 地形图（各章节）──────────────────────────────────────
 # 0=平原 1=森林 2=矮墙 3=峭壁 4=河流 5=沼泽 6=桥梁
+
+# 序章一：10×8 教学关（对标FE7 Lyn线第1章）
+# 左下角（cols 0-3，rows 5-7）：玩家出生区（平原）
+# 中央：矮墙掩护
+# 右上区域（cols 8-9，rows 0-3）：皇家守卫驻守
+# 右上角格 (9,0)：胜利格（红堡正门）
 const TERRAIN_CH1: Array = [
-	[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],[3,0,0,1,1,0,0,0,0,4,4,0,0,0,0,0,0,0,1,1,0,3],[3,0,1,1,0,0,0,0,0,4,4,0,0,0,0,0,0,1,1,0,0,3],[3,0,1,0,0,2,0,0,0,4,4,0,0,0,2,2,0,0,0,0,0,3],[3,0,0,0,2,0,0,2,0,4,4,0,2,0,0,2,0,0,0,0,0,3],[3,0,0,0,2,0,0,6,6,6,6,6,2,0,0,2,0,0,0,0,0,3],[3,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,0,0,3],[3,0,5,5,0,0,0,0,0,4,4,0,0,0,0,2,2,0,0,0,0,3],[3,0,5,0,0,1,0,0,0,4,4,0,0,0,0,2,0,0,0,0,0,3],[3,0,0,0,1,1,0,0,0,4,4,0,0,0,0,2,0,0,0,0,0,3],[3,0,0,0,1,0,0,6,6,6,6,6,0,0,0,2,0,0,0,0,0,3],[3,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,2,2,0,0,0,3],[3,0,0,1,0,0,2,0,0,4,4,0,0,2,0,0,0,2,0,0,0,3],[3,0,1,1,0,0,2,0,0,4,4,0,0,2,0,0,0,0,0,1,0,3],[3,0,0,1,0,0,0,0,0,4,4,0,0,0,0,0,0,0,1,1,0,3],[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+	[3, 3, 3, 3, 3, 0, 3, 3, 3, 3],  # row 0：北方边界，col5胜利格可通行，其余峭壁
+	[3, 0, 0, 0, 2, 0, 0, 0, 0, 3],  # row 1：中央矮墙，col5通道打开
+	[3, 0, 2, 0, 0, 0, 2, 0, 0, 3],  # row 2：两处矮墙
+	[3, 0, 0, 0, 0, 0, 0, 0, 0, 3],  # row 3：开阔地带
+	[3, 0, 0, 2, 0, 2, 0, 0, 0, 3],  # row 4：中央矮墙群
+	[3, 0, 0, 0, 0, 0, 0, 0, 0, 3],  # row 5：开阔地带
+	[3, 0, 0, 0, 0, 0, 0, 0, 0, 3],  # row 6：玩家出生区（南方）
+	[3, 3, 3, 3, 3, 3, 3, 3, 3, 3],  # row 7：底部边界
 ]
+
 const TERRAIN_CH2: Array = [
-	[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],[3,0,0,1,1,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,0,0,0,1,1,0,3],[3,0,1,1,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,0,0,1,1,0,0,3],[3,0,0,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],[3,0,0,0,0,0,0,0,0,0,0,4,4,0,0,0,2,2,0,0,0,0,0,0,0,0,0,3],[3,0,0,0,0,0,0,0,0,0,0,6,6,0,0,0,2,0,0,0,0,0,0,0,0,0,0,3],[3,0,0,0,0,0,0,0,0,0,0,4,4,0,0,0,2,0,0,0,0,0,0,0,0,0,0,3],[3,0,0,1,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,0,0,1,0,0,0,3],[3,0,1,1,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,0,1,1,0,0,0,3],[3,0,0,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],[3,0,0,0,0,0,0,0,0,0,0,6,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],[3,0,0,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],[3,0,0,1,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,1,0,0,0,0,0,3],[3,0,1,1,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],[3,0,0,0,0,0,0,0,0,0,0,4,4,0,0,0,2,2,0,0,0,0,0,0,0,0,0,3],[3,0,0,0,0,0,0,0,0,0,0,6,6,0,0,0,2,0,0,0,0,0,0,0,0,0,0,3],[3,0,0,0,0,0,0,0,0,0,0,4,4,0,0,0,2,0,0,0,0,0,0,0,0,0,0,3],[3,0,0,1,1,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,0,0,1,1,0,0,3],[3,0,0,0,1,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,0,1,1,0,0,0,3],[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+	# 28列×20行，南北纵向：玩家南方（rows 14-18），三叉戟河横向（rows 8-9），雷加北方（rows 1-6）
+	# 0=平原 1=森林 2=矮墙 3=峭壁 4=河流 5=沼泽 6=桥梁
+	[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],  # row 0：北方边界
+	[3,0,0,1,1,0,0,0,0,0,2,2,0,0,0,0,0,0,2,2,0,0,0,1,1,0,0,3],  # row 1：北岸（雷加区）
+	[3,0,1,1,0,0,0,0,0,0,0,2,0,0,0,0,0,2,0,0,0,0,1,1,0,0,0,3],  # row 2
+	[3,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,3],  # row 3
+	[3,0,0,0,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,0,2,0,0,3],  # row 4
+	[3,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,3],  # row 5
+	[3,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,3],  # row 6
+	[3,0,2,0,0,0,0,0,0,0,0,0,2,0,0,2,0,0,0,0,0,0,0,0,0,2,0,3],  # row 7：北岸南缘
+	[3,4,4,4,4,4,4,6,6,4,4,4,4,4,6,6,4,4,4,4,4,6,6,4,4,4,4,3],  # row 8：三叉戟河（桥cols7-8,14-15,21-22）
+	[3,4,4,4,4,4,4,6,6,4,4,4,4,4,6,6,4,4,4,4,4,6,6,4,4,4,4,3],  # row 9：三叉戟河（2行宽）
+	[3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],  # row 10：南岸北缘
+	[3,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,3],  # row 11
+	[3,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,3],  # row 12
+	[3,0,0,1,0,0,0,0,0,2,0,0,0,0,0,0,0,0,2,0,0,0,0,1,0,0,0,3],  # row 13
+	[3,0,0,0,0,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,0,0,0,0,3],  # row 14
+	[3,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,3],  # row 15
+	[3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],  # row 16
+	[3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],  # row 17：玩家区
+	[3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],  # row 18：玩家出生区（南方）
+	[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],  # row 19：南方边界
 ]
 const TERRAIN_CH3: Array = [
-	[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],[3,0,0,5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],[3,0,5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],[3,0,0,5,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],[3,0,0,0,2,0,0,2,0,0,0,0,0,0,0,0,0,0,2,2,0,0,0,3],[3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,2,0,0,3],[3,0,0,0,0,0,0,0,0,0,5,5,0,0,0,0,0,2,0,0,2,0,0,3],[3,0,0,5,0,0,0,0,0,5,0,0,0,0,0,0,2,0,0,0,0,2,0,3],[3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,2,3],[3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],[3,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,2,0,3],[3,0,0,0,5,5,0,0,0,0,0,0,0,0,0,0,2,0,0,0,2,0,0,3],[3,0,2,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,3],[3,0,2,0,0,0,0,0,0,0,5,5,0,0,0,2,0,0,0,0,0,0,0,3],[3,0,0,0,0,0,0,0,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,3],[3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],[3,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+	# 24列×18行，南北纵向：欢乐塔在北（rows 0-3），奈德从南方出发（rows 14-16）
+	# 0=平原 1=森林 2=矮墙 3=峭壁 4=河流 5=沼泽 6=桥梁
+	[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],  # row 0：北方边界
+	[3,0,0,2,2,0,0,2,2,0,0,2,2,0,0,2,2,0,0,2,2,0,0,3],  # row 1：塔外壁
+	[3,0,2,0,0,0,2,0,0,0,2,0,0,0,2,0,0,0,2,0,0,2,0,3],  # row 2：塔内部（欢乐塔大厅）
+	[3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],  # row 3：欢乐塔大厅（可通行）
+	[3,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,3],  # row 4：塔外防御
+	[3,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,3],  # row 5
+	[3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],  # row 6：亚瑟·戴恩守卫区
+	[3,0,0,0,0,0,5,5,0,0,0,0,0,0,0,0,5,5,0,0,0,0,0,3],  # row 7：沼泽
+	[3,0,0,5,5,0,0,0,0,0,0,0,0,0,0,0,0,0,5,5,0,0,0,3],  # row 8
+	[3,0,0,0,0,0,0,0,2,0,0,0,0,0,0,2,0,0,0,0,0,0,0,3],  # row 9
+	[3,0,0,0,0,0,0,2,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,3],  # row 10
+	[3,0,5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5,0,3],  # row 11
+	[3,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,3],  # row 12
+	[3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],  # row 13
+	[3,0,0,0,0,0,0,5,0,0,0,0,0,0,0,0,5,0,0,0,0,0,0,3],  # row 14
+	[3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],  # row 15：奈德出发区
+	[3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],  # row 16
+	[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],  # row 17：南方边界
 ]
 
 # 地形图块坐标（Toen Medieval Strategy 16x16图集，7列x52行）
-# 0=平原 1=森林 2=矮墙 3=峭壁 4=河流 5=沼泽 6=桥梁
 const TILE_ATLAS_COORDS := {
-	0: Vector2i(0, 0),   # 平原：亮绿草地
-	1: Vector2i(6, 0),   # 森林：深绿树木（col6,row0 有树形纹理）
-	2: Vector2i(0, 2),   # 矮墙：浅石墙
-	3: Vector2i(1, 50),  # 峭壁：极暗色（不可通行）
-	4: Vector2i(0, 13),  # 河流：淡蓝水色
-	5: Vector2i(1, 19),   # 沼泽：灰绿色（沼泽草地，区别于棕褐色桥梁）
-	6: Vector2i(4, 2),    # 桥梁：浅蓝灰色（石桥跨河，区别于蓝色河流和绿色沼泽）
+	0: Vector2i(0, 0),   # 平原
+	1: Vector2i(6, 0),   # 森林
+	2: Vector2i(0, 2),   # 矮墙
+	3: Vector2i(1, 50),  # 峭壁（不可通行）
+	4: Vector2i(0, 13),  # 河流
+	5: Vector2i(1, 19),  # 沼泽
+	6: Vector2i(4, 2),   # 桥梁
 }
 
 # 第四章（铁王座·君临城）专用瓦片坐标
-# 道路用明亮草地（和建筑形成强烈对比，清晰可辨）
-# 红堡区域用护城河、城堡墙、石桥
 const TILE_ATLAS_COORDS_CH4 := {
-	0: Vector2i(0, 0),   # 道路/空地（亮绿草地，与建筑形成强对比）
-	1: Vector2i(6, 0),   # 花园/植被（深绿树木，区别于道路草地）
-	2: Vector2i(0, 2),   # 城市建筑/城堡墙体（棕褐）
-	3: Vector2i(1, 50),  # 峭壁（边界，不可通行）
-	4: Vector2i(0, 13),  # 护城河（淡蓝水色）
-	5: Vector2i(1, 19),  # 沼泽/废墟地
-	6: Vector2i(4, 2),   # 桥梁（穿越护城河，浅蓝灰色石桥）
+	0: Vector2i(0, 0),
+	1: Vector2i(6, 0),
+	2: Vector2i(0, 2),
+	3: Vector2i(1, 50),
+	4: Vector2i(0, 13),
+	5: Vector2i(1, 19),
+	6: Vector2i(4, 2),
 }
 
 # ── 章节专属状态 ──────────────────────────────────────────
@@ -82,11 +130,17 @@ var _rhaegar_death_done:   bool = false
 var _dayne_unit:           Unit = null
 var _tower_reached:        bool = false
 var _ned_unit:             Unit = null
-var _royal_commander:      Unit = null
-var _commander_killed:     bool = false
-var _jaime_triggered:      bool = false
-var _lannister_units:      Array = []
-var _terrain_cache_ch4:    Array = []
+var _royal_commander:          Unit = null
+var _commander_killed:         bool = false
+var _jaime_triggered:          bool = false
+var _lannister_units:          Array = []
+var _terrain_cache_ch4:        Array = []
+var _ch4_midway_hint_shown:    bool = false   # 王军被清除后的中途提示
+
+# ── 序章一专属状态 ────────────────────────────────────────
+var _tutorial_mgr:         TutorialManager = null
+var _ned_reached_victory:  bool = false
+var _ch1_enemies_spawned:  bool = false  # 敌人已生成标记（防止unit死亡后数组清空导致胜利检查失败）
 
 # ══════════════════════════════════════════════════════════
 func _ready() -> void:
@@ -97,54 +151,188 @@ func _ready() -> void:
 		_: _setup_ch1()
 
 # ══════════════════════════════════════════════════════════
-# 序章·一《风暴地》
+# 序章·一《风暴地》教学关（10×8）
 # ══════════════════════════════════════════════════════════
 func _setup_ch1() -> void:
-	map_width   = 22;  map_height = 16
-	victory_pos = Vector2i(17, 8)
+	map_width   = 10;  map_height = 8
+	victory_pos = Vector2i(5, 0)  # 中央北方胜利格（坐北朝南）
 	_apply_cam_limits()
 	super._ready()
 	_paint_from(TERRAIN_CH1)
-	_make_unit("ned_stark.json",        0, Vector2i(1, 7))
-	_make_unit("robert_baratheon.json", 0, Vector2i(1, 8))
-	_make_unit("howland_reed.json",     0, Vector2i(1, 9))
-	_make_unit("royal_soldier.json",    1, Vector2i(13, 4))
-	_make_unit("royal_soldier.json",    1, Vector2i(11, 6))
-	_make_unit("royal_soldier.json",    1, Vector2i(13, 7))
-	_make_unit("royal_soldier.json",    1, Vector2i(12, 11))
-	_make_unit("royal_soldier.json",    1, Vector2i(16, 9))
-	_make_unit("royal_soldier.json",    1, Vector2i(17, 7))
+	# 玩家单位：奈德 + 霍兰德（南方出发）
+	_ned_unit = _make_unit_r("ned_stark.json",    0, Vector2i(3, 6))
+	_make_unit("howland_reed.json", 0, Vector2i(5, 6))
+	# 敌方：3名皇家卫兵（北方中央分布，弱化版适合教学）
+	var e1 := _make_unit_r("royal_soldier.json", 1, Vector2i(2, 2))
+	var e2 := _make_unit_r("royal_soldier.json", 1, Vector2i(5, 1))
+	var e3 := _make_unit_r("royal_soldier.json", 1, Vector2i(7, 2))
+	_override_enemy_stats(e1); _override_enemy_stats(e2); _override_enemy_stats(e3)
+	_ch1_enemies_spawned = true  # 标记已生成，供胜利检查使用
 	_redraw_all()
+	_run_ch1_tutorial()
+
+func _override_enemy_stats(unit: Unit) -> void:
+	if unit == null: return
+	unit.data.hp     = 16
+	unit.data.max_hp = 16
+	unit.data.def    = 4
+	unit._refresh_hp_label()
+
+# ── 安全帧等待（场景切换后 get_tree() 为 null，必须guard）──
+# 返回 true=继续, false=节点已离开场景树，调用方应立即 return
+func _safe_frame() -> bool:
+	if not is_inside_tree(): return false
+	await get_tree().process_frame
+	return is_inside_tree()
+
+# ── 序章一教学流程 ────────────────────────────────────────
+func _run_ch1_tutorial() -> void:
 	await _play_dialogue("res://data/dialogues/prologue_1_pre.json")
-	battle_won.connect(_on_won_ch1, CONNECT_ONE_SHOT)
+	if not await _safe_frame(): return
+
+	_tutorial_mgr = TutorialManager.new()
+	add_child(_tutorial_mgr)
+
+	_tutorial_mgr.show_step("点击您的单位选中它。蓝色格子是移动范围。")
+	await _tutorial_mgr.wait_for_step(0)
+	if not is_inside_tree(): return
+
+	await _wait_for_unit_selected()
+	if not is_inside_tree(): return
+	_tutorial_mgr.show_step("将奈德移动到蓝色格子上。")
+	await _tutorial_mgr.wait_for_step(1)
+	if not is_inside_tree(): return
+
+	await _wait_for_unit_moved()
+	if not is_inside_tree(): return
+	_tutorial_mgr.show_step("红色格子里有敌人。点击红格发动攻击。")
+	await _tutorial_mgr.wait_for_step(2)
+	if not is_inside_tree(): return
+
+	await _wait_for_predict_opened()
+	if not is_inside_tree(): return
+	_tutorial_mgr.show_step("这是战斗预测。确认后发动攻击。")
+	await _tutorial_mgr.wait_for_step(3)
+	if not is_inside_tree(): return
+
+	await _wait_for_battle_resolved()
+	if not is_inside_tree(): return
+	_tutorial_mgr.show_step("干得好。点击【结束回合】，等待敌方行动。")
+	await _tutorial_mgr.wait_for_step(4)
+	if not is_inside_tree(): return
+
+	await _wait_for_turn_switched()
+	if not is_inside_tree(): return
+	_tutorial_mgr.show_step("⭐ 地图上的星形是胜利目标。引导单位到达那里。")
+
+	_check_ch1_victory_loop()
+
+# ── 教学等待辅助（全部加 is_inside_tree 守卫防止场景切换崩溃）──
+
+func _wait_for_unit_selected() -> void:
+	while player_state != PlayerState.UNIT_SELECTED:
+		if not await _safe_frame(): return
+
+func _wait_for_unit_moved() -> void:
+	while player_state == PlayerState.UNIT_SELECTED or player_state == PlayerState.IDLE:
+		if not await _safe_frame(): return
+		if player_state == PlayerState.UNIT_MOVED: break
+
+func _wait_for_predict_opened() -> void:
+	while player_state != PlayerState.PREDICT:
+		if not await _safe_frame(): return
+
+func _wait_for_battle_resolved() -> void:
+	while not _animating_battle:
+		if not await _safe_frame(): return
+	while _animating_battle:
+		if not await _safe_frame(): return
+
+func _wait_for_turn_switched() -> void:
+	var initial_turn := _turn_count
+	while _turn_count == initial_turn:
+		if not await _safe_frame(): return
+
+# ── 序章一胜利检测 ────────────────────────────────────────
+func _check_ch1_victory_loop() -> void:
+	while not _ned_reached_victory and not _battle_over:
+		if not await _safe_frame(): return
+		if is_instance_valid(_ned_unit) and not _ned_unit.is_dead() \
+				and _ned_unit.grid_pos == victory_pos:
+			_ned_reached_victory = true
+			_on_won_ch1()
+			return
 
 func _on_won_ch1() -> void:
+	if _battle_over: return   # 防止敌全灭 + 到达胜利格 双重触发
+	_battle_over = true
+	_hide_all_panels()
 	if _result_panel: _result_panel.visible = false
 	await _play_dialogue("res://data/dialogues/prologue_1_post.json")
+	if not is_inside_tree(): return
 	await _advance_to(2)
+
+# ── 序章一胜利条件覆盖 ───────────────────────────────────
+func _check_victory() -> void:
+	if _battle_over: return
+	match GameState.current_chapter:
+		1:
+			# 双胜利条件：敌全灭 OR 奈德到达胜利格（由_check_ch1_victory_loop处理）
+			# 注意：enemy_units在单位死亡后会erase，不能用is_empty()判断"曾生成过"
+			var alive_enemies := enemy_units.filter(func(u: Unit) -> bool: return not u.is_dead())
+			if alive_enemies.is_empty() and _ch1_enemies_spawned:
+				_on_won_ch1()
+		2:
+			var mortal := enemy_units.filter(func(u: Unit) -> bool:
+				return not u.is_dead() and u.data.min_hp == 0)
+			if mortal.is_empty() and not enemy_units.is_empty():
+				_end_battle(true)
+		3:
+			if _tower_reached: return
+			if is_instance_valid(_ned_unit) and not _ned_unit.is_dead() \
+					and _ned_unit.grid_pos == victory_pos:
+				_tower_reached = true
+				_trigger_ch3_tower()
+		4:
+			# 中途提示：普通王军全灭但指挥官仍在
+			if not _ch4_midway_hint_shown and not _commander_killed:
+				var royal_alive := enemy_units.filter(func(u: Unit) -> bool:
+					return not u.is_dead() and u.team == 1 \
+						and u != _royal_commander and not _lannister_units.has(u))
+				if royal_alive.is_empty() and is_instance_valid(_royal_commander) \
+						and not _royal_commander.is_dead():
+					_ch4_midway_hint_shown = true
+					_set_status("王军已溃散！★ 王军指挥官仍在红堡深处——击败他，兰军将归降！")
+			# 胜利：奈德抵达铁王座
+			if is_instance_valid(_ned_unit) and not _ned_unit.is_dead() \
+					and _ned_unit.grid_pos == victory_pos:
+				_trigger_ch4_throne()
+		_:
+			super._check_victory()
 
 # ══════════════════════════════════════════════════════════
 # 序章·二《三叉戟》
 # ══════════════════════════════════════════════════════════
 func _setup_ch2() -> void:
 	map_width   = 28;  map_height = 20
-	victory_pos = Vector2i(20, 9)
+	victory_pos = Vector2i(14, 1)  # 击败雷加自动触发，北方中央
 	_apply_cam_limits()
 	super._ready()
 	_paint_from(TERRAIN_CH2)
-	_make_unit("robert_baratheon.json",  0, Vector2i(2, 9))
-	# 奈德在极乐塔线，三叉戟不出场
-	_make_unit("rebel_lord.json",        0, Vector2i(2, 5))
-	_make_unit("rebel_lord.json",        0, Vector2i(2, 13))
-	_make_unit("rebel_lord.json",        0, Vector2i(3, 10))
-	_rhaegar_unit = _make_unit_r("rhaegar_targaryen.json", 1, Vector2i(20, 9))
-	_make_unit("barristan_selmy.json",    1, Vector2i(17, 5))
-	_make_unit("targaryen_soldier.json",  1, Vector2i(14, 4))
-	_make_unit("targaryen_soldier.json",  1, Vector2i(14, 8))
-	_make_unit("targaryen_soldier.json",  1, Vector2i(14, 14))
+	# 玩家方（南方，rows 17-18）
+	_make_unit("robert_baratheon.json",  0, Vector2i(14, 17))  # 中央南
+	_make_unit("rebel_lord.json",        0, Vector2i(7,  18))
+	_make_unit("rebel_lord.json",        0, Vector2i(21, 18))
+	_make_unit("rebel_lord.json",        0, Vector2i(14, 18))
+	# 敌方（北方，rows 2-6）
+	_rhaegar_unit = _make_unit_r("rhaegar_targaryen.json", 1, Vector2i(14, 3))  # 中央北
+	_make_unit("barristan_selmy.json",    1, Vector2i(20, 2))
+	_make_unit("targaryen_soldier.json",  1, Vector2i(7,  4))
+	_make_unit("targaryen_soldier.json",  1, Vector2i(10, 4))
 	_make_unit("targaryen_soldier.json",  1, Vector2i(18, 4))
-	_make_unit("targaryen_soldier.json",  1, Vector2i(22, 8))
-	_make_unit("targaryen_soldier.json",  1, Vector2i(18, 14))
+	_make_unit("targaryen_soldier.json",  1, Vector2i(10, 6))
+	_make_unit("targaryen_soldier.json",  1, Vector2i(18, 6))
+	_make_unit("targaryen_soldier.json",  1, Vector2i(22, 4))
 	_redraw_all()
 	await _play_dialogue("res://data/dialogues/ch2_pre.json")
 	battle_won.connect(_on_won_ch2, CONNECT_ONE_SHOT)
@@ -160,21 +348,25 @@ func _on_won_ch2() -> void:
 # ══════════════════════════════════════════════════════════
 func _setup_ch3() -> void:
 	map_width   = 24;  map_height = 18
-	victory_pos = Vector2i(19, 9)
+	victory_pos = Vector2i(12, 2)  # 欢乐塔内部（北方）
 	_apply_cam_limits()
 	super._ready()
 	_paint_from(TERRAIN_CH3)
-	_ned_unit  = _make_unit_r("ned_stark.json",       0, Vector2i(1, 9))
-	_make_unit("howland_reed.json",    0, Vector2i(1, 10))
-	_make_unit("northern_knight.json", 0, Vector2i(1, 8))
-	_make_unit("northern_knight.json", 0, Vector2i(2, 11))
-	_make_unit("northern_knight.json", 0, Vector2i(2, 7))
-	_dayne_unit = _make_unit_r("arthur_dayne.json", 1, Vector2i(17, 9))
-	_make_unit("dorne_knight.json", 1, Vector2i(13, 5))
-	_make_unit("dorne_knight.json", 1, Vector2i(13, 11))
-	_make_unit("dorne_knight.json", 1, Vector2i(15, 7))
-	_make_unit("dorne_knight.json", 1, Vector2i(15, 9))
-	_make_unit("dorne_knight.json", 1, Vector2i(15, 13))
+	# 玩家方（南方，rows 14-16）
+	_ned_unit  = _make_unit_r("ned_stark.json",       0, Vector2i(12, 15))  # 中央南
+	_make_unit("howland_reed.json",    0, Vector2i(11, 16))
+	_make_unit("northern_knight.json", 0, Vector2i(9,  15))
+	_make_unit("northern_knight.json", 0, Vector2i(15, 15))
+	_make_unit("northern_knight.json", 0, Vector2i(12, 16))
+	# 敌方（北方）
+	_dayne_unit = _make_unit_r("arthur_dayne.json", 1, Vector2i(12, 6))  # 守塔入口
+	if _dayne_unit != null:
+		_dayne_unit.data.move = 0   # 亚瑟·戴恩原地守卫
+	_make_unit("dorne_knight.json", 1, Vector2i(7,  8))
+	_make_unit("dorne_knight.json", 1, Vector2i(16, 8))
+	_make_unit("dorne_knight.json", 1, Vector2i(9,  10))
+	_make_unit("dorne_knight.json", 1, Vector2i(15, 10))
+	_make_unit("dorne_knight.json", 1, Vector2i(12, 9))
 	_redraw_all()
 	await _play_dialogue("res://data/dialogues/ch3_pre.json")
 
@@ -183,128 +375,153 @@ func _setup_ch3() -> void:
 # ══════════════════════════════════════════════════════════
 func _setup_ch4() -> void:
 	map_width   = 36;  map_height = 26
-	victory_pos = Vector2i(31, 12)
+	victory_pos = Vector2i(18, 2)  # 铁王座大厅中央（北方）
 	_terrain_cache_ch4 = _build_map_ch4()
 	_apply_cam_limits()
 	if is_instance_valid(_cam):
-		_cam.position = Vector2(320, 1440)  # 初始视角：玩家出发区（城市南部）
+		_cam.position = Vector2(1296, 1584)  # 指向玩家出生区（18*72, 22*72）
 	super._ready()
-	_paint_from_ch4(_terrain_cache_ch4)  # 使用君临城专属瓦片
-	# 玩家单位（部署选择）
+	_paint_from_ch4(_terrain_cache_ch4)
 	var selection := GameState.deploy_selection.duplicate()
 	if selection.is_empty():
 		selection = ["ned_stark.json", "northern_knight.json", "northern_knight.json"]
-	var spawns: Array = [Vector2i(2,20),Vector2i(3,20),Vector2i(4,20),
-		Vector2i(2,21),Vector2i(3,21),Vector2i(4,21)]
+	var spawns: Array = [
+		Vector2i(13,21), Vector2i(16,21), Vector2i(19,21),
+		Vector2i(13,22), Vector2i(16,22), Vector2i(19,22),
+	]
 	for i: int in min(selection.size(), spawns.size()):
 		var u := _make_unit_r(selection[i], 0, spawns[i])
 		if u != null and selection[i] == "ned_stark.json":
 			_ned_unit = u
-	# 兰尼斯特中立军（守卫防线，不主动移动）
-	for pos: Vector2i in [Vector2i(2,4), Vector2i(5,4), Vector2i(8,4), Vector2i(10,4)]:
-		var u := _make_unit_r("lannister_soldier.json", 1, pos)
+	# 兰尼斯特中立军（team=2，row 12，持观望态度——不攻击，不可被攻击）
+	for pos: Vector2i in [Vector2i(10,12), Vector2i(15,12), Vector2i(20,12), Vector2i(25,12)]:
+		var u := _make_unit_r("lannister_soldier.json", 2, pos)
 		if u != null:
-			u.data.move = 0
+			u.data.move   = 0    # 原地不动
+			u.data.min_hp = 1    # 不可击杀（名义上）
+			u.data.name   = "兰军（中立）"
 			_lannister_units.append(u)
-	# 外院王军（守卫外院和护城河）
-	_make_unit("royal_soldier.json", 1, Vector2i(15, 8))
-	_make_unit("royal_soldier.json", 1, Vector2i(15, 17))
-	_make_unit("royal_soldier.json", 1, Vector2i(17, 12))
-	# 红堡王军（守卫内院）
-	_make_unit("royal_soldier.json", 1, Vector2i(23, 9))
-	_make_unit("royal_soldier.json", 1, Vector2i(23, 16))
-	_make_unit("royal_soldier.json", 1, Vector2i(25, 12))
-	# 王军指挥官（铁王座入口）
-	_royal_commander = _make_unit_r("royal_guard_captain.json", 1, Vector2i(29, 12))
-	# 最后防线
-	_make_unit("royal_soldier.json", 1, Vector2i(27, 10))
-	_make_unit("royal_soldier.json", 1, Vector2i(27, 15))
+
+	# 王军（君临城街道，rows 14-18）
+	_make_unit("royal_soldier.json", 1, Vector2i(10, 15))
+	_make_unit("royal_soldier.json", 1, Vector2i(18, 15))
+	_make_unit("royal_soldier.json", 1, Vector2i(26, 15))
+	_make_unit("royal_soldier.json", 1, Vector2i(10, 17))
+	_make_unit("royal_soldier.json", 1, Vector2i(26, 17))
+	_make_unit("royal_soldier.json", 1, Vector2i(18, 17))
+	_make_unit("royal_soldier.json", 1, Vector2i(18, 14))
+	_make_unit("royal_soldier.json", 1, Vector2i(18, 18))
+
+	# 王军指挥官（红堡外院，关键目标——他死后兰军归降）
+	_royal_commander = _make_unit_r("royal_guard_captain.json", 1, Vector2i(18, 10))
+	if _royal_commander != null:
+		_royal_commander.data.name = "★ 王军指挥官"   # 加星号标记是关键目标
+
 	_redraw_all()
 	await _play_dialogue("res://data/dialogues/ch4_pre.json")
+	# 开场提示：说明兰军是中立，指挥官是目标
+	_set_status("兰尼斯特军（金色）持观望态度——击败★王军指挥官方可使其归降！")
 
 func _build_map_ch4() -> Array:
 	const W := 36; const H := 26
 	var m: Array = []
 	for _y: int in H:
 		var row: Array = []; for _x: int in W: row.append(0); m.append(row)
-
-	# === 边界峭壁 ===
-	for x: int in W: m[0][x] = 3; m[H-1][x] = 3
-	for y: int in H: m[y][0] = 3; m[y][W-1] = 3
-
-	# === 区域一：君临城街道 (cols 1-11) ===
-	# 少量标志性建筑，确保街道宽阔（上下各2行建筑，中间全通）
-	# 上方建筑区（rows 1-3）
-	for bx: int in [1, 5, 9]:
-		for dy: int in 2:
-			for dx: int in 2:
-				if bx + dx < 11: m[1+dy][bx+dx] = 2
-	# 下方建筑区（rows 22-24）
-	for bx: int in [1, 5, 9]:
-		for dy: int in 2:
-			for dx: int in 2:
-				if bx + dx < 11: m[22+dy][bx+dx] = 2
-	# 中间区域只在两侧放少量建筑（创造街道感）
-	for by: int in [8, 14, 18]:
-		m[by][1] = 2; m[by][2] = 2  # 左侧建筑
-		m[by][9] = 2; m[by][10] = 2  # 右侧建筑
-
-	# === 区域二：兰尼斯特防线 (row 5, cols 1-11) ===
-	# 城中横向防线，玩家需从下方绕过或突破
-	for x: int in range(1, 12): m[5][x] = 2
-	m[5][4] = 0; m[5][8] = 0  # 两处通道（避开左右两侧建筑）
-
-	# === 区域三：城外主城墙 (cols 12-13) ===
-	for y: int in range(1, H-1): m[y][12] = 2; m[y][13] = 2
-	for y: int in range(10, 16): m[y][12] = 0; m[y][13] = 0  # 主城门（宽大）
-	# 上下两处辅助开口
-	for y: int in [2, 3]: m[y][12] = 0
-	for y: int in [22, 23]: m[y][12] = 0
-
-	# === 区域四：外院 + 花园 (cols 14-18) ===
-	# 中央区域全部开放，上下两侧植被
-	for y: int in range(1, 6):
-		for x: int in range(14, 19): m[y][x] = 1  # 上方深绿植被
-	for y: int in range(20, 25):
-		for x: int in range(14, 19): m[y][x] = 1  # 下方深绿植被
-	# 中央大道完全开放（rows 6-19）
-
-	# === 区域五：护城河 (cols 19-20) ===
-	for y: int in range(1, H-1): m[y][19] = 4; m[y][20] = 4
-	# 顶底护城河延伸（环绕红堡）
-	for x: int in range(19, 34): m[1][x] = 4; m[H-2][x] = 4
-	# 吊桥（唯一通道，行10-15）
-	for y: int in range(10, 16): m[y][19] = 6; m[y][20] = 6
-
-	# === 区域六：红堡外墙 (cols 21-22) ===
-	for y: int in range(2, H-2): m[y][21] = 2; m[y][22] = 2
-	for y: int in range(10, 16): m[y][21] = 0; m[y][22] = 0  # 城堡正门
-	# 顶底城垛
-	for x: int in range(21, 35): m[2][x] = 2; m[H-3][x] = 2
-
-	# === 区域七：红堡内院 (cols 23-26) ===
-	# 内院两侧走廊墙（中央开放区域）
-	for y: int in range(3, 10): m[y][23] = 2; m[y][26] = 2
-	for y: int in range(17, H-3): m[y][23] = 2; m[y][26] = 2
-
-	# === 区域八：铁王座内门 (cols 27-28) ===
-	for y: int in range(3, H-3): m[y][27] = 2; m[y][28] = 2
-	for y: int in range(10, 16): m[y][27] = 0; m[y][28] = 0  # 内殿之门
-	# 侧门（增加战术选项）
-	for y: int in [4, 5]: m[y][27] = 0
-	for y: int in [20, 21]: m[y][27] = 0
-
-	# === 区域九：铁王座大厅 (cols 29-34) ===
-	for y: int in range(4, H-4): m[y][29] = 2; m[y][34] = 2
-	for x: int in range(29, 35): m[4][x] = 2; m[H-5][x] = 2
-	# 王座中央走廊（行10-15开放）
-	for y: int in range(10, 16):
-		for x: int in range(29, 35): m[y][x] = 0
-	# 两侧隔断墙（形成庄严大厅感）
-	for y: int in range(5, 10): m[y][31] = 2; m[y][32] = 2
-	for y: int in range(16, H-5): m[y][31] = 2; m[y][32] = 2
-
+	_ch4_paint(m, W, H)
 	return m
+
+# ────────────────────────────────────────────────────────────
+# 序章四（铁王座·君临城）地形绘制——南北纵向重设计
+# 布局（从南 row 25 到北 row 0）：
+#   row 0：北方边界峭壁
+#   rows 1-3：铁王座大厅（胜利格 col 18, row 2）
+#   row 4：大厅南墙（三处入口：cols 7-10, 15-21, 25-28）
+#   rows 5-7：红堡内院（花园+石板）
+#   row 8：红堡护城河（东西向水域，三座桥）
+#   rows 9-10：红堡外院
+#   row 11：红堡外墙（东西向，三处城门）
+#   row 12：兰尼斯特中立区（单位站在此）
+#   row 13：城市内城墙（东西向，三处城门）
+#   rows 14-18：君临城街道（建筑群）
+#   row 19：黑水湾（东西向水域，两处桥梁）
+#   rows 20-23：城南区域（玩家进入区）
+#   rows 24-25：南方边界峭壁
+# ────────────────────────────────────────────────────────────
+func _ch4_paint(m: Array, W: int, H: int) -> void:
+	# ── 边界峭壁 ──────────────────────────────────────────
+	for x: int in W:
+		m[0][x] = 3; m[H-1][x] = 3; m[H-2][x] = 3
+	for y: int in H:
+		m[y][0] = 3; m[y][1] = 3; m[y][W-1] = 3; m[y][W-2] = 3
+
+	# ── 铁王座大厅（rows 1-4，宏伟大殿）───────────────────
+	# 北壁（row 1）+ 东西侧壁
+	for x: int in range(4, W-4): m[1][x] = 2
+	for y: int in range(1, 5): m[y][4] = 2; m[y][W-5] = 2
+	# 南壁（row 4）三处入口（对齐三座桥）
+	for x: int in range(4, W-4): m[4][x] = 2
+	for x: int in range(6, 12):  m[4][x] = 0   # 西入口（对齐西桥）
+	for x: int in range(13, 24): m[4][x] = 0   # 中央大门（宽敞，皇家仪式感）
+	for x: int in range(25, 31): m[4][x] = 0   # 东入口（对齐东桥）
+	# 殿内侧廊列柱（紧贴东西墙，不堵中央通道）
+	for y: int in range(2, 4):
+		m[y][6]    = 2; m[y][7]    = 2   # 西廊柱
+		m[y][W-7]  = 2; m[y][W-8]  = 2   # 东廊柱
+	# 铁王座格 (col 18, row 2) 周围完全开放，象征权力中枢
+
+	# ── 红堡内院花园（rows 5-7）──────────────────────────
+	for y: int in range(5, 8):
+		for x: int in range(6, 14):  m[y][x] = 1   # 西花园
+		for x: int in range(22, 30): m[y][x] = 1   # 东花园
+
+	# ── 护城河（row 8，连续宽桥，无间隙）──────────────────
+	# 水域仅在两侧边缘（cols 2-4, 31-33），中央完全桥接
+	for x: int in range(2, W-2): m[8][x] = 4   # 全行水域
+	for x: int in range(5, 31):  m[8][x] = 6   # 宽桥（cols 5-30，无间隙完全可过）
+
+	# ── 红堡外院（rows 9-10）角落塔楼 ─────────────────────
+	m[9][6]  = 2; m[9][29]  = 2
+	m[10][6] = 2; m[10][29] = 2
+
+	# ── 红堡外墙（row 11，中央开阔大门，两侧实墙）──────────
+	for x: int in range(2, W-2): m[11][x] = 2
+	for x: int in range(5, 31):  m[11][x] = 0   # 大门（cols 5-30，与桥对齐）
+
+	# row 12：兰军中立区（空地，单位由_setup_ch4放置）
+
+	# ── 城市内城墙（row 13，中央开阔龙门，两侧实墙）────────
+	for x: int in range(2, W-2): m[13][x] = 2
+	for x: int in range(5, 31):  m[13][x] = 0   # 龙门（cols 5-30，直通无阻）
+
+	# ── 君临城街道（rows 14-18）建筑群 ───────────────────
+	# 建筑只放在两侧边缘，中央街道完全开阔供AI自由移动
+	# 西侧边缘建筑（cols 2-7）
+	for by: int in [14, 16]:
+		for bx: int in [2, 4]:
+			for dy: int in 2:
+				for dx: int in 2:
+					if bx+dx <= 7: m[by+dy][bx+dx] = 2
+	# 东侧边缘建筑（cols 28-33）
+	for by: int in [14, 16]:
+		for bx: int in [28, 31]:
+			for dy: int in 2:
+				for dx: int in 2:
+					if bx+dx < W-2: m[by+dy][bx+dx] = 2
+	# Flea Bottom 沼泽（西南角，不挡路）
+	for y: int in range(17, 20):
+		for x: int in range(2, 6): m[y][x] = 5
+
+	# ── 黑水湾（row 19，连续宽桥，无间隙）──────────────────
+	for x: int in range(2, W-2): m[19][x] = 4   # 全行水域
+	for x: int in range(5, 31):  m[19][x] = 6   # 宽桥（cols 5-30，完全无水域间隔）
+
+	# ── 城南（rows 20-22）Sept花园（西北）────────────────
+	for y: int in range(20, 23):
+		for x: int in range(3, 8): m[y][x] = 1
+	# 南区建筑（散布，远离玩家出生格）
+	m[21][W-5] = 2; m[21][W-4] = 2
+	m[22][W-5] = 2
+	# rows 20-22 cols 8-28 保持 default 0（道路），供玩家出生
 
 # ══════════════════════════════════════════════════════════
 # 地形系统覆盖
@@ -326,33 +543,6 @@ func is_passable(pos: Vector2i) -> bool:
 	if pos.x < 0 or pos.x >= map_width or pos.y < 0 or pos.y >= map_height: return false
 	var t: int = _get_terrain_type(pos)
 	return t != TERRAIN_CLIFF and t != TERRAIN_RIVER
-
-# ══════════════════════════════════════════════════════════
-# 胜利条件覆盖（Ch2/3/4 使用非标准条件）
-# ══════════════════════════════════════════════════════════
-func _check_victory() -> void:
-	if _battle_over: return
-	match GameState.current_chapter:
-		2:
-			# 击败所有可击杀敌军（排除无敌单位 min_hp>0）
-			var mortal := enemy_units.filter(func(u: Unit) -> bool:
-				return not u.is_dead() and u.data.min_hp == 0)
-			if mortal.is_empty() and not enemy_units.is_empty():
-				_end_battle(true)
-		3:
-			# 奈德到达塔门
-			if _tower_reached: return
-			if is_instance_valid(_ned_unit) and not _ned_unit.is_dead() \
-					and _ned_unit.grid_pos == victory_pos:
-				_tower_reached = true
-				_trigger_ch3_tower()
-		4:
-			# 奈德到达铁王座
-			if is_instance_valid(_ned_unit) and not _ned_unit.is_dead() \
-					and _ned_unit.grid_pos == victory_pos:
-				_trigger_ch4_throne()
-		_:
-			super._check_victory()
 
 # ══════════════════════════════════════════════════════════
 # 死亡拦截覆盖（Ch2 雷加演出；Ch4 指挥官触发兰军归降）
@@ -377,14 +567,12 @@ func _on_unit_died(unit: Unit) -> void:
 				return
 	super._on_unit_died(unit)
 
-# ── Ch2：雷加之死演出 ─────────────────────────────────────
 func _trigger_ch2_rhaegar() -> void:
 	_battle_over = true
 	await _play_cutscene("res://data/cutscenes/ch2_rhaegar_fall.json")
 	_battle_over = false
 	_check_victory()
 
-# ── Ch3：塔楼序列 ────────────────────────────────────────
 func _trigger_ch3_tower() -> void:
 	_battle_over = true
 	await _play_cutscene("res://data/cutscenes/ch3_dayne_trigger.json")
@@ -394,33 +582,60 @@ func _trigger_ch3_tower() -> void:
 	await _play_dialogue("res://data/dialogues/ch3_post.json")
 	await _advance_to(4)
 
-# ── Ch4：兰军归降 ────────────────────────────────────────
 func _trigger_ch4_lannister_join() -> void:
-	await get_tree().create_timer(0.5).timeout
+	await get_tree().create_timer(0.8).timeout
+	if not is_inside_tree() or _battle_over: return
+
+	# 播放归降对话
+	var join_dialogue := "res://data/dialogues/ch4_lannister_join.json"
+	if FileAccess.file_exists(join_dialogue):
+		await _play_dialogue(join_dialogue)
+	if not is_inside_tree() or _battle_over: return
+
+	# 兰军单位从地图上消失
 	for u: Unit in _lannister_units.duplicate():
 		if is_instance_valid(u) and not u.is_dead():
-			enemy_units.erase(u); u.queue_free()
+			enemy_units.erase(u)
+			u.queue_free()
 	_lannister_units.clear()
 	_redraw_all()
-	_set_status("兰尼斯特军归降——道路畅通")
 
-# ── Ch4：铁王座到达（詹姆过场+结局）────────────────────
+	# ── 关键：兰军消失后，所有战斗目标已完成，直接触发结局 ──
+	# （等待玩家手动走到铁王座是反高潮设计，此处直接流向叙事结局）
+	if is_instance_valid(_ned_unit) and not _ned_unit.is_dead():
+		_set_status("兰尼斯特军已归降——道路已通！")
+		await get_tree().create_timer(1.0).timeout
+		if not is_inside_tree() or _battle_over: return
+		_trigger_ch4_throne()
+	else:
+		# 奈德阵亡的边缘情况（理论上不应发生）
+		_set_status("兰尼斯特军已归降，然而……")
+
 func _trigger_ch4_throne() -> void:
+	if _battle_over: return   # 防止重复触发
 	_battle_over = true
 	_hide_all_panels()
-	await _play_dialogue("res://data/dialogues/ch4_jaime.json")
-	await _play_cutscene("res://data/cutscenes/ch4_jaime_scene.json")
+	if _end_turn_btn: _end_turn_btn.disabled = true
+	# 詹姆对话：仅在尚未通过 (25,12) 触发过时才播放，避免重复
+	if not _jaime_triggered:
+		_jaime_triggered = true
+		await _play_dialogue("res://data/dialogues/ch4_jaime.json")
+		if not is_inside_tree(): return
+		await _play_cutscene("res://data/cutscenes/ch4_jaime_scene.json")
+		if not is_inside_tree(): return
+	# 最终结局序列
 	await _play_dialogue("res://data/dialogues/ch4_post.json")
+	if not is_inside_tree(): return
 	await _play_cutscene("res://data/cutscenes/ch4_ending.json")
-	await _advance_to(0)  # 序章结束
+	if not is_inside_tree(): return
+	await _advance_to(0)
 
-# ── Ch4：_process 检测奈德接近红堡 ─────────────────────
 func _process(delta: float) -> void:
 	super._process(delta)
 	if GameState.current_chapter == 4 and not _jaime_triggered \
 			and not _battle_over:
 		if is_instance_valid(_ned_unit) and not _ned_unit.is_dead() \
-				and _ned_unit.grid_pos == Vector2i(25, 12):
+				and _ned_unit.grid_pos == Vector2i(18, 9):  # 红堡外院詹姆触发格
 			_jaime_triggered = true
 			set_process_input(false)
 			await _play_dialogue("res://data/dialogues/ch4_jaime.json")
@@ -436,7 +651,6 @@ func _advance_to(next_chapter: int) -> void:
 	if ResourceLoader.exists(SAVE_SYS_PATH):
 		load(SAVE_SYS_PATH).save_chapter_complete(current)
 	if next_chapter <= 0:
-		# 序章全部完成，返回开始界面
 		GameState.current_chapter = 1
 		get_tree().change_scene_to_file("res://scenes/Opening.tscn")
 		return
@@ -472,7 +686,6 @@ func _paint_from(terrain: Array) -> void:
 		for x: int in row.size():
 			tilemap.set_cell(Vector2i(x, y), 0, TILE_ATLAS_COORDS.get(int(row[x]), Vector2i(0,0)))
 
-# 第四章专用绘图：使用君临城专属瓦片坐标
 func _paint_from_ch4(terrain: Array) -> void:
 	var tilemap: TileMapLayer = get_node_or_null("TileLayer/TileMapLayer") as TileMapLayer
 	if tilemap == null: return

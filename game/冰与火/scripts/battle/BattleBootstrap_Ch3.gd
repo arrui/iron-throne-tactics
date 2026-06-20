@@ -18,6 +18,7 @@ const UNIT_SPRITE_MAP := {
 	"arthur_dayne.json":    "ned_stark_map.png",
 	"dorne_knight.json":    "royal_soldier_map.png",
 	"northern_knight.json": "howland_reed_map.png",
+	"royal_soldier.json":   "royal_soldier_map.png",
 }
 
 # 0=平原 1=植被/绿洲 2=礁岩（矮墙） 3=峭壁/不可通行 5=沙丘（沼泽机制）
@@ -57,6 +58,10 @@ var _dialogue_sys:   DialogueSystem = null
 var _cutscene_node:  CutscenePlayer = null
 var _dayne_unit:     Unit = null
 var _tower_reached:  bool = false
+
+# 背叛系统：黄金披风城卫（初始友军，第5回合变敌）
+var _golden_cloak_units: Array = []
+var _betrayal_triggered: bool  = false
 
 func _ready() -> void:
 	map_width   = 24
@@ -163,6 +168,12 @@ func _spawn_player_units() -> void:
 	_make_unit("northern_knight.json", 0, Vector2i(1, 8))
 	_make_unit("northern_knight.json", 0, Vector2i(2, 11))
 	_make_unit("northern_knight.json", 0, Vector2i(2, 7))
+	# 黄金披风城卫（初始友军，第5回合背叛）
+	var cloak_positions := [Vector2i(8, 5), Vector2i(10, 5), Vector2i(8, 8), Vector2i(10, 8)]
+	for pos: Vector2i in cloak_positions:
+		var u := _make_unit_ret("royal_soldier.json", 0, pos)
+		if u != null:
+			_golden_cloak_units.append(u)
 
 func _spawn_enemy_units() -> void:
 	var dayne := _make_unit_ret("arthur_dayne.json", 1, Vector2i(17, 9))
@@ -196,3 +207,38 @@ func _make_unit_ret(filename: String, team: int, pos: Vector2i) -> Unit:
 			sprite.region_rect = Rect2(0, 0, 32, 32)
 	add_unit(unit)
 	return unit as Unit
+
+# ── 背叛系统：第5回合城卫军倒戈 ────────────────────────────
+func _start_player_turn() -> void:
+	super._start_player_turn()
+	if _turn_count == 5 and not _betrayal_triggered:
+		_betrayal_triggered = true
+		await _trigger_betrayal()
+
+func _trigger_betrayal() -> void:
+	# 1. 播放背叛对话
+	await _play_dialogue("res://data/dialogues/ch3_betrayal.json")
+
+	# 2. 状态提示
+	_set_status("⚠ 背叛！城卫军倒戈——重新评估战场！")
+
+	# 3. 闪烁动画后变为敌方
+	for u: Unit in _golden_cloak_units.duplicate():
+		if not is_instance_valid(u) or u.is_dead(): continue
+		var sprite := u.get_node_or_null("Sprite") as Sprite2D
+		if sprite:
+			for _i: int in 3:
+				sprite.modulate = Color(1, 0.2, 0.2, 1)
+				await get_tree().create_timer(0.2).timeout
+				sprite.modulate = Color(1, 1, 1, 1)
+				await get_tree().create_timer(0.2).timeout
+		# 从友军转为敌方
+		player_units.erase(u)
+		u.team = 1
+		enemy_units.append(u)
+		if sprite:
+			sprite.modulate = Color(1, 0.4, 0.4, 1)
+
+	_golden_cloak_units.clear()
+	_update_danger_zone()
+	_redraw_all()

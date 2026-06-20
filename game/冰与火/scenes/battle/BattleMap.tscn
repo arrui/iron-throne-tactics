@@ -421,7 +421,7 @@ offset_right = 600.0
 offset_bottom = 82.0
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 theme_override_font_sizes/font_size = 11
-text = "方向键滚动地图 | 右键/ESC取消 | D键危险区"
+text = "方向键滚动地图 | 右键/ESC取消 | D危险区 | 点击敌方查看安全距离 | A自动托管 | M小地图"
 
 [node name="EndTurnBtn" type="Button" parent="UI"]
 anchor_left = 1.0
