@@ -1,0 +1,25 @@
+name: Godot Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Godot
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget unzip
+          wget -O /tmp/godot.zip https://github.com/godotengine/godot/releases/download/4.6-stable/Godot_v4.6-stable_linux.x86_64.zip
+          unzip /tmp/godot.zip -d /tmp/godot
+          sudo mv /tmp/godot/Godot_v4.6-stable_linux.x86_64 /usr/local/bin/godot
+          sudo chmod +x /usr/local/bin/godot
+          godot --version
+
+      - name: Run headless test suite
+        run: ./scripts/test.sh

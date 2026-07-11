@@ -142,13 +142,12 @@ func _fill_side(unit: Unit, icon: Sprite2D, name_lbl: Label,
 		var loaded_portrait := false
 		if unit.has_meta("portrait_path"):
 			var path: String = unit.get_meta("portrait_path") as String
-			if ResourceLoader.exists(path):
-				var tex := load(path) as Texture2D
-				if tex != null:
-					icon.texture        = tex
-					icon.region_enabled = true
-					icon.region_rect    = Rect2(0, 0, 48, 48)
-					loaded_portrait     = true
+			var tex := _load_portrait_texture(path)
+			if tex != null:
+				icon.texture        = tex
+				icon.region_enabled = true
+				icon.region_rect    = Rect2(0, 0, tex.get_width(), tex.get_height())
+				loaded_portrait     = true
 		if not loaded_portrait:
 			var sprite := unit.get_node_or_null("Sprite") as Sprite2D
 			if sprite and sprite.texture:
@@ -163,6 +162,18 @@ func _fill_side(unit: Unit, icon: Sprite2D, name_lbl: Label,
 		hp_bar.value     = float(unit.data.hp)
 	if hp_lbl:
 		hp_lbl.text = "%d/%d" % [unit.data.hp, max_hp]
+
+func _load_portrait_texture(path: String) -> Texture2D:
+	if ResourceLoader.exists(path):
+		var tex := load(path) as Texture2D
+		if tex != null:
+			return tex
+	if not FileAccess.file_exists(path):
+		return null
+	var img := Image.load_from_file(ProjectSettings.globalize_path(path))
+	if img == null or img.is_empty():
+		return null
+	return ImageTexture.create_from_image(img)
 
 # ── 滑入/滑出面板 ────────────────────────────────────────
 func _slide_panel(target_y: float) -> void:

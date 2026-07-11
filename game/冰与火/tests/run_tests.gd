@@ -19,39 +19,53 @@ const BattleCalculatorClass := preload("res://scripts/battle/BattleCalculator.gd
 const UnitDataClass          := preload("res://scripts/data/UnitData.gd")
 const EnemyAIClass           := preload("res://scripts/battle/EnemyAI.gd")
 const BootstrapClass         := preload("res://scripts/battle/BattleBootstrap.gd")
+const TestBootstrapClass     := preload("res://tests/helpers/TestBattleBootstrap.gd")
+const TestOpeningClass       := preload("res://tests/helpers/TestOpening.gd")
+const TestDeployScreenClass  := preload("res://tests/helpers/TestDeployScreen.gd")
 
 var _pass_count: int = 0
 var _fail_count: int = 0
 var _current_suite: String = ""
 
+
 # ── 入口 ─────────────────────────────────────────────────
 func _init() -> void:
+	call_deferred("_run_all_tests")
+
+func _run_all_tests() -> void:
 	print("\n╔══════════════════════════════════════╗")
 	print("║  铁王座战记 — 自动化测试套件           ║")
 	print("╚══════════════════════════════════════╝\n")
 
-	_run_suite("UnitData 数据加载", _test_unit_data)
-	_run_suite("BattleCalculator 战斗公式", _test_battle_calculator)
-	_run_suite("BattleCalculator 边界值", _test_calculator_edge_cases)
-	_run_suite("地形系统加成", _test_terrain_bonus)
-	_run_suite("地形移动消耗", _test_terrain_move_cost)
-	_run_suite("地图完整性（22×16）", _test_map_integrity)
-	_run_suite("EnemyAI 距离计算", _test_enemy_ai_distance)
-	_run_suite("对话 JSON 文件加载", _test_dialogue_json)
-	_run_suite("过场动画 JSON 加载", _test_cutscene_json)
-	_run_suite("战斗预测全流程", _test_battle_predict_full)
-	_run_suite("Unit 状态机（含 undo_move）", _test_unit_state_machine)
-	_run_suite("路径查找 Dijkstra 逻辑", _test_pathfinding_logic)
-	_run_suite("武器耐久系统", _test_weapon_durability)
-	_run_suite("道具系统", _test_item_system)
-	_run_suite("武器三角加成", _test_weapon_triangle)
-	_run_suite("Boss 无敌底板（min_hp）", _test_boss_min_hp)
-	_run_suite("SaveSystem 存档读档", _test_save_system)
-	_run_suite("守卫型Boss数据字段", _test_guard_boss_fields)
-	_run_suite("战斗动画freed节点防护", _test_animation_freed_guard)
-	_run_suite("回合结束防重入", _test_turn_ending_guard)
-	_run_suite("地形图块坐标合法性", _test_tile_atlas_coords)
-	_run_suite("字体初始化方法存在", _test_font_setup)
+	await _run_suite("UnitData 数据加载", _test_unit_data)
+	await _run_suite("BattleCalculator 战斗公式", _test_battle_calculator)
+	await _run_suite("BattleCalculator 边界值", _test_calculator_edge_cases)
+	await _run_suite("地形系统加成", _test_terrain_bonus)
+	await _run_suite("地形移动消耗", _test_terrain_move_cost)
+	await _run_suite("地图完整性（按章节配置）", _test_map_integrity)
+	await _run_suite("Ch4 君临城地图重设计回归", _test_ch4_map_redesign)
+	await _run_suite("EnemyAI 距离计算", _test_enemy_ai_distance)
+	await _run_suite("对话 JSON 文件加载", _test_dialogue_json)
+	await _run_suite("过场动画 JSON 加载", _test_cutscene_json)
+	await _run_suite("战斗预测全流程", _test_battle_predict_full)
+	await _run_suite("Unit 状态机（含 undo_move）", _test_unit_state_machine)
+	await _run_suite("路径查找 Dijkstra 逻辑", _test_pathfinding_logic)
+	await _run_suite("武器耐久系统", _test_weapon_durability)
+	await _run_suite("道具系统", _test_item_system)
+	await _run_suite("武器三角加成", _test_weapon_triangle)
+	await _run_suite("Boss 无敌底板（min_hp）", _test_boss_min_hp)
+	await _run_suite("SaveSystem 存档读档", _test_save_system)
+	await _run_suite("守卫型Boss数据字段", _test_guard_boss_fields)
+	await _run_suite("战斗动画freed节点防护", _test_animation_freed_guard)
+	await _run_suite("回合结束防重入", _test_turn_ending_guard)
+	await _run_suite("地形图块坐标合法性", _test_tile_atlas_coords)
+	await _run_suite("地图视觉风格统一回归", _test_visual_style_unification)
+	await _run_suite("人物立绘资源完整性", _test_portrait_assets)
+	await _run_suite("对话立绘映射完整性", _test_dialogue_portrait_mapping)
+	await _run_suite("字体初始化方法存在", _test_font_setup)
+	await _run_suite("关键场景与脚本冒烟加载", _test_scene_and_script_smoke)
+	await _run_suite("章节事件流程回归", _test_chapter_event_flow)
+	await _run_suite("Ch1 / 存档 / 部署行为回归", _test_ch1_save_and_deploy_flow)
 
 	print("\n╔══════════════════════════════════════╗")
 	var status: String = "全部通过 ✓" if _fail_count == 0 else ("失败 %d 项 ✗" % _fail_count)
@@ -63,7 +77,7 @@ func _init() -> void:
 func _run_suite(name: String, fn: Callable) -> void:
 	_current_suite = name
 	print("▶ %s" % name)
-	fn.call()
+	await fn.call()
 	print("")
 
 func _assert(condition: bool, msg: String) -> void:
@@ -317,87 +331,159 @@ func _test_terrain_move_cost() -> void:
 	_assert_eq(remaining_forest_two, 0, "移动力4经过两格森林恰好用完")
 
 # ══════════════════════════════════════════════════════════
-# 测试套件 6：地图完整性（22×16）
+# 测试套件 6：地图完整性（按当前四章配置）
 # ══════════════════════════════════════════════════════════
 func _test_map_integrity() -> void:
-	var terrain_map: Array = BootstrapClass.TERRAIN_CH1
+	var ch1: Array = BootstrapClass.TERRAIN_CH1
+	var ch2: Array = BootstrapClass.TERRAIN_CH2
+	var ch3: Array = BootstrapClass.TERRAIN_CH3
 
-	# 尺寸验证
-	_assert_eq(terrain_map.size(), 16, "地图行数=16")
-	_assert_eq(terrain_map[0].size(), 22, "地图列数=22")
+	# ── Ch1：教学关（10×8）──────────────────────────────
+	_assert_eq(ch1.size(), 8, "Ch1 地图行数=8")
+	_assert_eq(ch1[0].size(), 10, "Ch1 地图列数=10")
+	var ch1_border_ok := true
+	for x: int in range(ch1[0].size()):
+		if ch1[7][x] != 3:
+			ch1_border_ok = false
+	for y: int in range(ch1.size()):
+		if ch1[y][0] != 3 or ch1[y][9] != 3:
+			ch1_border_ok = false
+	_assert(ch1_border_ok, "Ch1 底边与左右边界为峭壁（顶部中央出口除外）")
+	_assert_eq(int(ch1[0][5]), 0, "Ch1 胜利格(5,0)可通行")
+	for pos: Vector2i in [Vector2i(3,6), Vector2i(5,6), Vector2i(2,2), Vector2i(5,1), Vector2i(7,2)]:
+		var t1: int = int(ch1[pos.y][pos.x])
+		_assert(t1 != 3 and t1 != 4, "Ch1 关键出生点(%d,%d)可通行（类型=%d）" % [pos.x, pos.y, t1])
+	var ch1_has_wall := false
+	for row: Array in ch1:
+		for cell: Variant in row:
+			if int(cell) == 2:
+				ch1_has_wall = true
+	_assert(ch1_has_wall, "Ch1 存在矮墙教学地形")
 
-	# 全部边界为峭壁（3）
-	var border_ok := true
-	for x: int in 22:
-		if terrain_map[0][x] != 3 or terrain_map[15][x] != 3:
-			border_ok = false
-	for y: int in 16:
-		if terrain_map[y][0] != 3 or terrain_map[y][21] != 3:
-			border_ok = false
-	_assert(border_ok, "所有边界格为峭壁（3）")
+	# ── Ch2：三叉戟（28×20）──────────────────────────────
+	_assert_eq(ch2.size(), 20, "Ch2 地图行数=20")
+	_assert_eq(ch2[0].size(), 28, "Ch2 地图列数=28")
+	var ch2_border_ok := true
+	for x: int in range(ch2[0].size()):
+		if ch2[0][x] != 3 or ch2[19][x] != 3:
+			ch2_border_ok = false
+	for y: int in range(ch2.size()):
+		if ch2[y][0] != 3 or ch2[y][27] != 3:
+			ch2_border_ok = false
+	_assert(ch2_border_ok, "Ch2 四周边界为峭壁")
+	for bridge_row: int in [8, 9]:
+		for bridge_x: int in [7, 8, 14, 15, 21, 22]:
+			_assert_eq(int(ch2[bridge_row][bridge_x]), 6,
+				"Ch2 三桥结构 (%d,%d) 为桥梁" % [bridge_x, bridge_row])
+	for y: int in [8, 9]:
+		for x: int in range(1, 27):
+			var t2: int = int(ch2[y][x])
+			_assert(t2 == 4 or t2 == 6, "Ch2 河道行%d列%d为河流/桥梁" % [y, x])
+	for bridge_pos: Vector2i in [Vector2i(7,8), Vector2i(8,8), Vector2i(14,8), Vector2i(15,8), Vector2i(21,8), Vector2i(22,8)]:
+		_assert_eq(int(ch2[bridge_pos.y][bridge_pos.x]), 6,
+			"Ch2 桥梁(%d,%d)存在" % [bridge_pos.x, bridge_pos.y])
+	for pos: Vector2i in [Vector2i(14,17), Vector2i(7,18), Vector2i(21,18), Vector2i(14,3), Vector2i(20,2)]:
+		var t2p: int = int(ch2[pos.y][pos.x])
+		_assert(t2p != 3 and t2p != 4, "Ch2 关键出生点(%d,%d)可通行（类型=%d）" % [pos.x, pos.y, t2p])
+	for pos: Vector2i in [Vector2i(9,18), Vector2i(19,18), Vector2i(6,7), Vector2i(13,6), Vector2i(20,7)]:
+		var t2_alt: int = int(ch2[pos.y][pos.x])
+		_assert(t2_alt != 3 and t2_alt != 4,
+			"Ch2 重设计关键格(%d,%d)可通行（类型=%d）" % [pos.x, pos.y, t2_alt])
+	var ch2_has_swamp := false
+	for row2: Array in ch2:
+		for cell2: Variant in row2:
+			if int(cell2) == 5:
+				ch2_has_swamp = true
+	_assert(ch2_has_swamp, "Ch2 南岸存在泥泞/沼泽战场")
 
-	# 河流在第9-10列（非边界行）
-	var river_ok := true
-	for y: int in range(1, 15):
-		var row: Array = terrain_map[y]
-		# 非桥梁行：col 9,10 必须是河流（4）或桥梁（6）
-		if row[9] != 4 and row[9] != 6:
-			river_ok = false
-		if row[10] != 4 and row[10] != 6:
-			river_ok = false
-	_assert(river_ok, "河流列（9-10）全为河流(4)或桥梁(6)")
+	# ── Ch3：极乐塔（24×18）──────────────────────────────
+	_assert_eq(ch3.size(), 18, "Ch3 地图行数=18")
+	_assert_eq(ch3[0].size(), 24, "Ch3 地图列数=24")
+	var ch3_border_ok := true
+	for x: int in range(ch3[0].size()):
+		if ch3[0][x] != 3 or ch3[17][x] != 3:
+			ch3_border_ok = false
+	for y: int in range(ch3.size()):
+		if ch3[y][0] != 3 or ch3[y][23] != 3:
+			ch3_border_ok = false
+	_assert(ch3_border_ok, "Ch3 四周边界为峭壁")
+	for pos: Vector2i in [Vector2i(12,15), Vector2i(11,16), Vector2i(12,6), Vector2i(7,8), Vector2i(16,8), Vector2i(12,2)]:
+		var t3: int = int(ch3[pos.y][pos.x])
+		_assert(t3 != 3 and t3 != 4, "Ch3 关键格(%d,%d)可通行（类型=%d）" % [pos.x, pos.y, t3])
+	var ch3_has_swamp := false
+	for row3: Array in ch3:
+		for cell3: Variant in row3:
+			if int(cell3) == 5:
+				ch3_has_swamp = true
+	_assert(ch3_has_swamp, "Ch3 存在沼泽地形")
 
-	# 桥梁存在验证（第5行和第10行有桥梁）
-	var has_bridge_row5 := false
-	var has_bridge_row10 := false
-	for x: int in 22:
-		if terrain_map[5][x] == 6:
-			has_bridge_row5 = true
-		if terrain_map[10][x] == 6:
-			has_bridge_row10 = true
-	_assert(has_bridge_row5,  "北桥在第5行存在")
-	_assert(has_bridge_row10, "南桥在第10行存在")
+func _test_ch4_map_redesign() -> void:
+	var ch4_bootstrap := BootstrapClass.new()
+	var ch4: Array = ch4_bootstrap._build_map_ch4()
+	ch4_bootstrap.free()
 
-	# 玩家出生点可通行
-	var player_starts := [Vector2i(1,7), Vector2i(1,8), Vector2i(1,9)]
-	for pos: Vector2i in player_starts:
-		var t: int = terrain_map[pos.y][pos.x]
-		_assert(t != 3 and t != 4,
-			"玩家出生点(%d,%d)可通行（类型=%d）" % [pos.x, pos.y, t])
+	_assert_eq(ch4.size(), 26, "Ch4 地图行数=26")
+	_assert_eq(ch4[0].size(), 36, "Ch4 地图列数=36")
 
-	# 胜利位置可通行
-	var vp := Vector2i(17, 8)
-	var vt: int = terrain_map[vp.y][vp.x]
-	_assert(vt != 3 and vt != 4,
-		"胜利位置(17,8)可通行（类型=%d）" % vt)
+	var ch4_border_ok := true
+	for x: int in range(ch4[0].size()):
+		if int(ch4[0][x]) != 3 or int(ch4[24][x]) != 3 or int(ch4[25][x]) != 3:
+			ch4_border_ok = false
+	for y: int in range(ch4.size()):
+		if int(ch4[y][0]) != 3 or int(ch4[y][35]) != 3:
+			ch4_border_ok = false
+	_assert(ch4_border_ok, "Ch4 四周边界与南侧双层边界为峭壁")
 
-	# 敌方出生点可通行
-	var enemy_starts := [
-		Vector2i(13,4), Vector2i(11,6), Vector2i(13,7),
-		Vector2i(12,11), Vector2i(16,9), Vector2i(17,7)
-	]
-	for pos: Vector2i in enemy_starts:
-		var t: int = terrain_map[pos.y][pos.x]
-		_assert(t != 3 and t != 4,
-			"敌方出生点(%d,%d)可通行（类型=%d）" % [pos.x, pos.y, t])
+	for pos: Vector2i in [
+		Vector2i(18,22), Vector2i(15,22), Vector2i(21,22),
+		Vector2i(12,23), Vector2i(18,23), Vector2i(24,23),
+	]:
+		var t_spawn: int = int(ch4[pos.y][pos.x])
+		_assert(t_spawn != 3 and t_spawn != 4 and t_spawn != 2,
+			"Ch4 玩家部署格(%d,%d)为可站立陆地（类型=%d）" % [pos.x, pos.y, t_spawn])
 
-	# 沼泽存在
-	var has_swamp := false
-	for y: int in 16:
-		for x: int in 22:
-			if terrain_map[y][x] == 5:
-				has_swamp = true
-				break
-	_assert(has_swamp, "地图中存在沼泽地形")
+	_assert_eq(int(ch4[7][18]), 0, "Ch4 王军指挥官所在内院中央可通行")
+	_assert_eq(int(ch4[2][18]), 0, "Ch4 铁王座胜利格可通行")
 
-	# 森林存在
-	var has_forest := false
-	for y: int in 16:
-		for x: int in 22:
-			if terrain_map[y][x] == 1:
-				has_forest = true
-				break
-	_assert(has_forest, "地图中存在森林地形")
+	for x: int in range(1, 35):
+		_assert(int(ch4[8][x]) == 4 or int(ch4[8][x]) == 6,
+			"Ch4 内护城河 row8 列%d 为河流/桥梁" % x)
+		_assert(int(ch4[19][x]) == 4 or int(ch4[19][x]) == 6,
+			"Ch4 黑水河 row19 列%d 为河流/桥梁" % x)
+
+	for gate_x: int in [8, 9, 10, 17, 18, 19, 20, 26, 27, 28]:
+		_assert_eq(int(ch4[8][gate_x]), 6,  "Ch4 内护城河桥位(%d,8)存在" % gate_x)
+		_assert_eq(int(ch4[19][gate_x]), 6, "Ch4 黑水河桥位(%d,19)存在" % gate_x)
+
+	for wall_row: int in [11, 13, 18]:
+		for x: int in range(1, 35):
+			var t_wall: int = int(ch4[wall_row][x])
+			_assert(t_wall == 2 or t_wall == 0,
+				"Ch4 城墙 row%d 列%d 为墙体/城门" % [wall_row, x])
+
+	for gate_pos: Vector2i in [
+		Vector2i(18,11), Vector2i(18,13), Vector2i(18,18),
+		Vector2i(18,8), Vector2i(18,19), Vector2i(18,4),
+	]:
+		var t_gate: int = int(ch4[gate_pos.y][gate_pos.x])
+		_assert(t_gate == 0 or t_gate == 6,
+			"Ch4 中轴通路关键格(%d,%d)保持畅通（类型=%d）" % [gate_pos.x, gate_pos.y, t_gate])
+
+	for pos: Vector2i in [Vector2i(10,12), Vector2i(15,12), Vector2i(20,12), Vector2i(25,12)]:
+		_assert_eq(int(ch4[pos.y][pos.x]), 0, "Ch4 兰军中立列阵格(%d,%d)可通行" % [pos.x, pos.y])
+
+	var ch4_wall_count := 0
+	var ch4_bridge_count := 0
+	var ch4_river_count := 0
+	for row4: Array in ch4:
+		for cell4: Variant in row4:
+			match int(cell4):
+				2: ch4_wall_count += 1
+				4: ch4_river_count += 1
+				6: ch4_bridge_count += 1
+	_assert(ch4_wall_count >= 70, "Ch4 城墙/建筑数量充足（%d）" % ch4_wall_count)
+	_assert(ch4_river_count >= 40, "Ch4 存在明确护城河/黑水河水域（%d）" % ch4_river_count)
+	_assert(ch4_bridge_count >= 20, "Ch4 存在多座桥梁（%d）" % ch4_bridge_count)
 
 # ══════════════════════════════════════════════════════════
 # 测试套件 7：EnemyAI 距离计算
@@ -1027,26 +1113,148 @@ func _test_tile_atlas_coords() -> void:
 	# Toen图集：7列×52行，坐标必须在范围内
 	const MAX_COL := 6
 	const MAX_ROW := 51
-	const COORDS := {
-		0: Vector2i(0, 0),   # 平原
-		1: Vector2i(3, 25),  # 森林
-		2: Vector2i(0, 2),   # 矮墙
-		3: Vector2i(1, 50),  # 峭壁
-		4: Vector2i(0, 13),  # 河流
-		5: Vector2i(0, 17),  # 沼泽
-		6: Vector2i(1, 15),  # 桥梁
-	}
-	for terrain_type: int in COORDS:
-		var coord: Vector2i = COORDS[terrain_type]
+	var coords: Dictionary = BootstrapClass.TILE_ATLAS_COORDS
+	var coords_ch4: Dictionary = BootstrapClass.TILE_ATLAS_COORDS_CH4
+	for terrain_type: int in coords:
+		var coord: Vector2i = coords[terrain_type]
 		_assert(coord.x >= 0 and coord.x <= MAX_COL,
 			"地形%d列坐标合法(%d)" % [terrain_type, coord.x])
 		_assert(coord.y >= 0 and coord.y <= MAX_ROW,
 			"地形%d行坐标合法(%d)" % [terrain_type, coord.y])
 	# 验证所有坐标唯一（不同地形不共用同一图块）
 	var used: Array = []
-	for v: Vector2i in COORDS.values():
+	for v: Vector2i in coords.values():
 		_assert(not used.has(v), "地形坐标无重复(%d,%d)" % [v.x, v.y])
 		used.append(v)
+	_assert_eq(coords_ch4.size(), coords.size(), "Ch4 图块映射数量与基础地图一致")
+	for terrain_type: int in coords_ch4:
+		var coord_ch4: Vector2i = coords_ch4[terrain_type]
+		_assert(coord_ch4.x >= 0 and coord_ch4.x <= MAX_COL,
+			"Ch4 地形%d列坐标合法(%d)" % [terrain_type, coord_ch4.x])
+		_assert(coord_ch4.y >= 0 and coord_ch4.y <= MAX_ROW,
+			"Ch4 地形%d行坐标合法(%d)" % [terrain_type, coord_ch4.y])
+
+func _test_visual_style_unification() -> void:
+	var src := FileAccess.get_file_as_string("res://scripts/battle/BattleMap.gd")
+	_assert(not src.contains("_hide_tilemap_png"), "BattleMap 已移除旧 TileMap 隐藏兼容逻辑")
+	_assert(src.contains("func _draw_terrain_detail"), "BattleMap 存在统一地形细节绘制入口")
+	_assert(src.contains("func _draw_wall_detail"), "BattleMap 存在城墙/建筑细节绘制")
+	_assert(src.contains("func _draw_river_detail"), "BattleMap 存在河流细节绘制")
+	_assert(src.contains("func _draw_bridge_detail"), "BattleMap 存在桥梁细节绘制")
+	_assert(src.contains("func _terrain_at_or_cliff"), "BattleMap 提供邻接地形查询辅助，用于统一图块语言")
+	_assert(src.contains("func _bridge_runs_vertical"), "BattleMap 根据邻接地形判定桥梁朝向")
+	var scene_text := FileAccess.get_file_as_string("res://scenes/battle/BattleMap.tscn")
+	_assert(not scene_text.contains("TileMapLayer"), "BattleMap 场景已移除旧 TileMapLayer 节点")
+	_assert(not scene_text.contains("medieval_tileset.png"), "BattleMap 场景已移除旧瓦片贴图依赖")
+
+	for chapter: int in [1, 2, 3, 4]:
+		GameState.current_chapter = chapter
+		var battle := TestBootstrapClass.new()
+		root.add_child(battle)
+		await process_frame
+		await process_frame
+
+		var tilemap := battle.get_node_or_null("TileLayer/TileMapLayer") as TileMapLayer
+		_assert(tilemap == null, "Ch%d 运行时已不再创建旧 TileMapLayer" % chapter)
+
+		_assert(battle.map_width > 0 and battle.map_height > 0,
+			"Ch%d 地图尺寸有效，可进行程序化绘制" % chapter)
+
+		if chapter == 4:
+			_assert(battle._terrain_at_or_cliff(18, 8) == 6, "Ch4 中轴主桥地形保持桥梁")
+			_assert(battle._bridge_runs_vertical(18, 8), "Ch4 中轴主桥按南北通行绘制")
+		if chapter == 2:
+			_assert(battle._terrain_at_or_cliff(7, 8) == 6, "Ch2 左翼桥头地形保持桥梁")
+			_assert(battle._bridge_runs_vertical(7, 8), "Ch2 三叉戟桥梁按南北通行绘制")
+
+		if is_instance_valid(battle):
+			battle.queue_free()
+		await process_frame
+
+func _test_portrait_assets() -> void:
+	var portrait_map: Dictionary = BootstrapClass.UNIT_PORTRAIT_MAP
+	_assert(portrait_map.size() >= 13, "主要角色与兵种立绘映射已扩展")
+	for unit_file: String in portrait_map.keys():
+		var portrait_name: String = portrait_map[unit_file]
+		var path := "res://assets/units/" + portrait_name
+		_assert(FileAccess.file_exists(path), "立绘资源存在：%s" % portrait_name)
+		if not FileAccess.file_exists(path):
+			continue
+		var img := Image.load_from_file(ProjectSettings.globalize_path(path))
+		_assert(img != null and not img.is_empty(), "立绘图片可直接读取：%s" % portrait_name)
+		if img == null or img.is_empty():
+			continue
+		var tex := ImageTexture.create_from_image(img)
+		_assert(tex != null, "立绘可加载：%s" % portrait_name)
+		if tex == null:
+			continue
+		_assert(tex.get_width() >= 96 and tex.get_height() >= 96,
+			"立绘分辨率升级为至少96×96：%s (%dx%d)" % [portrait_name, tex.get_width(), tex.get_height()])
+		_assert(tex.get_width() == tex.get_height(),
+			"立绘保持方形比例：%s" % portrait_name)
+
+func _test_dialogue_portrait_mapping() -> void:
+	const DIALOGUE_SYSTEM_PATH := "res://scripts/dialogue/DialogueSystem.gd"
+	_assert(ResourceLoader.exists(DIALOGUE_SYSTEM_PATH), "DialogueSystem.gd 存在")
+	if not ResourceLoader.exists(DIALOGUE_SYSTEM_PATH):
+		return
+	var src := FileAccess.get_file_as_string(DIALOGUE_SYSTEM_PATH)
+	_assert("SPEAKER_PORTRAIT_MAP" in src, "DialogueSystem 包含对话立绘映射表")
+	_assert("_update_portrait" in src, "DialogueSystem 包含对话立绘刷新逻辑")
+	_assert("PortraitPanel" in src, "DialogueSystem 使用对话立绘面板")
+
+	var speaker_to_portrait := {
+		"奈德": "ned_stark_portrait.png",
+		"劳勃": "robert_baratheon_portrait.png",
+		"霍兰": "howland_reed_portrait.png",
+		"霍兰德": "howland_reed_portrait.png",
+		"皇家卫兵": "royal_soldier_portrait.png",
+		"兰尼斯特士兵": "lannister_soldier_portrait.png",
+		"北境骑士": "northern_knight_portrait.png",
+		"反叛领主": "rebel_lord_portrait.png",
+		"詹姆": "jaime_lannister_portrait.png",
+		"史林特": "janos_slynt_portrait.png",
+	}
+	for speaker: String in speaker_to_portrait.keys():
+		var portrait_name: String = speaker_to_portrait[speaker]
+		_assert(("\"%s\": \"%s\"" % [speaker, portrait_name]) in src,
+			"对话角色 %s 已映射到立绘 %s" % [speaker, portrait_name])
+		var path := "res://assets/units/" + portrait_name
+		_assert(FileAccess.file_exists(path), "对话立绘资源存在：%s" % portrait_name)
+
+	var dialogue_speakers := {
+		"奈德": false,
+		"劳勃": false,
+		"霍兰": false,
+		"霍兰德": false,
+		"皇家卫兵": false,
+		"兰尼斯特士兵": false,
+		"北境骑士": false,
+		"反叛领主": false,
+		"詹姆": false,
+		"史林特": false,
+	}
+	for dialogue_path: String in [
+		"res://data/dialogues/prologue_1_pre.json",
+		"res://data/dialogues/prologue_1_post.json",
+		"res://data/dialogues/ch2_pre.json",
+		"res://data/dialogues/ch3_pre.json",
+		"res://data/dialogues/ch3_betrayal.json",
+		"res://data/dialogues/ch4_pre.json",
+		"res://data/dialogues/ch4_jaime.json",
+		"res://data/dialogues/ch4_lannister_join.json",
+	]:
+		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(dialogue_path))
+		_assert(parsed is Dictionary, "对话文件可解析：%s" % dialogue_path.get_file())
+		if not (parsed is Dictionary):
+			continue
+		for line: Variant in (parsed as Dictionary).get("lines", []):
+			if line is Dictionary:
+				var sp: String = (line as Dictionary).get("speaker", "")
+				if dialogue_speakers.has(sp):
+					dialogue_speakers[sp] = true
+	for speaker_checked: String in dialogue_speakers.keys():
+		_assert(dialogue_speakers[speaker_checked], "对话角色 %s 在数据中实际出现" % speaker_checked)
 
 # ── 字体初始化方法存在 ───────────────────────────────────
 func _test_font_setup() -> void:
@@ -1062,3 +1270,210 @@ func _test_font_setup() -> void:
 	_assert("ThemeDB.get_project_theme()" in src, "设置到全局主题")
 	_assert("DisplayServer.get_name()" in src or "headless" in src,
 		"包含headless环境检测（防止无显示器时崩溃）")
+
+# ── 关键场景/脚本加载冒烟测试 ───────────────────────────
+func _test_scene_and_script_smoke() -> void:
+	var scene_paths: Array[String] = [
+		"res://scenes/Opening.tscn",
+		"res://scenes/battle/BattleMap.tscn",
+		"res://scenes/chapter/Ch2_Opening.tscn",
+		"res://scenes/chapter/Ch3_Opening.tscn",
+		"res://scenes/chapter/Ch4_Opening.tscn",
+		"res://scenes/cutscene/CutscenePlayer.tscn",
+		"res://scenes/dialogue/DialogueBox.tscn",
+		"res://scenes/ui/DeployScreen_Ch4.tscn",
+		"res://scenes/ui/ChapterTransition.tscn",
+	]
+	for path: String in scene_paths:
+		_assert(ResourceLoader.exists(path), "场景存在：%s" % path)
+		var scene_res: Resource = load(path)
+		_assert(scene_res != null, "场景可加载：%s" % path)
+		if scene_res is PackedScene:
+			var inst: Node = (scene_res as PackedScene).instantiate()
+			_assert(inst != null, "场景可实例化：%s" % path)
+			if inst != null:
+				inst.queue_free()
+
+	var script_paths: Array[String] = [
+		"res://scripts/Opening.gd",
+		"res://scripts/chapter/ChapterOpening.gd",
+		"res://scripts/chapter/Opening_Ch2.gd",
+		"res://scripts/chapter/Opening_Ch3.gd",
+		"res://scripts/chapter/Opening_Ch4.gd",
+		"res://scripts/battle/BattleBootstrap.gd",
+		"res://scripts/battle/BattleMap.gd",
+		"res://scripts/dialogue/DialogueSystem.gd",
+		"res://scripts/cutscene/CutscenePlayer.gd",
+		"res://scripts/ui/DeployScreen_Ch4.gd",
+		"res://scripts/systems/ChapterTransition.gd",
+	]
+	for path: String in script_paths:
+		_assert(ResourceLoader.exists(path), "脚本存在：%s" % path)
+		var script_res: Resource = load(path)
+		_assert(script_res != null, "脚本可加载：%s" % path)
+
+func _test_chapter_event_flow() -> void:
+	var opening_scene: PackedScene = load("res://scenes/Opening.tscn") as PackedScene
+	_assert(opening_scene != null, "Opening 场景可加载用于章节回归")
+	if opening_scene == null:
+		return
+
+	# ── Ch2：雷加死亡 → 过场 → 章节推进到3 ─────────────────
+	GameState.current_chapter = 2
+	var ch2 := TestBootstrapClass.new()
+	root.add_child(ch2)
+	await process_frame
+	_assert(ch2._rhaegar_unit != null, "Ch2 初始化后雷加已生成")
+	_assert(ch2.enemy_units.size() >= 1, "Ch2 初始化后敌军存在")
+	if ch2._rhaegar_unit != null:
+		ch2._on_unit_died(ch2._rhaegar_unit)
+		await process_frame
+		await process_frame
+		await process_frame
+		_assert(ch2._rhaegar_death_done, "Ch2 雷加死亡标记已置位")
+		_assert(ch2.recorded_cutscenes.has("res://data/cutscenes/ch2_rhaegar_fall.json"),
+			"Ch2 雷加死亡触发过场")
+		_assert(ch2.recorded_cutscenes.has("res://data/cutscenes/ch2_split.json"),
+			"Ch2 雷加死亡后自动触发战后分兵过场")
+		_assert(ch2.recorded_dialogues.has("res://data/dialogues/ch2_post.json"),
+			"Ch2 雷加死亡后自动触发战后对话")
+		await process_frame
+		_assert(ch2.recorded_advances.has(3), "Ch2 胜利后推进到第3章")
+		_assert_eq(GameState.current_chapter, 3, "Ch2 事件后当前章节=3")
+	if is_instance_valid(ch2):
+		ch2.queue_free()
+	await process_frame
+
+	# ── Ch3：到塔门 / 触发塔事件 → 连续过场 → 章节推进到4 ──
+	GameState.current_chapter = 3
+	var ch3 := TestBootstrapClass.new()
+	root.add_child(ch3)
+	await process_frame
+	_assert(ch3._ned_unit != null, "Ch3 初始化后奈德已生成")
+	_assert(ch3._dayne_unit != null, "Ch3 初始化后亚瑟·戴恩已生成")
+	ch3._trigger_ch3_tower()
+	await process_frame
+	await process_frame
+	await process_frame
+	_assert(ch3.recorded_cutscenes.has("res://data/cutscenes/ch3_dayne_trigger.json"),
+		"Ch3 触发霍兰刺杀戴恩过场")
+	_assert(ch3.recorded_cutscenes.has("res://data/cutscenes/ch3_lyanna.json"),
+		"Ch3 触发莱安娜过场")
+	_assert(ch3.recorded_dialogues.has("res://data/dialogues/ch3_post.json"),
+		"Ch3 触发战后对话")
+	_assert(ch3.recorded_advances.has(4), "Ch3 事件后推进到第4章")
+	_assert_eq(GameState.current_chapter, 4, "Ch3 事件后当前章节=4")
+	_assert(ch3._battle_over, "Ch3 塔事件过程中战斗已结束")
+	if is_instance_valid(ch3):
+		ch3.queue_free()
+	await process_frame
+
+	# ── Ch4：指挥官死亡 → 兰军归降/移除 → 结局推进到Opening ──
+	GameState.current_chapter = 4
+	GameState.deploy_selection = ["ned_stark.json", "northern_knight.json"]
+	var ch4 := TestBootstrapClass.new()
+	root.add_child(ch4)
+	await process_frame
+	_assert(ch4._royal_commander != null, "Ch4 初始化后王军指挥官已生成")
+	_assert(ch4._lannister_units.size() > 0, "Ch4 初始化后兰军中立单位存在")
+	var lann_before := ch4._lannister_units.size()
+	ch4._on_unit_died(ch4._royal_commander)
+	await create_timer(2.4).timeout
+	await process_frame
+	_assert(ch4._commander_killed, "Ch4 指挥官死亡标记已置位")
+	_assert(lann_before > 0, "Ch4 兰军初始数量大于0")
+	_assert_eq(ch4._lannister_units.size(), 0, "Ch4 指挥官死亡后兰军被移除")
+	_assert(ch4.recorded_dialogues.has("res://data/dialogues/ch4_lannister_join.json"),
+		"Ch4 指挥官死亡触发兰军归降对话")
+	_assert(ch4.recorded_dialogues.has("res://data/dialogues/ch4_post.json"),
+		"Ch4 最终结局对话触发")
+	_assert(ch4.recorded_cutscenes.has("res://data/cutscenes/ch4_ending.json"),
+		"Ch4 最终结局过场触发")
+	_assert(ch4.recorded_advances.has(0), "Ch4 结局后返回主入口")
+	_assert_eq(GameState.current_chapter, 1, "Ch4 事件后章节重置到1")
+	if is_instance_valid(ch4):
+		ch4.queue_free()
+	await process_frame
+
+func _test_ch1_save_and_deploy_flow() -> void:
+	# ── Ch1：敌军全灭胜利与到达胜利格胜利 ─────────────────
+	GameState.current_chapter = 1
+	var ch1_kill := TestBootstrapClass.new()
+	root.add_child(ch1_kill)
+	await process_frame
+	_assert(ch1_kill._ch1_enemies_spawned, "Ch1 初始化后敌人生成标记为 true")
+	for enemy: Unit in ch1_kill.enemy_units:
+		if enemy != null and enemy.data != null:
+			enemy.data.hp = 0
+	ch1_kill._check_victory()
+	await process_frame
+	await process_frame
+	_assert(ch1_kill._battle_over, "Ch1 敌军全灭后战斗结束")
+	_assert(ch1_kill.recorded_dialogues.has("res://data/dialogues/prologue_1_post.json"),
+		"Ch1 敌军全灭触发战后对话")
+	_assert(ch1_kill.recorded_advances.has(2), "Ch1 敌军全灭后推进到第2章")
+	if is_instance_valid(ch1_kill):
+		ch1_kill.queue_free()
+	await process_frame
+
+	GameState.current_chapter = 1
+	var ch1_goal := TestBootstrapClass.new()
+	root.add_child(ch1_goal)
+	await process_frame
+	_assert(ch1_goal._ned_unit != null, "Ch1 初始化后奈德已生成")
+	if ch1_goal._ned_unit != null:
+		ch1_goal._ned_unit.grid_pos = ch1_goal.victory_pos
+		ch1_goal._check_ch1_victory_loop()
+		await process_frame
+		await process_frame
+		_assert(ch1_goal._ned_reached_victory, "Ch1 奈德到达目标后胜利标记置位")
+		_assert(ch1_goal.recorded_advances.has(2), "Ch1 奈德到达目标后推进到第2章")
+	if is_instance_valid(ch1_goal):
+		ch1_goal.queue_free()
+	await process_frame
+
+	# ── Opening：无存档进入 Ch1；有存档路由到对应章节 ──────
+	SaveSystem.delete_save()
+	var opening_fresh := TestOpeningClass.new()
+	root.add_child(opening_fresh)
+	await process_frame
+	opening_fresh.run_start_normal_flow()
+	_assert(opening_fresh.played_chapter_1, "Opening 无存档时进入 Ch1 流程")
+	_assert(opening_fresh.recorded_scene_changes.is_empty(), "Opening 无存档时不直接跳章节场景")
+	if is_instance_valid(opening_fresh):
+		opening_fresh.queue_free()
+	await process_frame
+
+	SaveSystem.save_chapter_complete(2) # 当前章节应为3
+	var opening_saved := TestOpeningClass.new()
+	root.add_child(opening_saved)
+	await process_frame
+	opening_saved.run_start_normal_flow()
+	_assert(not opening_saved.played_chapter_1, "Opening 有存档时不重新进入 Ch1")
+	_assert(opening_saved.recorded_scene_changes.has("res://scenes/chapter/Ch3_Opening.tscn"),
+		"Opening 有存档时按章节路由到 Ch3")
+	if is_instance_valid(opening_saved):
+		opening_saved.queue_free()
+	await process_frame
+	SaveSystem.delete_save()
+
+	# ── Ch4 部署：确认后写入 deploy_selection；新游戏清存档 ──
+	GameState.deploy_selection = []
+	var deploy := TestDeployScreenClass.new()
+	root.add_child(deploy)
+	await process_frame
+	deploy._selected = [1, 3, 5]
+	deploy.test_confirm()
+	_assert_eq(GameState.deploy_selection.size(), 4, "部署确认后写入奈德+3名骑士")
+	_assert_eq(GameState.deploy_selection[0], "ned_stark.json", "部署列表首位固定为奈德")
+	_assert(deploy.recorded_scene_changes.has("res://scenes/battle/BattleMap.tscn"),
+		"部署确认后进入战斗场景")
+	SaveSystem.save_chapter_complete(1)
+	_assert(SaveSystem.has_save(), "为测试新游戏按钮先创建存档")
+	deploy.test_new_game()
+	_assert(not SaveSystem.has_save(), "部署界面新游戏按钮会清除存档")
+	_assert(deploy.recorded_scene_changes.has("res://scenes/Opening.tscn"),
+		"部署界面新游戏按钮返回 Opening")
+	if is_instance_valid(deploy):
+		deploy.queue_free()
+	await process_frame

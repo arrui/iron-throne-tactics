@@ -5,10 +5,27 @@ extends CanvasLayer
 signal dialogue_finished
 
 const CHAR_DELAY := 0.05
+const PORTRAIT_DIR := "res://assets/units/"
+const SPEAKER_PORTRAIT_MAP := {
+	"奈德": "ned_stark_portrait.png",
+	"劳勃": "robert_baratheon_portrait.png",
+	"霍兰": "howland_reed_portrait.png",
+	"霍兰德": "howland_reed_portrait.png",
+	"皇家卫兵": "royal_soldier_portrait.png",
+	"王军": "royal_soldier_portrait.png",
+	"兰尼斯特士兵": "lannister_soldier_portrait.png",
+	"北境骑士": "northern_knight_portrait.png",
+	"反叛领主": "rebel_lord_portrait.png",
+	"詹姆": "jaime_lannister_portrait.png",
+	"史林特": "janos_slynt_portrait.png",
+	"旁白": "",
+}
 
 @onready var _speaker_label: Label = $SpeakerLabel
 @onready var _text_label:    Label = $TextLabel
 @onready var _prompt_icon:   Label = $PromptIcon
+@onready var _portrait_panel: Control = $PortraitPanel
+@onready var _portrait_rect: TextureRect = $PortraitPanel/Portrait
 
 var _lines:       Array  = []
 var _current_idx: int    = 0
@@ -72,6 +89,7 @@ func _show_line(idx: int) -> void:
 	_full_text           = line.get("text", "")
 	_text_label.text     = ""
 	_prompt_icon.visible = false
+	_update_portrait(_speaker_label.text)
 	_type_text(_full_text)
 
 func _type_text(text: String) -> void:
@@ -118,7 +136,37 @@ func _finish() -> void:
 	if _tween != null and _tween.is_valid():
 		_tween.kill()
 	visible = false
+	if _portrait_rect:
+		_portrait_rect.texture = null
 	dialogue_finished.emit()
+
+func _update_portrait(speaker: String) -> void:
+	if _portrait_panel == null or _portrait_rect == null:
+		return
+	var portrait_name: String = SPEAKER_PORTRAIT_MAP.get(speaker, "")
+	if portrait_name == "":
+		_portrait_panel.visible = false
+		_portrait_rect.texture = null
+		return
+	var tex := _load_portrait_texture(PORTRAIT_DIR + portrait_name)
+	if tex == null:
+		_portrait_panel.visible = false
+		_portrait_rect.texture = null
+		return
+	_portrait_rect.texture = tex
+	_portrait_panel.visible = true
+
+func _load_portrait_texture(path: String) -> Texture2D:
+	if ResourceLoader.exists(path):
+		var tex := load(path) as Texture2D
+		if tex != null:
+			return tex
+	if not FileAccess.file_exists(path):
+		return null
+	var img := Image.load_from_file(ProjectSettings.globalize_path(path))
+	if img == null or img.is_empty():
+		return null
+	return ImageTexture.create_from_image(img)
 
 func _input(event: InputEvent) -> void:
 	if not _active: return

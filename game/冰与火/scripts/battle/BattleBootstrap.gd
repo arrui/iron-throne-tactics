@@ -25,10 +25,19 @@ const UNIT_SPRITE_MAP := {
 	"royal_guard_captain.json": "royal_soldier_map.png",
 }
 const UNIT_PORTRAIT_MAP := {
-	"ned_stark.json":        "ned_stark_portrait.png",
-	"robert_baratheon.json": "robert_baratheon_portrait.png",
-	"howland_reed.json":     "howland_reed_portrait.png",
-	"royal_soldier.json":    "royal_soldier_portrait.png",
+	"arthur_dayne.json":        "arthur_dayne_portrait.png",
+	"barristan_selmy.json":     "barristan_selmy_portrait.png",
+	"dorne_knight.json":        "dorne_knight_portrait.png",
+	"howland_reed.json":        "howland_reed_portrait.png",
+	"lannister_soldier.json":   "lannister_soldier_portrait.png",
+	"ned_stark.json":           "ned_stark_portrait.png",
+	"northern_knight.json":     "northern_knight_portrait.png",
+	"rebel_lord.json":          "rebel_lord_portrait.png",
+	"rhaegar_targaryen.json":   "rhaegar_targaryen_portrait.png",
+	"robert_baratheon.json":    "robert_baratheon_portrait.png",
+	"royal_guard_captain.json": "royal_guard_captain_portrait.png",
+	"royal_soldier.json":       "royal_soldier_portrait.png",
+	"targaryen_soldier.json":   "targaryen_soldier_portrait.png",
 }
 
 # ── 共享状态 ──────────────────────────────────────────────
@@ -56,28 +65,28 @@ const TERRAIN_CH1: Array = [
 ]
 
 const TERRAIN_CH2: Array = [
-	# 28列×20行，南北纵向：玩家南方（rows 14-18），三叉戟河横向（rows 8-9），雷加北方（rows 1-6）
-	# 0=平原 1=森林 2=矮墙 3=峭壁 4=河流 5=沼泽 6=桥梁
-	[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],  # row 0：北方边界
-	[3,0,0,1,1,0,0,0,0,0,2,2,0,0,0,0,0,0,2,2,0,0,0,1,1,0,0,3],  # row 1：北岸（雷加区）
-	[3,0,1,1,0,0,0,0,0,0,0,2,0,0,0,0,0,2,0,0,0,0,1,1,0,0,0,3],  # row 2
-	[3,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,3],  # row 3
-	[3,0,0,0,2,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,0,2,0,0,3],  # row 4
-	[3,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,3],  # row 5
-	[3,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,3],  # row 6
-	[3,0,2,0,0,0,0,0,0,0,0,0,2,0,0,2,0,0,0,0,0,0,0,0,0,2,0,3],  # row 7：北岸南缘
-	[3,4,4,4,4,4,4,6,6,4,4,4,4,4,6,6,4,4,4,4,4,6,6,4,4,4,4,3],  # row 8：三叉戟河（桥cols7-8,14-15,21-22）
-	[3,4,4,4,4,4,4,6,6,4,4,4,4,4,6,6,4,4,4,4,4,6,6,4,4,4,4,3],  # row 9：三叉戟河（2行宽）
-	[3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],  # row 10：南岸北缘
-	[3,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,3],  # row 11
-	[3,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,3],  # row 12
-	[3,0,0,1,0,0,0,0,0,2,0,0,0,0,0,0,0,0,2,0,0,0,0,1,0,0,0,3],  # row 13
-	[3,0,0,0,0,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,0,0,0,0,0,0,3],  # row 14
-	[3,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,3],  # row 15
-	[3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],  # row 16
-	[3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],  # row 17：玩家区
-	[3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],  # row 18：玩家出生区（南方）
-	[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],  # row 19：南方边界
+	# 28列×20行：北岸王家防线 / 三叉戟三桥 / 南岸义军泥泞集结地
+	# 0=平原 1=森林 2=营垒/堤坝 3=峭壁 4=河流 5=泥泞 6=桥梁
+	[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+	[3,0,0,1,1,0,0,2,2,0,0,0,0,0,0,0,0,0,2,2,0,0,0,1,1,0,0,3],
+	[3,0,1,1,0,0,0,2,0,0,0,0,1,0,0,1,0,0,0,0,0,2,0,0,1,1,0,3],
+	[3,0,0,0,0,2,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,2,0,0,0,0,3],
+	[3,0,0,0,2,0,0,1,1,0,0,0,2,0,0,2,0,0,0,1,1,0,0,2,0,0,0,3],
+	[3,0,0,1,0,0,0,0,2,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,1,0,0,3],
+	[3,0,2,0,0,0,0,0,0,0,2,0,0,0,0,0,0,2,0,0,0,0,0,0,0,2,0,3],
+	[3,0,0,0,0,1,6,6,0,0,0,0,2,6,6,2,0,0,0,0,6,6,1,0,0,0,0,3],
+	[3,4,4,4,4,4,4,6,6,4,4,4,4,4,6,6,4,4,4,4,4,6,6,4,4,4,4,3],
+	[3,4,4,4,4,4,4,6,6,4,4,4,4,4,6,6,4,4,4,4,4,6,6,4,4,4,4,3],
+	[3,0,0,5,5,0,6,6,0,0,0,0,0,6,6,0,0,0,0,0,6,6,0,5,5,0,0,3],
+	[3,0,5,5,0,0,0,0,2,0,0,1,0,0,0,0,1,0,0,2,0,0,0,0,5,5,0,3],
+	[3,0,0,1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,1,0,0,3],
+	[3,0,0,0,0,2,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,2,0,0,0,0,3],
+	[3,0,1,1,0,0,0,0,0,0,0,0,2,2,2,2,0,0,0,0,0,0,0,0,1,1,0,3],
+	[3,0,0,0,2,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,2,0,0,0,0,3],
+	[3,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,3],
+	[3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],
+	[3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3],
+	[3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
 ]
 const TERRAIN_CH3: Array = [
 	# 24列×18行，南北纵向：欢乐塔在北（rows 0-3），奈德从南方出发（rows 14-16）
@@ -127,6 +136,7 @@ const TILE_ATLAS_COORDS_CH4 := {
 # ── 章节专属状态 ──────────────────────────────────────────
 var _rhaegar_unit:         Unit = null
 var _rhaegar_death_done:   bool = false
+var _ch2_victory_started:  bool = false
 var _dayne_unit:           Unit = null
 var _tower_reached:        bool = false
 var _ned_unit:             Unit = null
@@ -285,8 +295,8 @@ func _check_victory() -> void:
 		2:
 			var mortal := enemy_units.filter(func(u: Unit) -> bool:
 				return not u.is_dead() and u.data.min_hp == 0)
-			if mortal.is_empty() and not enemy_units.is_empty():
-				_end_battle(true)
+			if mortal.is_empty():
+				_on_won_ch2()
 		3:
 			if _tower_reached: return
 			if is_instance_valid(_ned_unit) and not _ned_unit.is_dead() \
@@ -316,31 +326,40 @@ func _check_victory() -> void:
 func _setup_ch2() -> void:
 	map_width   = 28;  map_height = 20
 	victory_pos = Vector2i(14, 1)  # 击败雷加自动触发，北方中央
+	_ch2_victory_started = false
 	_apply_cam_limits()
 	super._ready()
 	_paint_from(TERRAIN_CH2)
 	# 玩家方（南方，rows 17-18）
 	_make_unit("robert_baratheon.json",  0, Vector2i(14, 17))  # 中央南
-	_make_unit("rebel_lord.json",        0, Vector2i(7,  18))
-	_make_unit("rebel_lord.json",        0, Vector2i(21, 18))
+	_make_unit("rebel_lord.json",        0, Vector2i(9,  18))
+	_make_unit("rebel_lord.json",        0, Vector2i(19, 18))
 	_make_unit("rebel_lord.json",        0, Vector2i(14, 18))
 	# 敌方（北方，rows 2-6）
 	_rhaegar_unit = _make_unit_r("rhaegar_targaryen.json", 1, Vector2i(14, 3))  # 中央北
-	_make_unit("barristan_selmy.json",    1, Vector2i(20, 2))
-	_make_unit("targaryen_soldier.json",  1, Vector2i(7,  4))
-	_make_unit("targaryen_soldier.json",  1, Vector2i(10, 4))
-	_make_unit("targaryen_soldier.json",  1, Vector2i(18, 4))
+	_make_unit("barristan_selmy.json",    1, Vector2i(18, 4))
+	_make_unit("targaryen_soldier.json",  1, Vector2i(6,  7))
+	_make_unit("targaryen_soldier.json",  1, Vector2i(13, 6))
 	_make_unit("targaryen_soldier.json",  1, Vector2i(10, 6))
 	_make_unit("targaryen_soldier.json",  1, Vector2i(18, 6))
-	_make_unit("targaryen_soldier.json",  1, Vector2i(22, 4))
+	_make_unit("targaryen_soldier.json",  1, Vector2i(22, 6))
+	_make_unit("targaryen_soldier.json",  1, Vector2i(20, 7))
 	_redraw_all()
 	await _play_dialogue("res://data/dialogues/ch2_pre.json")
-	battle_won.connect(_on_won_ch2, CONNECT_ONE_SHOT)
 
 func _on_won_ch2() -> void:
+	if _ch2_victory_started:
+		return
+	_ch2_victory_started = true
+	_battle_over = true
+	_hide_all_panels()
+	if _end_turn_btn:
+		_end_turn_btn.disabled = true
 	if _result_panel: _result_panel.visible = false
 	await _play_cutscene("res://data/cutscenes/ch2_split.json")
+	if not is_inside_tree(): return
 	await _play_dialogue("res://data/dialogues/ch2_post.json")
+	if not is_inside_tree(): return
 	await _advance_to(3)
 
 # ══════════════════════════════════════════════════════════
@@ -386,8 +405,8 @@ func _setup_ch4() -> void:
 	if selection.is_empty():
 		selection = ["ned_stark.json", "northern_knight.json", "northern_knight.json"]
 	var spawns: Array = [
-		Vector2i(13,21), Vector2i(16,21), Vector2i(19,21),
-		Vector2i(13,22), Vector2i(16,22), Vector2i(19,22),
+		Vector2i(18,22), Vector2i(15,22), Vector2i(21,22),
+		Vector2i(12,23), Vector2i(18,23), Vector2i(24,23),
 	]
 	for i: int in min(selection.size(), spawns.size()):
 		var u := _make_unit_r(selection[i], 0, spawns[i])
@@ -412,10 +431,11 @@ func _setup_ch4() -> void:
 	_make_unit("royal_soldier.json", 1, Vector2i(18, 14))
 	_make_unit("royal_soldier.json", 1, Vector2i(18, 18))
 
-	# 王军指挥官（红堡外院，关键目标——他死后兰军归降）
-	_royal_commander = _make_unit_r("royal_guard_captain.json", 1, Vector2i(18, 10))
+	# 王军指挥官（铁王座内院 row 7，不可移动，关键击杀目标）
+	_royal_commander = _make_unit_r("royal_guard_captain.json", 1, Vector2i(18, 7))
 	if _royal_commander != null:
 		_royal_commander.data.name = "★ 王军指挥官"   # 加星号标记是关键目标
+		_royal_commander.data.move = 0               # 守卫铁王座，原地不动
 
 	_redraw_all()
 	await _play_dialogue("res://data/dialogues/ch4_pre.json")
@@ -426,102 +446,181 @@ func _build_map_ch4() -> Array:
 	const W := 36; const H := 26
 	var m: Array = []
 	for _y: int in H:
-		var row: Array = []; for _x: int in W: row.append(0); m.append(row)
+		var row: Array = []
+		for _x: int in W:
+			row.append(0)
+		m.append(row)
 	_ch4_paint(m, W, H)
 	return m
 
 # ────────────────────────────────────────────────────────────
-# 序章四（铁王座·君临城）地形绘制——南北纵向重设计
-# 布局（从南 row 25 到北 row 0）：
-#   row 0：北方边界峭壁
-#   rows 1-3：铁王座大厅（胜利格 col 18, row 2）
-#   row 4：大厅南墙（三处入口：cols 7-10, 15-21, 25-28）
-#   rows 5-7：红堡内院（花园+石板）
-#   row 8：红堡护城河（东西向水域，三座桥）
+# 序章四（铁王座·君临城）地形绘制——红堡 / 城墙 / 护城河 / 桥梁
+# 布局（从北 row 0 到南 row 25）：
+#   row 0：北方峭壁边界
+#   rows 1-3：铁王座大厅
+#   row 4：王座厅南墙（三道门）
+#   rows 5-7：红堡内院
+#   row 8：红堡内护城河（三桥）
 #   rows 9-10：红堡外院
-#   row 11：红堡外墙（东西向，三处城门）
-#   row 12：兰尼斯特中立区（单位站在此）
-#   row 13：城市内城墙（东西向，三处城门）
-#   rows 14-18：君临城街道（建筑群）
-#   row 19：黑水湾（东西向水域，两处桥梁）
-#   rows 20-23：城南区域（玩家进入区）
+#   row 11：红堡外墙（三门）
+#   row 12：兰尼斯特中立军列阵区
+#   row 13：君临内城墙（三门）
+#   rows 14-17：城内街区与中央大道
+#   row 18：君临南城墙（三门）
+#   row 19：黑水河/外护城河（三桥）
+#   rows 20-23：城南集结区（玩家部署）
 #   rows 24-25：南方边界峭壁
+# 0=石板路  1=花园  2=城墙/建筑  3=峭壁  4=河流  5=沼泽  6=桥梁
 # ────────────────────────────────────────────────────────────
 func _ch4_paint(m: Array, W: int, H: int) -> void:
-	# ── 边界峭壁 ──────────────────────────────────────────
+	const WEST_GATE_A := 8
+	const WEST_GATE_B := 10
+	const MAIN_GATE_A := 17
+	const MAIN_GATE_B := 20
+	const EAST_GATE_A := 26
+	const EAST_GATE_B := 28
+
+	# ── 边界峭壁 ─────────────────────────────────────────────
 	for x: int in W:
-		m[0][x] = 3; m[H-1][x] = 3; m[H-2][x] = 3
+		m[0][x] = 3
+		m[H - 1][x] = 3
+		m[H - 2][x] = 3
 	for y: int in H:
-		m[y][0] = 3; m[y][1] = 3; m[y][W-1] = 3; m[y][W-2] = 3
+		m[y][0] = 3
+		m[y][W - 1] = 3
 
-	# ── 铁王座大厅（rows 1-4，宏伟大殿）───────────────────
-	# 北壁（row 1）+ 东西侧壁
-	for x: int in range(4, W-4): m[1][x] = 2
-	for y: int in range(1, 5): m[y][4] = 2; m[y][W-5] = 2
-	# 南壁（row 4）三处入口（对齐三座桥）
-	for x: int in range(4, W-4): m[4][x] = 2
-	for x: int in range(6, 12):  m[4][x] = 0   # 西入口（对齐西桥）
-	for x: int in range(13, 24): m[4][x] = 0   # 中央大门（宽敞，皇家仪式感）
-	for x: int in range(25, 31): m[4][x] = 0   # 东入口（对齐东桥）
-	# 殿内侧廊列柱（紧贴东西墙，不堵中央通道）
+	# ── 铁王座大厅（rows 1-4）─────────────────────────────
+	for x: int in range(6, 30):
+		m[1][x] = 2
+		m[4][x] = 2
+	for y: int in range(1, 5):
+		m[y][6] = 2
+		m[y][29] = 2
+	for x: int in range(WEST_GATE_A, WEST_GATE_B + 1):
+		m[4][x] = 0
+	for x: int in range(MAIN_GATE_A, MAIN_GATE_B + 1):
+		m[4][x] = 0
+	for x: int in range(EAST_GATE_A, EAST_GATE_B + 1):
+		m[4][x] = 0
 	for y: int in range(2, 4):
-		m[y][6]    = 2; m[y][7]    = 2   # 西廊柱
-		m[y][W-7]  = 2; m[y][W-8]  = 2   # 东廊柱
-	# 铁王座格 (col 18, row 2) 周围完全开放，象征权力中枢
+		m[y][10] = 2
+		m[y][11] = 2
+		m[y][24] = 2
+		m[y][25] = 2
+	# 铁王座 (18,2) 附近保留完全可通行
+	for pos: Vector2i in [Vector2i(17, 2), Vector2i(18, 2), Vector2i(19, 2), Vector2i(18, 3)]:
+		m[pos.y][pos.x] = 0
 
-	# ── 红堡内院花园（rows 5-7）──────────────────────────
+	# ── 红堡内院（rows 5-7）───────────────────────────────
 	for y: int in range(5, 8):
-		for x: int in range(6, 14):  m[y][x] = 1   # 西花园
-		for x: int in range(22, 30): m[y][x] = 1   # 东花园
+		for x: int in range(7, 11):
+			m[y][x] = 1
+		for x: int in range(25, 29):
+			m[y][x] = 1
+	for pos: Vector2i in [
+		Vector2i(11, 5), Vector2i(24, 5),
+		Vector2i(11, 7), Vector2i(24, 7),
+		Vector2i(14, 6), Vector2i(22, 6),
+	]:
+		m[pos.y][pos.x] = 2
 
-	# ── 护城河（row 8，连续宽桥，无间隙）──────────────────
-	# 水域仅在两侧边缘（cols 2-4, 31-33），中央完全桥接
-	for x: int in range(2, W-2): m[8][x] = 4   # 全行水域
-	for x: int in range(5, 31):  m[8][x] = 6   # 宽桥（cols 5-30，无间隙完全可过）
+	# ── 红堡内护城河（row 8）─────────────────────────────
+	for x: int in range(1, W - 1):
+		m[8][x] = 4
+	for x: int in range(WEST_GATE_A, WEST_GATE_B + 1):
+		m[8][x] = 6
+	for x: int in range(MAIN_GATE_A, MAIN_GATE_B + 1):
+		m[8][x] = 6
+	for x: int in range(EAST_GATE_A, EAST_GATE_B + 1):
+		m[8][x] = 6
 
-	# ── 红堡外院（rows 9-10）角落塔楼 ─────────────────────
-	m[9][6]  = 2; m[9][29]  = 2
-	m[10][6] = 2; m[10][29] = 2
+	# ── 红堡外院（rows 9-10）──────────────────────────────
+	for pos: Vector2i in [
+		Vector2i(4, 9), Vector2i(5, 9), Vector2i(30, 9), Vector2i(31, 9),
+		Vector2i(5, 10), Vector2i(6, 10), Vector2i(29, 10), Vector2i(30, 10),
+		Vector2i(13, 10), Vector2i(23, 10),
+	]:
+		m[pos.y][pos.x] = 2
 
-	# ── 红堡外墙（row 11，中央开阔大门，两侧实墙）──────────
-	for x: int in range(2, W-2): m[11][x] = 2
-	for x: int in range(5, 31):  m[11][x] = 0   # 大门（cols 5-30，与桥对齐）
+	# ── 红堡外墙（row 11）────────────────────────────────
+	for x: int in range(1, W - 1):
+		m[11][x] = 2
+	for x: int in range(WEST_GATE_A, WEST_GATE_B + 1):
+		m[11][x] = 0
+	for x: int in range(MAIN_GATE_A, MAIN_GATE_B + 1):
+		m[11][x] = 0
+	for x: int in range(EAST_GATE_A, EAST_GATE_B + 1):
+		m[11][x] = 0
 
-	# row 12：兰军中立区（空地，单位由_setup_ch4放置）
+	# row 12：兰尼斯特中立军列阵区（保持开阔）
 
-	# ── 城市内城墙（row 13，中央开阔龙门，两侧实墙）────────
-	for x: int in range(2, W-2): m[13][x] = 2
-	for x: int in range(5, 31):  m[13][x] = 0   # 龙门（cols 5-30，直通无阻）
+	# ── 君临内城墙（row 13）──────────────────────────────
+	for x: int in range(1, W - 1):
+		m[13][x] = 2
+	for x: int in range(WEST_GATE_A, WEST_GATE_B + 1):
+		m[13][x] = 0
+	for x: int in range(MAIN_GATE_A, MAIN_GATE_B + 1):
+		m[13][x] = 0
+	for x: int in range(EAST_GATE_A, EAST_GATE_B + 1):
+		m[13][x] = 0
 
-	# ── 君临城街道（rows 14-18）建筑群 ───────────────────
-	# 建筑只放在两侧边缘，中央街道完全开阔供AI自由移动
-	# 西侧边缘建筑（cols 2-7）
-	for by: int in [14, 16]:
-		for bx: int in [2, 4]:
-			for dy: int in 2:
-				for dx: int in 2:
-					if bx+dx <= 7: m[by+dy][bx+dx] = 2
-	# 东侧边缘建筑（cols 28-33）
-	for by: int in [14, 16]:
-		for bx: int in [28, 31]:
-			for dy: int in 2:
-				for dx: int in 2:
-					if bx+dx < W-2: m[by+dy][bx+dx] = 2
-	# Flea Bottom 沼泽（西南角，不挡路）
-	for y: int in range(17, 20):
-		for x: int in range(2, 6): m[y][x] = 5
+	# ── 城内街区（rows 14-17）─────────────────────────────
+	for pos: Vector2i in [
+		# 西城区
+		Vector2i(3, 14), Vector2i(4, 14), Vector2i(6, 14), Vector2i(7, 14),
+		Vector2i(3, 15), Vector2i(4, 15), Vector2i(10, 15), Vector2i(11, 15),
+		Vector2i(4, 16), Vector2i(5, 16), Vector2i(7, 16), Vector2i(10, 16),
+		Vector2i(3, 17), Vector2i(4, 17), Vector2i(9, 17), Vector2i(10, 17),
+		# 东城区
+		Vector2i(28, 14), Vector2i(29, 14), Vector2i(31, 14), Vector2i(32, 14),
+		Vector2i(24, 15), Vector2i(25, 15), Vector2i(31, 15), Vector2i(32, 15),
+		Vector2i(25, 16), Vector2i(28, 16), Vector2i(30, 16), Vector2i(31, 16),
+		Vector2i(25, 17), Vector2i(26, 17), Vector2i(31, 17), Vector2i(32, 17),
+		# 城门塔楼
+		Vector2i(6, 17), Vector2i(11, 17), Vector2i(16, 17),
+		Vector2i(21, 17), Vector2i(26, 17), Vector2i(30, 17),
+	]:
+		m[pos.y][pos.x] = 2
+	for y: int in range(14, 17):
+		m[y][14] = 1
+		m[y][15] = 1
+		m[y][21] = 1
+		m[y][22] = 1
+	# 17~20 列保留中央大道，方便南北推进
 
-	# ── 黑水湾（row 19，连续宽桥，无间隙）──────────────────
-	for x: int in range(2, W-2): m[19][x] = 4   # 全行水域
-	for x: int in range(5, 31):  m[19][x] = 6   # 宽桥（cols 5-30，完全无水域间隔）
+	# ── 君临南城墙（row 18）──────────────────────────────
+	for x: int in range(1, W - 1):
+		m[18][x] = 2
+	for x: int in range(WEST_GATE_A, WEST_GATE_B + 1):
+		m[18][x] = 0
+	for x: int in range(MAIN_GATE_A, MAIN_GATE_B + 1):
+		m[18][x] = 0
+	for x: int in range(EAST_GATE_A, EAST_GATE_B + 1):
+		m[18][x] = 0
 
-	# ── 城南（rows 20-22）Sept花园（西北）────────────────
-	for y: int in range(20, 23):
-		for x: int in range(3, 8): m[y][x] = 1
-	# 南区建筑（散布，远离玩家出生格）
-	m[21][W-5] = 2; m[21][W-4] = 2
-	m[22][W-5] = 2
-	# rows 20-22 cols 8-28 保持 default 0（道路），供玩家出生
+	# ── 黑水河 / 外护城河（row 19）────────────────────────
+	for x: int in range(1, W - 1):
+		m[19][x] = 4
+	for x: int in range(WEST_GATE_A, WEST_GATE_B + 1):
+		m[19][x] = 6
+	for x: int in range(MAIN_GATE_A, MAIN_GATE_B + 1):
+		m[19][x] = 6
+	for x: int in range(EAST_GATE_A, EAST_GATE_B + 1):
+		m[19][x] = 6
+
+	# ── 城南集结区（rows 20-23）──────────────────────────
+	for pos: Vector2i in [
+		Vector2i(4, 20), Vector2i(5, 20), Vector2i(30, 20), Vector2i(31, 20),
+		Vector2i(3, 21), Vector2i(4, 21), Vector2i(5, 21),
+		Vector2i(30, 21), Vector2i(31, 21), Vector2i(32, 21),
+		Vector2i(4, 22), Vector2i(31, 22),
+	]:
+		m[pos.y][pos.x] = 2
+	for x: int in range(15, 22):
+		m[20][x] = 0
+		m[21][x] = 0
+		m[22][x] = 0
+		m[23][x] = 0
 
 # ══════════════════════════════════════════════════════════
 # 地形系统覆盖
@@ -570,8 +669,8 @@ func _on_unit_died(unit: Unit) -> void:
 func _trigger_ch2_rhaegar() -> void:
 	_battle_over = true
 	await _play_cutscene("res://data/cutscenes/ch2_rhaegar_fall.json")
-	_battle_over = false
-	_check_victory()
+	if not is_inside_tree(): return
+	await _on_won_ch2()
 
 func _trigger_ch3_tower() -> void:
 	_battle_over = true
@@ -736,6 +835,6 @@ func _make_unit_r(filename: String, team: int, pos: Vector2i) -> Unit:
 	var pf: String = UNIT_PORTRAIT_MAP.get(filename, "")
 	if pf != "":
 		var pp: String = SPRITE_PATH + pf
-		if ResourceLoader.exists(pp): unit.set_meta("portrait_path", pp)
+		if FileAccess.file_exists(pp): unit.set_meta("portrait_path", pp)
 	add_unit(unit)
 	return unit as Unit

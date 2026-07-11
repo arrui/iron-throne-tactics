@@ -95,7 +95,8 @@ func _show_debug_menu() -> void:
 			else:
 				var path: String = chapter_scene_map.get(ch_num, "") as String
 				if path != "" and ResourceLoader.exists(path):
-					get_tree().change_scene_to_file(path))
+					get_tree().change_scene_to_file(path)
+		)
 		vbox.add_child(btn)
 
 	# 清除存档按钮
@@ -111,7 +112,8 @@ func _show_debug_menu() -> void:
 		if ResourceLoader.exists(SAVE_SYS_PATH):
 			load(SAVE_SYS_PATH).delete_save()
 		canvas.queue_free()
-		_start_normal_flow())
+		_start_normal_flow()
+	)
 	vbox.add_child(clear_btn)
 
 # ── 正常游戏流程（检查存档 → 章节路由）────────────────────

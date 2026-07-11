@@ -118,12 +118,7 @@ func _ready() -> void:
 	_bind_ui()
 	_update_turn_label()
 	_update_danger_zone()
-	# 延迟隐藏PNG瓦片——改用程序化地形渲染（call_deferred确保Bootstrap先完成_paint_tilemap）
-	call_deferred("_hide_tilemap_png")
-
-func _hide_tilemap_png() -> void:
-	var tl := get_node_or_null("TileLayer/TileMapLayer") as TileMapLayer
-	if tl: tl.visible = false
+	# 统一后的地图完全依赖程序化地形渲染，已不再需要旧 TileMap 贴图层。
 
 var _cjk_font: Font = null
 
@@ -361,11 +356,13 @@ func _draw_terrain_bg() -> void:
 		for x: int in map_width:
 			var pos  := Vector2i(x, y)
 			var rect := Rect2(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
-			var col  := _terrain_draw_color(_get_terrain_type(pos))
+			var terrain := _get_terrain_type(pos)
+			var col  := _terrain_draw_color(terrain)
 			# 棋盘微变色——增加视觉深度
 			if (x + y) % 2 == 1:
 				col = col.darkened(0.07)
 			draw_rect(rect, col)
+			_draw_terrain_detail(rect, terrain, x, y)
 			draw_rect(rect, Color(0.0, 0.0, 0.0, 0.25), false, 1.0)  # 格线
 	# 地图边框（烛珀色）
 	draw_rect(Rect2(0, 0, map_width * TILE_SIZE, map_height * TILE_SIZE),
@@ -381,6 +378,208 @@ func _terrain_draw_color(terrain: int) -> Color:
 		TERRAIN_SWAMP:  return Color(0.12, 0.16, 0.08)  # 沼泽暗绿
 		TERRAIN_BRIDGE: return Color(0.30, 0.24, 0.16)  # 石桥
 		_:              return Color(0.16, 0.16, 0.14)
+
+func _draw_terrain_detail(rect: Rect2, terrain: int, x: int, y: int) -> void:
+	match terrain:
+		TERRAIN_PLAIN:
+			_draw_plain_detail(rect, x, y)
+		TERRAIN_FOREST:
+			_draw_forest_detail(rect, x, y)
+		TERRAIN_WALL:
+			_draw_wall_detail(rect, x, y)
+		TERRAIN_CLIFF:
+			_draw_cliff_detail(rect, x, y)
+		TERRAIN_RIVER:
+			_draw_river_detail(rect, x, y)
+		TERRAIN_SWAMP:
+			_draw_swamp_detail(rect, x, y)
+		TERRAIN_BRIDGE:
+			_draw_bridge_detail(rect, x, y)
+
+func _terrain_at_or_cliff(x: int, y: int) -> int:
+	if x < 0 or x >= map_width or y < 0 or y >= map_height:
+		return TERRAIN_CLIFF
+	return _get_terrain_type(Vector2i(x, y))
+
+func _adjacent_terrain_count(x: int, y: int, terrain: int) -> int:
+	var count := 0
+	for d: Vector2i in [Vector2i(1,0), Vector2i(-1,0), Vector2i(0,1), Vector2i(0,-1)]:
+		if _terrain_at_or_cliff(x + d.x, y + d.y) == terrain:
+			count += 1
+	return count
+
+func _bridge_runs_vertical(x: int, y: int) -> bool:
+	var side_river := 0
+	var vertical_river := 0
+	if _terrain_at_or_cliff(x - 1, y) == TERRAIN_RIVER:
+		side_river += 1
+	if _terrain_at_or_cliff(x + 1, y) == TERRAIN_RIVER:
+		side_river += 1
+	if _terrain_at_or_cliff(x, y - 1) == TERRAIN_RIVER:
+		vertical_river += 1
+	if _terrain_at_or_cliff(x, y + 1) == TERRAIN_RIVER:
+		vertical_river += 1
+	return side_river >= vertical_river
+
+func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
+	var wall_neighbors := _adjacent_terrain_count(x, y, TERRAIN_WALL)
+	var river_neighbors := _adjacent_terrain_count(x, y, TERRAIN_RIVER)
+	var swamp_neighbors := _adjacent_terrain_count(x, y, TERRAIN_SWAMP)
+	var bridge_neighbors := _adjacent_terrain_count(x, y, TERRAIN_BRIDGE)
+	var inset := 8.0
+	var inner := rect.grow(-inset)
+	var shade := 0.04 if (x + y) % 3 == 0 else 0.02
+	draw_rect(inner, Color(0.28, 0.25, 0.20, shade))
+	if wall_neighbors >= 2:
+		draw_rect(Rect2(rect.position.x + 6, rect.position.y + 6,
+			rect.size.x - 12, rect.size.y - 12), Color(0.42, 0.38, 0.32, 0.12))
+		for i: int in 3:
+			var yy := rect.position.y + 18 + i * 14
+			draw_line(Vector2(rect.position.x + 10, yy), Vector2(rect.position.x + rect.size.x - 10, yy),
+				Color(0.60, 0.56, 0.50, 0.12), 2.0, true)
+		for i: int in 2:
+			var xx := rect.position.x + 24 + i * 22
+			draw_line(Vector2(xx, rect.position.y + 10), Vector2(xx, rect.position.y + rect.size.y - 10),
+				Color(0.24, 0.22, 0.18, 0.10), 1.0, true)
+	elif river_neighbors + swamp_neighbors > 0:
+		draw_line(Vector2(rect.position.x + 10, rect.position.y + rect.size.y - 16),
+			Vector2(rect.position.x + rect.size.x - 10, rect.position.y + rect.size.y - 22),
+			Color(0.32, 0.26, 0.18, 0.22), 3.0, true)
+		for i: int in 3:
+			var rx := rect.position.x + 14 + i * 16 + float((x + i + y) % 5)
+			draw_line(Vector2(rx, rect.position.y + 48), Vector2(rx + 1, rect.position.y + 32),
+				Color(0.44, 0.46, 0.24, 0.30), 2.0, true)
+	elif (x + y) % 2 == 0:
+		draw_line(Vector2(rect.position.x + 12, rect.position.y + 18),
+			Vector2(rect.position.x + rect.size.x - 12, rect.position.y + rect.size.y - 18),
+			Color(0.42, 0.36, 0.28, 0.18), 2.0, true)
+	else:
+		draw_line(Vector2(rect.position.x + 16, rect.position.y + rect.size.y * 0.5),
+			Vector2(rect.position.x + rect.size.x - 16, rect.position.y + rect.size.y * 0.5),
+			Color(0.44, 0.38, 0.30, 0.15), 2.0, true)
+	if bridge_neighbors > 0 and wall_neighbors == 0:
+		draw_line(Vector2(rect.position.x + 12, rect.position.y + rect.size.y * 0.5),
+			Vector2(rect.position.x + rect.size.x - 12, rect.position.y + rect.size.y * 0.5),
+			Color(0.70, 0.60, 0.40, 0.10), 4.0, true)
+
+func _draw_forest_detail(rect: Rect2, x: int, y: int) -> void:
+	var tree_col := Color(0.16, 0.28, 0.14, 0.50)
+	var trunk_col := Color(0.20, 0.14, 0.08, 0.35)
+	draw_rect(Rect2(rect.position.x + 6, rect.position.y + 8, rect.size.x - 12, rect.size.y - 16),
+		Color(0.06, 0.10, 0.05, 0.20))
+	var centers := [
+		Vector2(rect.position.x + 20, rect.position.y + 22),
+		Vector2(rect.position.x + 38 + float((x + y) % 6), rect.position.y + 30),
+		Vector2(rect.position.x + 52, rect.position.y + 18 + float((x * 3 + y) % 10)),
+	]
+	for c: Vector2 in centers:
+		draw_circle(c, 10.0, tree_col)
+		draw_line(c + Vector2(0, 8), c + Vector2(0, 18), trunk_col, 2.0, true)
+
+func _draw_wall_detail(rect: Rect2, x: int, y: int) -> void:
+	var north_open := _terrain_at_or_cliff(x, y - 1) != TERRAIN_WALL
+	var south_open := _terrain_at_or_cliff(x, y + 1) != TERRAIN_WALL
+	var west_open := _terrain_at_or_cliff(x - 1, y) != TERRAIN_WALL
+	var east_open := _terrain_at_or_cliff(x + 1, y) != TERRAIN_WALL
+	var top_band := Rect2(rect.position.x + 4, rect.position.y + 6, rect.size.x - 8, 12)
+	var body := Rect2(rect.position.x + 4, rect.position.y + 18, rect.size.x - 8, rect.size.y - 24)
+	draw_rect(body, Color(0.38, 0.31, 0.19, 0.35))
+	draw_rect(top_band, Color(0.52, 0.44, 0.28, 0.45))
+	if north_open:
+		draw_line(Vector2(rect.position.x + 6, rect.position.y + 18), Vector2(rect.position.x + rect.size.x - 6, rect.position.y + 18),
+			Color(0.82, 0.76, 0.60, 0.22), 2.0, true)
+	if south_open:
+		draw_rect(Rect2(rect.position.x + 6, rect.position.y + rect.size.y - 12, rect.size.x - 12, 6),
+			Color(0.08, 0.06, 0.04, 0.28))
+	if west_open:
+		draw_rect(Rect2(rect.position.x + 4, rect.position.y + 20, 5, rect.size.y - 28),
+			Color(0.18, 0.14, 0.10, 0.22))
+	if east_open:
+		draw_rect(Rect2(rect.position.x + rect.size.x - 9, rect.position.y + 20, 5, rect.size.y - 28),
+			Color(0.10, 0.08, 0.06, 0.26))
+	for i: int in 4:
+		var bx := rect.position.x + 8 + i * 15
+		draw_rect(Rect2(bx, rect.position.y + 8, 8, 8), Color(0.62, 0.56, 0.40, 0.75))
+	for row_i: int in 2:
+		for col_i: int in 3:
+			var brick := Rect2(rect.position.x + 10 + col_i * 18 + float((row_i % 2) * 6), rect.position.y + 26 + row_i * 16, 14, 8)
+			draw_rect(brick, Color(0.62, 0.54, 0.38, 0.14))
+
+func _draw_cliff_detail(rect: Rect2, x: int, y: int) -> void:
+	var shade := Color(0.18, 0.18, 0.18, 0.35)
+	for i: int in 4:
+		var sx := rect.position.x + 10 + i * 14 + float((y + i) % 4)
+		draw_line(Vector2(sx, rect.position.y + 8), Vector2(sx - 6, rect.position.y + rect.size.y - 8), shade, 2.0, true)
+
+func _draw_river_detail(rect: Rect2, x: int, y: int) -> void:
+	var horizontal_flow := _adjacent_terrain_count(x, y, TERRAIN_RIVER) >= 1 and _bridge_runs_vertical(x, y)
+	if horizontal_flow:
+		for i: int in 3:
+			var yy := rect.position.y + 18 + i * 14 + float((x + i * 2) % 6)
+			draw_line(Vector2(rect.position.x + 8, yy), Vector2(rect.position.x + rect.size.x - 8, yy),
+				Color(0.34, 0.52, 0.86, 0.26), 2.0, true)
+	else:
+		for i: int in 3:
+			var xx := rect.position.x + 18 + i * 14 + float((y + i * 2) % 6)
+			draw_line(Vector2(xx, rect.position.y + 8), Vector2(xx, rect.position.y + rect.size.y - 8),
+				Color(0.34, 0.52, 0.86, 0.26), 2.0, true)
+	if _terrain_at_or_cliff(x, y - 1) != TERRAIN_RIVER and _terrain_at_or_cliff(x, y - 1) != TERRAIN_BRIDGE:
+		draw_line(Vector2(rect.position.x + 4, rect.position.y + 6), Vector2(rect.position.x + rect.size.x - 4, rect.position.y + 6),
+			Color(0.46, 0.36, 0.20, 0.24), 2.0, true)
+	if _terrain_at_or_cliff(x, y + 1) != TERRAIN_RIVER and _terrain_at_or_cliff(x, y + 1) != TERRAIN_BRIDGE:
+		draw_line(Vector2(rect.position.x + 4, rect.position.y + rect.size.y - 6), Vector2(rect.position.x + rect.size.x - 4, rect.position.y + rect.size.y - 6),
+			Color(0.18, 0.14, 0.08, 0.24), 2.0, true)
+	if _terrain_at_or_cliff(x - 1, y) != TERRAIN_RIVER and _terrain_at_or_cliff(x - 1, y) != TERRAIN_BRIDGE:
+		draw_line(Vector2(rect.position.x + 6, rect.position.y + 4), Vector2(rect.position.x + 6, rect.position.y + rect.size.y - 4),
+			Color(0.38, 0.30, 0.16, 0.18), 2.0, true)
+	if _terrain_at_or_cliff(x + 1, y) != TERRAIN_RIVER and _terrain_at_or_cliff(x + 1, y) != TERRAIN_BRIDGE:
+		draw_line(Vector2(rect.position.x + rect.size.x - 6, rect.position.y + 4), Vector2(rect.position.x + rect.size.x - 6, rect.position.y + rect.size.y - 4),
+			Color(0.16, 0.12, 0.08, 0.18), 2.0, true)
+	if (x + y) % 2 == 0:
+		draw_arc(rect.get_center(), 18.0, 0.2, 1.7, 10, Color(0.62, 0.74, 0.96, 0.14), 2.0, true)
+
+func _draw_swamp_detail(rect: Rect2, x: int, y: int) -> void:
+	var puddle := Color(0.24, 0.30, 0.16, 0.35)
+	_draw_ellipse(Rect2(rect.position.x + 10, rect.position.y + 16, 24, 16), puddle)
+	_draw_ellipse(Rect2(rect.position.x + 30, rect.position.y + 34, 26, 14), puddle.darkened(0.1))
+	for i: int in 3:
+		var rx := rect.position.x + 16 + i * 14 + float((x + y + i) % 4)
+		draw_line(Vector2(rx, rect.position.y + 46), Vector2(rx + 2, rect.position.y + 26),
+			Color(0.42, 0.50, 0.24, 0.30), 2.0, true)
+
+func _draw_bridge_detail(rect: Rect2, x: int, y: int) -> void:
+	var board_col := Color(0.56, 0.46, 0.30, 0.42)
+	var rail_col := Color(0.74, 0.64, 0.42, 0.34)
+	var vertical_bridge := _bridge_runs_vertical(x, y)
+	draw_rect(Rect2(rect.position.x + 6, rect.position.y + 6, rect.size.x - 12, rect.size.y - 12),
+		Color(0.16, 0.10, 0.06, 0.12))
+	if vertical_bridge:
+		for i: int in 4:
+			var yy := rect.position.y + 10 + i * 14
+			draw_line(Vector2(rect.position.x + 8, yy), Vector2(rect.position.x + rect.size.x - 8, yy), board_col, 3.0, true)
+		draw_line(Vector2(rect.position.x + 10, rect.position.y + 8), Vector2(rect.position.x + 10, rect.position.y + rect.size.y - 8), rail_col, 2.0, true)
+		draw_line(Vector2(rect.position.x + rect.size.x - 10, rect.position.y + 8), Vector2(rect.position.x + rect.size.x - 10, rect.position.y + rect.size.y - 8), rail_col, 2.0, true)
+	else:
+		for i: int in 4:
+			var xx := rect.position.x + 10 + i * 14
+			draw_line(Vector2(xx, rect.position.y + 8), Vector2(xx, rect.position.y + rect.size.y - 8), board_col, 3.0, true)
+		draw_line(Vector2(rect.position.x + 8, rect.position.y + 10), Vector2(rect.position.x + rect.size.x - 8, rect.position.y + 10), rail_col, 2.0, true)
+		draw_line(Vector2(rect.position.x + 8, rect.position.y + rect.size.y - 10), Vector2(rect.position.x + rect.size.x - 8, rect.position.y + rect.size.y - 10), rail_col, 2.0, true)
+
+func _draw_ellipse(rect: Rect2, color: Color) -> void:
+	var points := PackedVector2Array()
+	var colors := PackedColorArray()
+	var center := rect.get_center()
+	points.append(center)
+	colors.append(color)
+	for i: int in 24:
+		var angle := TAU * float(i) / 24.0
+		points.append(Vector2(
+			center.x + cos(angle) * rect.size.x * 0.5,
+			center.y + sin(angle) * rect.size.y * 0.5
+		))
+		colors.append(color)
+	draw_polygon(points, colors)
 
 # ── 高亮绘制（由 HighlightLayer 调用，保证在地形之上、单位之下）────
 
