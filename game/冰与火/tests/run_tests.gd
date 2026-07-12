@@ -388,15 +388,22 @@ func _test_map_integrity() -> void:
 			ch1_border_ok = false
 	_assert(ch1_border_ok, "Ch1 底边与左右边界为峭壁（顶部中央出口除外）")
 	_assert_eq(int(ch1[0][5]), 0, "Ch1 胜利格(5,0)可通行")
-	for pos: Vector2i in [Vector2i(3,6), Vector2i(5,6), Vector2i(2,2), Vector2i(5,1), Vector2i(7,2)]:
+	for pos: Vector2i in [Vector2i(3,6), Vector2i(5,6), Vector2i(4,3), Vector2i(5,1), Vector2i(7,3)]:
 		var t1: int = int(ch1[pos.y][pos.x])
 		_assert(t1 != 3 and t1 != 4, "Ch1 关键出生点(%d,%d)可通行（类型=%d）" % [pos.x, pos.y, t1])
 	var ch1_has_wall := false
+	var ch1_has_forest := false
 	for row: Array in ch1:
 		for cell: Variant in row:
 			if int(cell) == 2:
 				ch1_has_wall = true
+			if int(cell) == 1:
+				ch1_has_forest = true
 	_assert(ch1_has_wall, "Ch1 存在矮墙教学地形")
+	_assert(ch1_has_forest, "Ch1 存在林地掩护，符合山道突破语义")
+	for x: int in [3, 4, 5, 6, 7]:
+		_assert(int(ch1[1][x]) != 4, "Ch1 北侧封锁线 row1 列%d 不会误放入河流" % x)
+	_assert_eq(int(ch1[1][5]), 0, "Ch1 北侧主缺口中央保持畅通")
 
 	# ── Ch2：三叉戟（28×20）──────────────────────────────
 	_assert_eq(ch2.size(), 20, "Ch2 地图行数=20")
@@ -1269,6 +1276,9 @@ func _test_map_visual_language_spec() -> void:
 			"Ch1 语义回归：奈德到北侧目标存在可达路径")
 		_assert_eq(ch1._terrain_at_or_cliff(ch1.victory_pos.x, ch1.victory_pos.y), 0,
 			"Ch1 语义回归：胜利格保持为可通行主地面")
+	_assert_eq(ch1._terrain_at_or_cliff(5, 1), 0, "Ch1 语义回归：北侧主缺口前一格保持为通路")
+	_assert(ch1._terrain_at_or_cliff(3, 1) == 2 and ch1._terrain_at_or_cliff(7, 1) == 2,
+		"Ch1 语义回归：缺口两侧仍保留封锁墙体")
 	if is_instance_valid(ch1):
 		ch1.queue_free()
 	await process_frame

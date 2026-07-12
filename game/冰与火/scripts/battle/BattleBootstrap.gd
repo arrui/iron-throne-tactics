@@ -48,19 +48,18 @@ var _cutscene_node: CutscenePlayer = null
 # ── 地形图（各章节）──────────────────────────────────────
 # 0=平原 1=森林 2=矮墙 3=峭壁 4=河流 5=沼泽 6=桥梁
 
-# 序章一：10×8 教学关（对标FE7 Lyn线第1章）
-# 左下角（cols 0-3，rows 5-7）：玩家出生区（平原）
-# 中央：矮墙掩护
-# 右上区域（cols 8-9，rows 0-3）：皇家守卫驻守
-# 右上角格 (9,0)：胜利格（红堡正门）
+# 序章一：10×8 山道突破教学关
+# 南侧：奈德与霍兰从风暴地山道入口推进
+# 中部：碎石道 + 林地掩护 + 破损路障
+# 北侧：王军临时封锁线，中央缺口通往山道高地出口
 const TERRAIN_CH1: Array = [
-	[3, 3, 3, 3, 3, 0, 3, 3, 3, 3],  # row 0：北方边界，col5胜利格可通行，其余峭壁
-	[3, 0, 0, 0, 2, 0, 0, 0, 0, 3],  # row 1：中央矮墙，col5通道打开
-	[3, 0, 2, 0, 0, 0, 2, 0, 0, 3],  # row 2：两处矮墙
-	[3, 0, 0, 0, 0, 0, 0, 0, 0, 3],  # row 3：开阔地带
-	[3, 0, 0, 2, 0, 2, 0, 0, 0, 3],  # row 4：中央矮墙群
-	[3, 0, 0, 0, 0, 0, 0, 0, 0, 3],  # row 5：开阔地带
-	[3, 0, 0, 0, 0, 0, 0, 0, 0, 3],  # row 6：玩家出生区（南方）
+	[3, 3, 3, 3, 3, 0, 3, 3, 3, 3],  # row 0：北侧高地出口，中央缺口通往后军
+	[3, 3, 3, 2, 0, 0, 0, 2, 3, 3],  # row 1：王军临时封锁线，仅中轴三格可穿过
+	[3, 3, 1, 2, 0, 2, 0, 2, 1, 3],  # row 2：山道两侧灌木与木栅，逼出突破路线
+	[3, 1, 0, 0, 0, 0, 0, 0, 1, 3],  # row 3：山道口主交战区
+	[3, 0, 0, 2, 0, 2, 0, 0, 0, 3],  # row 4：破损路障与前沿掩体
+	[3, 0, 1, 0, 0, 0, 0, 1, 0, 3],  # row 5：南侧接敌前的低矮林地
+	[3, 0, 0, 0, 0, 0, 0, 0, 0, 3],  # row 6：玩家出生区（南方集结）
 	[3, 3, 3, 3, 3, 3, 3, 3, 3, 3],  # row 7：底部边界
 ]
 
@@ -165,17 +164,17 @@ func _ready() -> void:
 # ══════════════════════════════════════════════════════════
 func _setup_ch1() -> void:
 	map_width   = 10;  map_height = 8
-	victory_pos = Vector2i(5, 0)  # 中央北方胜利格（坐北朝南）
+	victory_pos = Vector2i(5, 0)  # 山道北侧缺口（为后军打开通路）
 	_apply_cam_limits()
 	super._ready()
 	_paint_from(TERRAIN_CH1)
 	# 玩家单位：奈德 + 霍兰德（南方出发）
 	_ned_unit = _make_unit_r("ned_stark.json",    0, Vector2i(3, 6))
 	_make_unit("howland_reed.json", 0, Vector2i(5, 6))
-	# 敌方：3名皇家卫兵（北方中央分布，弱化版适合教学）
-	var e1 := _make_unit_r("royal_soldier.json", 1, Vector2i(2, 2))
+	# 敌方：3名皇家卫兵（封锁山道的前锋、门卫与侧翼）
+	var e1 := _make_unit_r("royal_soldier.json", 1, Vector2i(4, 3))
 	var e2 := _make_unit_r("royal_soldier.json", 1, Vector2i(5, 1))
-	var e3 := _make_unit_r("royal_soldier.json", 1, Vector2i(7, 2))
+	var e3 := _make_unit_r("royal_soldier.json", 1, Vector2i(7, 3))
 	_override_enemy_stats(e1); _override_enemy_stats(e2); _override_enemy_stats(e3)
 	_ch1_enemies_spawned = true  # 标记已生成，供胜利检查使用
 	_redraw_all()
@@ -233,7 +232,7 @@ func _run_ch1_tutorial() -> void:
 
 	await _wait_for_turn_switched()
 	if not is_inside_tree(): return
-	_tutorial_mgr.show_step("⭐ 地图上的星形是胜利目标。引导单位到达那里。")
+	_tutorial_mgr.show_step("⭐ 北侧星形是山道缺口。突破封锁，把奈德带到那里。")
 
 	_check_ch1_victory_loop()
 
