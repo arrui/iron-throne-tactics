@@ -27,6 +27,9 @@
 | [05-narrative-structure.md](./05-narrative-structure.md) | 叙事结构：整体框架、双主线设计、全角色名单 |
 | [06-chapter-prologue-1-design.md](./06-chapter-prologue-1-design.md) | 序章·一《风暴地》完整设计文档 |
 | [07-future-works.md](./07-future-works.md) | 后续篇章与扩展方向 |
+| [08-prologue-vertical-slice-baseline.md](./08-prologue-vertical-slice-baseline.md) | 当前序章纵切片的有效设计基线 |
+| [09-prologue-baseline-delta-log.md](./09-prologue-baseline-delta-log.md) | 旧规划 / 创意稿 与当前实现的差异清单 |
+| [10-prologue-acceptance-checklist.md](./10-prologue-acceptance-checklist.md) | 序章纵切片的验收清单、优先级与执行计划 |
 | [GDD-prologue-v2.md](./GDD-prologue-v2.md) | 序章重设计稿 / 创意设计文档 |
 
 ### 2. 可运行游戏项目（主开发入口）
