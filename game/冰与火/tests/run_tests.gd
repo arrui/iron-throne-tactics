@@ -452,15 +452,22 @@ func _test_map_integrity() -> void:
 		if ch3[y][0] != 3 or ch3[y][23] != 3:
 			ch3_border_ok = false
 	_assert(ch3_border_ok, "Ch3 四周边界为峭壁")
-	for pos: Vector2i in [Vector2i(12,15), Vector2i(11,16), Vector2i(12,6), Vector2i(7,8), Vector2i(16,8), Vector2i(12,2)]:
+	for pos: Vector2i in [Vector2i(12,15), Vector2i(11,16), Vector2i(12,6), Vector2i(7,9), Vector2i(16,9), Vector2i(12,2)]:
 		var t3: int = int(ch3[pos.y][pos.x])
 		_assert(t3 != 3 and t3 != 4, "Ch3 关键格(%d,%d)可通行（类型=%d）" % [pos.x, pos.y, t3])
 	var ch3_has_swamp := false
+	var ch3_has_forest := false
 	for row3: Array in ch3:
 		for cell3: Variant in row3:
 			if int(cell3) == 5:
 				ch3_has_swamp = true
+			if int(cell3) == 1:
+				ch3_has_forest = true
 	_assert(ch3_has_swamp, "Ch3 存在沼泽地形")
+	_assert(ch3_has_forest, "Ch3 存在塔前灌木/林地掩体")
+	_assert_eq(int(ch3[4][11]), 2, "Ch3 塔前左侧门墙仍存在")
+	_assert_eq(int(ch3[4][12]), 2, "Ch3 塔前右侧门墙仍存在")
+	_assert_eq(int(ch3[5][12]), 0, "Ch3 塔前中轴门道保持可推进")
 
 func _test_ch4_map_redesign() -> void:
 	var ch4_bootstrap := BootstrapClass.new()
@@ -1312,9 +1319,14 @@ func _test_map_visual_language_spec() -> void:
 	if ch3._ned_unit != null:
 		_assert(_path_exists_on_passable_grid(ch3, ch3._ned_unit.grid_pos, ch3.victory_pos),
 			"Ch3 语义回归：奈德到塔楼目标存在可达路径")
+	_assert_eq(ch3._terrain_at_or_cliff(12, 8), 0, "Ch3 语义回归：塔前中轴接敌格保持通路")
+	_assert(ch3._terrain_at_or_cliff(10, 8) == 0 or ch3._terrain_at_or_cliff(14, 8) == 0,
+		"Ch3 语义回归：塔前至少保留一侧绕行空间")
 	if ch3._dayne_unit != null:
 		_assert(ch3._dayne_unit.grid_pos.y > ch3.victory_pos.y,
 			"Ch3 语义回归：亚瑟·戴恩位于塔目标南侧门神位")
+		_assert_eq(ch3._dayne_unit.grid_pos, Vector2i(12, 6),
+			"Ch3 语义回归：亚瑟·戴恩保持中轴堵门")
 	if is_instance_valid(ch3):
 		ch3.queue_free()
 	await process_frame
