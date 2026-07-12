@@ -440,6 +440,12 @@ func _test_map_integrity() -> void:
 			if int(cell2) == 5:
 				ch2_has_swamp = true
 	_assert(ch2_has_swamp, "Ch2 南岸存在泥泞/沼泽战场")
+	_assert_eq(int(ch2[7][13]), 6, "Ch2 中桥北桥头保持桥梁")
+	_assert_eq(int(ch2[7][14]), 6, "Ch2 中桥北桥心保持桥梁")
+	_assert_eq(int(ch2[7][12]), 2, "Ch2 中桥左侧北岸营垒存在")
+	_assert_eq(int(ch2[7][15]), 2, "Ch2 中桥右侧北岸营垒存在")
+	_assert_eq(int(ch2[1][13]), 2, "Ch2 北岸中央第一道阵地存在")
+	_assert_eq(int(ch2[1][14]), 2, "Ch2 北岸中央第二道阵地存在")
 
 	# ── Ch3：极乐塔（24×18）──────────────────────────────
 	_assert_eq(ch3.size(), 18, "Ch3 地图行数=18")
@@ -1305,6 +1311,11 @@ func _test_map_visual_language_spec() -> void:
 		_assert(left_river or right_river,
 			"Ch2 语义回归：桥位 %s 邻接河道" % str(pos))
 	_assert_eq(ch2._terrain_at_or_cliff(14, 17), 0, "Ch2 语义回归：玩家主将出生点位于南岸陆地")
+	_assert(_path_exists_on_passable_grid(ch2, Vector2i(14, 17), Vector2i(14, 3)),
+		"Ch2 语义回归：中轴主将到雷加主阵地存在连续推进路径")
+	_assert(ch2._terrain_at_or_cliff(12, 7) == 2 and ch2._terrain_at_or_cliff(15, 7) == 2,
+		"Ch2 语义回归：中桥北桥头两侧营垒仍在，形成主决战桥头")
+	_assert_eq(ch2._terrain_at_or_cliff(13, 7), 6, "Ch2 语义回归：中桥北桥头桥面保持完整")
 	if is_instance_valid(ch2):
 		ch2.queue_free()
 	await process_frame
