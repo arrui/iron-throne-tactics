@@ -61,6 +61,7 @@ func _run_all_tests() -> void:
 	await _run_suite("回合结束防重入", _test_turn_ending_guard)
 	await _run_suite("地形图块坐标合法性", _test_tile_atlas_coords)
 	await _run_suite("地图视觉风格统一回归", _test_visual_style_unification)
+	await _run_suite("地图语义规范回归", _test_map_visual_language_spec)
 	await _run_suite("人物立绘资源完整性", _test_portrait_assets)
 	await _run_suite("对话立绘映射完整性", _test_dialogue_portrait_mapping)
 	await _run_suite("字体初始化方法存在", _test_font_setup)
@@ -97,6 +98,42 @@ func _assert_eq(a: Variant, b: Variant, msg: String) -> void:
 		_fail_count += 1
 		print("  ✗ FAIL: %s  期望=%s  实际=%s  [suite: %s]" % [
 			msg, str(b), str(a), _current_suite])
+
+func _read_repo_root_text(path_from_repo_root: String) -> String:
+	var abs_path := ProjectSettings.globalize_path("res://../../" + path_from_repo_root)
+	if not FileAccess.file_exists(abs_path):
+		return ""
+	var f := FileAccess.open(abs_path, FileAccess.READ)
+	if f == null:
+		return ""
+	var text := f.get_as_text()
+	f.close()
+	return text
+
+func _path_exists_on_passable_grid(battle: Node, start: Vector2i, goal: Vector2i) -> bool:
+	if start == goal:
+		return true
+	var visited: Dictionary = {}
+	var queue: Array[Vector2i] = []
+	queue.append(start)
+	visited[start] = true
+	while not queue.is_empty():
+		var pos: Vector2i = queue.pop_front()
+		for d: Vector2i in [Vector2i(1,0), Vector2i(-1,0), Vector2i(0,1), Vector2i(0,-1)]:
+			var npos: Vector2i = pos + d
+			if visited.has(npos):
+				continue
+			if not battle.is_passable(npos):
+				continue
+			if npos == goal:
+				return true
+			visited[npos] = true
+			queue.append(npos)
+	return false
+
+func _bridge_span_has_river_flanks(battle: Node, y: int, left_bridge_x: int, right_bridge_x: int) -> bool:
+	return battle._terrain_at_or_cliff(left_bridge_x - 1, y) == 4 \
+		and battle._terrain_at_or_cliff(right_bridge_x + 1, y) == 4
 
 # ── 辅助：创建测试用 UnitData ─────────────────────────────
 func _make_unit_data(overrides: Dictionary = {}) -> UnitData:
@@ -1214,6 +1251,88 @@ func _test_visual_style_unification() -> void:
 		if is_instance_valid(battle):
 			battle.queue_free()
 		await process_frame
+
+func _test_map_visual_language_spec() -> void:
+	var spec_src := _read_repo_root_text("11-map-visual-language-spec-v1.md")
+	_assert(spec_src.length() > 0, "地图视觉语言规范文档存在")
+	_assert(spec_src.contains("桥邻接河流"), "规范文档包含桥梁与河流的功能红线")
+	_assert(spec_src.contains("关键地图存在从出生点到目标的可达路径"), "规范文档包含关键路径可达性要求")
+
+	# Ch1：出生区到胜利格必须存在一条有效路径
+	GameState.current_chapter = 1
+	var ch1 := TestBootstrapClass.new()
+	root.add_child(ch1)
+	await process_frame
+	_assert(ch1._ned_unit != null, "Ch1 语义回归：奈德存在")
+	if ch1._ned_unit != null:
+		_assert(_path_exists_on_passable_grid(ch1, ch1._ned_unit.grid_pos, ch1.victory_pos),
+			"Ch1 语义回归：奈德到北侧目标存在可达路径")
+		_assert_eq(ch1._terrain_at_or_cliff(ch1.victory_pos.x, ch1.victory_pos.y), 0,
+			"Ch1 语义回归：胜利格保持为可通行主地面")
+	if is_instance_valid(ch1):
+		ch1.queue_free()
+	await process_frame
+
+	# Ch2：桥必须邻接河流，且三桥构成跨河通路
+	GameState.current_chapter = 2
+	var ch2 := TestBootstrapClass.new()
+	root.add_child(ch2)
+	await process_frame
+	for pos: Vector2i in [
+		Vector2i(7, 8), Vector2i(8, 8),
+		Vector2i(14, 8), Vector2i(15, 8),
+		Vector2i(21, 8), Vector2i(22, 8),
+	]:
+		var left_river := ch2._terrain_at_or_cliff(pos.x - 1, pos.y) == 4 or ch2._terrain_at_or_cliff(pos.x - 1, pos.y) == 6
+		var right_river := ch2._terrain_at_or_cliff(pos.x + 1, pos.y) == 4 or ch2._terrain_at_or_cliff(pos.x + 1, pos.y) == 6
+		_assert(left_river or right_river,
+			"Ch2 语义回归：桥位 %s 邻接河道" % str(pos))
+	_assert_eq(ch2._terrain_at_or_cliff(14, 17), 0, "Ch2 语义回归：玩家主将出生点位于南岸陆地")
+	if is_instance_valid(ch2):
+		ch2.queue_free()
+	await process_frame
+
+	# Ch3：奈德到塔楼目标必须存在可达路径，且门神位保持在主轴前方
+	GameState.current_chapter = 3
+	var ch3 := TestBootstrapClass.new()
+	root.add_child(ch3)
+	await process_frame
+	_assert(ch3._ned_unit != null, "Ch3 语义回归：奈德存在")
+	_assert(ch3._dayne_unit != null, "Ch3 语义回归：亚瑟·戴恩存在")
+	if ch3._ned_unit != null:
+		_assert(_path_exists_on_passable_grid(ch3, ch3._ned_unit.grid_pos, ch3.victory_pos),
+			"Ch3 语义回归：奈德到塔楼目标存在可达路径")
+	if ch3._dayne_unit != null:
+		_assert(ch3._dayne_unit.grid_pos.y > ch3.victory_pos.y,
+			"Ch3 语义回归：亚瑟·戴恩位于塔目标南侧门神位")
+	if is_instance_valid(ch3):
+		ch3.queue_free()
+	await process_frame
+
+	# Ch4：部署区在陆地，目标铁王座在主中轴，关键桥位邻接河流
+	GameState.current_chapter = 4
+	GameState.deploy_selection = ["ned_stark.json", "northern_knight.json"]
+	var ch4 := TestBootstrapClass.new()
+	root.add_child(ch4)
+	await process_frame
+	for spawn: Vector2i in [
+		Vector2i(18,22), Vector2i(15,22), Vector2i(21,22),
+		Vector2i(12,23), Vector2i(18,23), Vector2i(24,23),
+	]:
+		_assert_eq(ch4._terrain_at_or_cliff(spawn.x, spawn.y), 0,
+			"Ch4 语义回归：部署格 %s 为陆地" % str(spawn))
+	_assert_eq(ch4._terrain_at_or_cliff(18, 2), 0, "Ch4 语义回归：铁王座目标格为陆地")
+	for bridge_pos: Vector2i in [Vector2i(18, 8), Vector2i(18, 19)]:
+		_assert(_bridge_span_has_river_flanks(ch4, bridge_pos.y, 17, 20),
+			"Ch4 语义回归：主桥 %s 两侧与河流衔接" % str(bridge_pos))
+	_assert(_path_exists_on_passable_grid(ch4, Vector2i(18, 22), ch4.victory_pos),
+		"Ch4 语义回归：中轴部署区到铁王座存在连续可达路径")
+	_assert_eq(ch4._terrain_at_or_cliff(18, 11), 0, "Ch4 语义回归：红堡外墙主门保持通路")
+	_assert_eq(ch4._terrain_at_or_cliff(18, 13), 0, "Ch4 语义回归：内城墙主门保持通路")
+	_assert_eq(ch4._terrain_at_or_cliff(18, 18), 0, "Ch4 语义回归：南城墙主门保持通路")
+	if is_instance_valid(ch4):
+		ch4.queue_free()
+	await process_frame
 
 func _test_portrait_assets() -> void:
 	var portrait_map: Dictionary = BootstrapClass.UNIT_PORTRAIT_MAP
