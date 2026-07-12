@@ -46,6 +46,7 @@ func _run_all_tests() -> void:
 	await _run_suite("Ch4 君临城地图重设计回归", _test_ch4_map_redesign)
 	await _run_suite("EnemyAI 距离计算", _test_enemy_ai_distance)
 	await _run_suite("对话 JSON 文件加载", _test_dialogue_json)
+	await _run_suite("Ch1 叙事基线一致性", _test_ch1_narrative_baseline)
 	await _run_suite("过场动画 JSON 加载", _test_cutscene_json)
 	await _run_suite("战斗预测全流程", _test_battle_predict_full)
 	await _run_suite("Unit 状态机（含 undo_move）", _test_unit_state_machine)
@@ -555,6 +556,49 @@ func _test_dialogue_json() -> void:
 			var last: Dictionary = lines[-1] as Dictionary
 			var next_val: int = last.get("next", -1)
 			_assert(next_val == -1, "最后一行next=-1（对话结束）：" + path.get_file())
+
+# ══════════════════════════════════════════════════════════
+# 测试套件 8.5：Ch1 叙事基线一致性
+# 目的：防止 Ch1 又回退到“奈德赴任君临首辅”的旧语境
+# ══════════════════════════════════════════════════════════
+func _test_ch1_narrative_baseline() -> void:
+	var pre_path := "res://data/dialogues/prologue_1_pre.json"
+	var post_path := "res://data/dialogues/prologue_1_post.json"
+	var opening_path := "res://data/cutscenes/prologue_uprising.json"
+
+	var pre_parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(pre_path))
+	var post_parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(post_path))
+	var opening_parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(opening_path))
+
+	_assert(pre_parsed is Dictionary, "Ch1 战前对话可解析")
+	_assert(post_parsed is Dictionary, "Ch1 战后对话可解析")
+	_assert(opening_parsed is Dictionary, "Ch1 起义过场可解析")
+	if not (pre_parsed is Dictionary and post_parsed is Dictionary and opening_parsed is Dictionary):
+		return
+
+	var pre_text := FileAccess.get_file_as_string(pre_path)
+	var post_text := FileAccess.get_file_as_string(post_path)
+	var uprising_text := FileAccess.get_file_as_string(opening_path)
+	var uprising_slides: Array = (opening_parsed as Dictionary).get("slides", [])
+	var uprising_joined := ""
+	for slide: Variant in uprising_slides:
+		if slide is Dictionary:
+			uprising_joined += String((slide as Dictionary).get("text", "")) + "\n"
+			uprising_joined += String((slide as Dictionary).get("subtext", "")) + "\n"
+
+	for forbidden: String in ["王国首辅", "持令牌者方可入城", "没有令牌", "君临城，王国的心脏"]:
+		_assert(not (forbidden in pre_text), "Ch1 战前对话已移除旧君临语境：%s" % forbidden)
+
+	for required: String in ["风暴地边境", "篡夺者战争，第一年", "劳勃", "王军", "山道"]:
+		_assert(required in pre_text, "Ch1 战前对话包含战争教学关语境：%s" % required)
+
+	for required_post: String in ["父亲和布兰登", "第一仗", "劳勃"]:
+		_assert(required_post in post_text, "Ch1 战后对话延续起义语境：%s" % required_post)
+
+	_assert("风暴地" in uprising_joined and "篡夺者战争，第一年" in uprising_joined,
+		"Ch1 起义过场仍明确为风暴地战争开端")
+	_assert("劳勃·拜拉席恩" in uprising_text,
+		"Ch1 起义过场仍保留劳勃主语境")
 
 # ══════════════════════════════════════════════════════════
 # 测试套件 9：过场动画 JSON 加载
