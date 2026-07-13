@@ -1295,6 +1295,7 @@ func _test_map_visual_language_spec() -> void:
 	_assert("南城墙" in Ch4BattleBriefClass.STAGE_2_GUIDANCE, "Ch4 作战简报第二阶段文案锁定南城墙")
 	_assert("中央大道" in Ch4BattleBriefClass.STAGE_3_GUIDANCE, "Ch4 作战简报第三阶段文案锁定中央大道")
 	_assert("红堡内院" in Ch4BattleBriefClass.STAGE_4_GUIDANCE, "Ch4 作战简报第四阶段文案锁定红堡内院")
+	_assert("铁王座" in Ch4BattleBriefClass.THRONE_SECURED_STATUS, "Ch4 作战简报结局文案锁定铁王座")
 
 	# Ch1：出生区到胜利格必须存在一条有效路径
 	GameState.current_chapter = 1
@@ -1849,10 +1850,12 @@ func _test_chapter_event_flow() -> void:
 		"Ch4 指挥官死亡后出现归降道路反馈")
 	_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("战局：") and "兰尼斯特军已归降" in msg),
 		"Ch4 兰军归降反馈采用战局前缀")
+	_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg == "战局：" + Ch4BattleBriefClass.THRONE_SECURED_STATUS),
+		"Ch4 最终结局前会给出铁王座落幕反馈")
 	var ch4_objective_event := ch4.get_node_or_null("UI/ObjectiveLabel") as Label
 	if ch4_objective_event != null:
-		_assert("兰尼斯特军已归降" in ch4_objective_event.text,
-			"Ch4 事件回归：长期目标标签会更新为归降战局")
+		_assert("铁王座" in ch4_objective_event.text,
+			"Ch4 事件回归：长期目标标签最终更新为铁王座落幕反馈")
 	var ch4_phase_event := ch4.get_node_or_null("UI/PhaseLabel") as Label
 	if ch4_phase_event != null:
 		_assert_eq(ch4_phase_event.text, Ch4BattleBriefClass.get_stage_badge(4),

@@ -808,6 +808,10 @@ func _trigger_ch4_throne() -> void:
 	_battle_over = true
 	_hide_all_panels()
 	if _end_turn_btn: _end_turn_btn.disabled = true
+	_set_phase_badge(Ch4BattleBrief.get_stage_badge(4))
+	_set_battle_status(Ch4BattleBrief.THRONE_SECURED_STATUS)
+	await get_tree().create_timer(0.25).timeout
+	if not is_inside_tree(): return
 	# 詹姆对话：仅在尚未通过 (25,12) 触发过时才播放，避免重复
 	if not _jaime_triggered:
 		_jaime_triggered = true
