@@ -853,6 +853,7 @@ func _do_move_animated(unit: Unit, target: Vector2i) -> void:
 		_set_status("%s 已移动  [%s]" % [unit.data.name, t_name])
 	else:
 		_show_action_menu(target, true)
+	_on_player_unit_action_position_updated(unit)
 
 # ── 输入 ─────────────────────────────────────────────────
 func _input(event: InputEvent) -> void:
@@ -1477,6 +1478,9 @@ func _update_turn_label() -> void:
 
 func _set_status(msg: String) -> void:
 	if _status_label: _status_label.text = msg
+
+func _on_player_unit_action_position_updated(_unit: Unit) -> void:
+	pass
 
 func _set_terrain_info(msg: String) -> void:
 	if _terrain_label: _terrain_label.text = msg

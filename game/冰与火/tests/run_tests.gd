@@ -1294,6 +1294,11 @@ func _test_map_visual_language_spec() -> void:
 		"Ch1 语义回归：缺口两侧仍保留封锁墙体")
 	_assert(ch1.recorded_statuses.any(func(msg: String) -> bool: return "突破山道封锁" in msg and "奈德" in msg),
 		"Ch1 语义回归：开场状态提示明确山道突破目标")
+	var ch1_turn_before: int = ch1._turn_count
+	ch1.call_deferred("set", "_turn_count", ch1_turn_before + 1)
+	await ch1._wait_for_turn_switched()
+	_assert(ch1.recorded_statuses.any(func(msg: String) -> bool: return "敌军开始应对山道缺口" in msg),
+		"Ch1 语义回归：教学结束后出现中途推进提示")
 	if is_instance_valid(ch1):
 		ch1.queue_free()
 	await process_frame
@@ -1320,6 +1325,16 @@ func _test_map_visual_language_spec() -> void:
 	_assert_eq(ch2._terrain_at_or_cliff(13, 7), 6, "Ch2 语义回归：中桥北桥头桥面保持完整")
 	_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return "争夺三桥" in msg and "雷加" in msg),
 		"Ch2 语义回归：开场状态提示明确三桥与雷加目标")
+	if ch2.player_units.size() > 0:
+		var ch2_lead: Unit = ch2.player_units[0]
+		ch2_lead.grid_pos = Vector2i(14, 9)
+		ch2._on_player_unit_action_position_updated(ch2_lead)
+		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return "踏上中桥" in msg),
+			"Ch2 语义回归：推进到中桥时出现主攻轴提示")
+		ch2_lead.grid_pos = Vector2i(14, 7)
+		ch2._on_player_unit_action_position_updated(ch2_lead)
+		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return "抢上北岸桥头" in msg),
+			"Ch2 语义回归：冲上北岸后出现压向雷加提示")
 	if is_instance_valid(ch2):
 		ch2.queue_free()
 	await process_frame
@@ -1344,6 +1359,11 @@ func _test_map_visual_language_spec() -> void:
 			"Ch3 语义回归：亚瑟·戴恩保持中轴堵门")
 	_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return "欢乐塔" in msg and "不必全歼" in msg),
 		"Ch3 语义回归：开场状态提示明确到塔目标而非全歼")
+	if ch3._ned_unit != null:
+		ch3._ned_unit.grid_pos = Vector2i(12, 9)
+		ch3._on_player_unit_action_position_updated(ch3._ned_unit)
+		_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return "目标是进塔" in msg),
+			"Ch3 语义回归：奈德逼近塔前后继续强调到塔目标")
 	if is_instance_valid(ch3):
 		ch3.queue_free()
 	await process_frame
@@ -1371,6 +1391,15 @@ func _test_map_visual_language_spec() -> void:
 	_assert_eq(ch4._terrain_at_or_cliff(18, 18), 0, "Ch4 语义回归：南城墙主门保持通路")
 	_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return "中轴" in msg and "王军指挥官" in msg),
 		"Ch4 语义回归：开场状态提示明确中轴推进与指挥官目标")
+	if ch4._ned_unit != null:
+		ch4._ned_unit.grid_pos = Vector2i(18, 18)
+		ch4._on_player_unit_action_position_updated(ch4._ned_unit)
+		_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return "突破南城墙" in msg),
+			"Ch4 语义回归：穿过南城墙后出现中央大道推进提示")
+		ch4._ned_unit.grid_pos = Vector2i(18, 11)
+		ch4._on_player_unit_action_position_updated(ch4._ned_unit)
+		_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return "攻入红堡外院" in msg),
+			"Ch4 语义回归：攻入红堡外院后出现指挥官定位提示")
 	if is_instance_valid(ch4):
 		ch4.queue_free()
 	await process_frame
@@ -1535,6 +1564,8 @@ func _test_chapter_event_flow() -> void:
 		await process_frame
 		await process_frame
 		_assert(ch2._rhaegar_death_done, "Ch2 雷加死亡标记已置位")
+		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return "雷加倒下了" in msg),
+			"Ch2 雷加死亡后出现桥头崩溃反馈")
 		_assert(ch2.recorded_cutscenes.has("res://data/cutscenes/ch2_rhaegar_fall.json"),
 			"Ch2 雷加死亡触发过场")
 		_assert(ch2.recorded_cutscenes.has("res://data/cutscenes/ch2_split.json"),
@@ -1559,6 +1590,8 @@ func _test_chapter_event_flow() -> void:
 	await process_frame
 	await process_frame
 	await process_frame
+	_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return "奈德已抵达欢乐塔" in msg),
+		"Ch3 抵达塔门后出现关键节点反馈")
 	_assert(ch3.recorded_cutscenes.has("res://data/cutscenes/ch3_dayne_trigger.json"),
 		"Ch3 触发霍兰刺杀戴恩过场")
 	_assert(ch3.recorded_cutscenes.has("res://data/cutscenes/ch3_lyanna.json"),
@@ -1589,6 +1622,8 @@ func _test_chapter_event_flow() -> void:
 	_assert_eq(ch4._lannister_units.size(), 0, "Ch4 指挥官死亡后兰军被移除")
 	_assert(ch4.recorded_dialogues.has("res://data/dialogues/ch4_lannister_join.json"),
 		"Ch4 指挥官死亡触发兰军归降对话")
+	_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return "兰尼斯特军已归降" in msg),
+		"Ch4 指挥官死亡后出现归降道路反馈")
 	_assert(ch4.recorded_dialogues.has("res://data/dialogues/ch4_post.json"),
 		"Ch4 最终结局对话触发")
 	_assert(ch4.recorded_cutscenes.has("res://data/cutscenes/ch4_ending.json"),
