@@ -1348,20 +1348,26 @@ func _test_map_visual_language_spec() -> void:
 	if ch1_objective != null:
 		_assert_eq(ch1_objective.text, PrologueChapterBriefsClass.CH1_OBJECTIVE_SUMMARY,
 			"Ch1 语义回归：长期目标标签显示统一后的山道口目标")
+	var ch1_phase_opening := ch1.get_node_or_null("UI/PhaseLabel") as Label
+	_assert(ch1_phase_opening != null, "Ch1 语义回归：开场存在阶段标签")
+	if ch1_phase_opening != null:
+		_assert_eq(ch1_phase_opening.text, PrologueChapterBriefsClass.get_progress_stage_badge(1, 1),
+			"Ch1 语义回归：开场阶段标签锁定山道缺口")
+	var ch1_guidance_opening := ch1.get_node_or_null("UI/GuidanceLabel") as Label
+	_assert(ch1_guidance_opening != null, "Ch1 语义回归：开场存在长期推进标签")
+	if ch1_guidance_opening != null:
+		_assert_eq(ch1_guidance_opening.text, "推进：" + PrologueChapterBriefsClass.CH1_PROGRESS_MIDWAY,
+			"Ch1 语义回归：开场长期推进标签与第一阶段一致")
 	var ch1_turn_before: int = ch1._turn_count
 	ch1.call_deferred("set", "_turn_count", ch1_turn_before + 1)
 	await ch1._wait_for_turn_switched()
 	_assert(ch1.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + PrologueChapterBriefsClass.CH1_PROGRESS_MIDWAY),
 		"Ch1 语义回归：教学结束后使用统一中途推进提示")
-	var ch1_phase := ch1.get_node_or_null("UI/PhaseLabel") as Label
-	_assert(ch1_phase != null, "Ch1 语义回归：存在阶段标签")
-	if ch1_phase != null:
-		_assert_eq(ch1_phase.text, PrologueChapterBriefsClass.get_progress_stage_badge(1, 1),
+	if ch1_phase_opening != null:
+		_assert_eq(ch1_phase_opening.text, PrologueChapterBriefsClass.get_progress_stage_badge(1, 1),
 			"Ch1 语义回归：教学结束后阶段标签锁定山道缺口")
-	var ch1_guidance := ch1.get_node_or_null("UI/GuidanceLabel") as Label
-	_assert(ch1_guidance != null, "Ch1 语义回归：存在长期推进标签")
-	if ch1_guidance != null:
-		_assert_eq(ch1_guidance.text, "推进：" + PrologueChapterBriefsClass.CH1_PROGRESS_MIDWAY,
+	if ch1_guidance_opening != null:
+		_assert_eq(ch1_guidance_opening.text, "推进：" + PrologueChapterBriefsClass.CH1_PROGRESS_MIDWAY,
 			"Ch1 语义回归：长期推进标签显示统一后的山道推进提示")
 	if is_instance_valid(ch1):
 		ch1.queue_free()
@@ -1398,35 +1404,41 @@ func _test_map_visual_language_spec() -> void:
 	if ch2_objective != null:
 		_assert("争夺三桥" in ch2_objective.text,
 			"Ch2 语义回归：长期目标标签显示三桥主目标")
+	var ch2_phase_opening := ch2.get_node_or_null("UI/PhaseLabel") as Label
+	_assert(ch2_phase_opening != null, "Ch2 语义回归：开场存在阶段标签")
+	if ch2_phase_opening != null:
+		_assert_eq(ch2_phase_opening.text, PrologueChapterBriefsClass.get_progress_stage_badge(2, 1),
+			"Ch2 语义回归：开场阶段标签锁定第一阶段")
+	var ch2_guidance_opening := ch2.get_node_or_null("UI/GuidanceLabel") as Label
+	_assert(ch2_guidance_opening != null, "Ch2 语义回归：开场存在长期推进标签")
+	if ch2_guidance_opening != null:
+		_assert_eq(ch2_guidance_opening.text, "推进：" + PrologueChapterBriefsClass.CH2_PROGRESS_SOUTH_BANK,
+			"Ch2 语义回归：开场长期推进标签与第一阶段一致")
 	if ch2.player_units.size() > 0:
 		var ch2_lead: Unit = ch2.player_units[0]
-		var ch2_phase := ch2.get_node_or_null("UI/PhaseLabel") as Label
-		_assert(ch2_phase != null, "Ch2 语义回归：存在阶段标签")
 		ch2_lead.grid_pos = Vector2i(14, 12)
 		ch2._on_player_unit_action_position_updated(ch2_lead)
 		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + PrologueChapterBriefsClass.CH2_PROGRESS_SOUTH_BANK),
 			"Ch2 语义回归：逼近南岸桥头时使用统一第一阶段提示")
-		if ch2_phase != null:
-			_assert_eq(ch2_phase.text, PrologueChapterBriefsClass.get_progress_stage_badge(2, 1),
+		if ch2_phase_opening != null:
+			_assert_eq(ch2_phase_opening.text, PrologueChapterBriefsClass.get_progress_stage_badge(2, 1),
 				"Ch2 语义回归：南岸桥头阶段标签更新为第一阶段")
 		ch2_lead.grid_pos = Vector2i(14, 9)
 		ch2._on_player_unit_action_position_updated(ch2_lead)
 		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + PrologueChapterBriefsClass.CH2_PROGRESS_CENTER_BRIDGE),
 			"Ch2 语义回归：推进到中桥时使用统一第二阶段提示")
-		if ch2_phase != null:
-			_assert_eq(ch2_phase.text, PrologueChapterBriefsClass.get_progress_stage_badge(2, 2),
+		if ch2_phase_opening != null:
+			_assert_eq(ch2_phase_opening.text, PrologueChapterBriefsClass.get_progress_stage_badge(2, 2),
 				"Ch2 语义回归：中桥主攻阶段标签更新为第二阶段")
 		ch2_lead.grid_pos = Vector2i(14, 7)
 		ch2._on_player_unit_action_position_updated(ch2_lead)
 		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + PrologueChapterBriefsClass.CH2_PROGRESS_NORTH_BANK),
 			"Ch2 语义回归：冲上北岸后使用统一第三阶段提示")
-		if ch2_phase != null:
-			_assert_eq(ch2_phase.text, PrologueChapterBriefsClass.get_progress_stage_badge(2, 3),
+		if ch2_phase_opening != null:
+			_assert_eq(ch2_phase_opening.text, PrologueChapterBriefsClass.get_progress_stage_badge(2, 3),
 				"Ch2 语义回归：北岸桥头阶段标签更新为第三阶段")
-		var ch2_guidance := ch2.get_node_or_null("UI/GuidanceLabel") as Label
-		_assert(ch2_guidance != null, "Ch2 语义回归：存在长期推进标签")
-		if ch2_guidance != null:
-			_assert_eq(ch2_guidance.text, "推进：" + PrologueChapterBriefsClass.CH2_PROGRESS_NORTH_BANK,
+		if ch2_guidance_opening != null:
+			_assert_eq(ch2_guidance_opening.text, "推进：" + PrologueChapterBriefsClass.CH2_PROGRESS_NORTH_BANK,
 				"Ch2 语义回归：长期推进标签会保留统一第三阶段提示")
 	if is_instance_valid(ch2):
 		ch2.queue_free()
@@ -1461,27 +1473,33 @@ func _test_map_visual_language_spec() -> void:
 	if ch3_objective != null:
 		_assert("欢乐塔" in ch3_objective.text,
 			"Ch3 语义回归：长期目标标签显示塔楼目标")
+	var ch3_phase_opening := ch3.get_node_or_null("UI/PhaseLabel") as Label
+	_assert(ch3_phase_opening != null, "Ch3 语义回归：开场存在阶段标签")
+	if ch3_phase_opening != null:
+		_assert_eq(ch3_phase_opening.text, PrologueChapterBriefsClass.get_progress_stage_badge(3, 1),
+			"Ch3 语义回归：开场阶段标签锁定第一阶段")
+	var ch3_guidance_opening := ch3.get_node_or_null("UI/GuidanceLabel") as Label
+	_assert(ch3_guidance_opening != null, "Ch3 语义回归：开场存在长期推进标签")
+	if ch3_guidance_opening != null:
+		_assert_eq(ch3_guidance_opening.text, "推进：" + PrologueChapterBriefsClass.CH3_PROGRESS_SWAMP,
+			"Ch3 语义回归：开场长期推进标签与第一阶段一致")
 	if ch3._ned_unit != null:
-		var ch3_phase := ch3.get_node_or_null("UI/PhaseLabel") as Label
-		_assert(ch3_phase != null, "Ch3 语义回归：存在阶段标签")
 		ch3._ned_unit.grid_pos = Vector2i(12, 12)
 		ch3._on_player_unit_action_position_updated(ch3._ned_unit)
 		_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + PrologueChapterBriefsClass.CH3_PROGRESS_SWAMP),
 			"Ch3 语义回归：进入湿地区前沿时使用统一第一阶段提示")
-		if ch3_phase != null:
-			_assert_eq(ch3_phase.text, PrologueChapterBriefsClass.get_progress_stage_badge(3, 1),
+		if ch3_phase_opening != null:
+			_assert_eq(ch3_phase_opening.text, PrologueChapterBriefsClass.get_progress_stage_badge(3, 1),
 				"Ch3 语义回归：湿地区阶段标签更新为第一阶段")
 		ch3._ned_unit.grid_pos = Vector2i(12, 9)
 		ch3._on_player_unit_action_position_updated(ch3._ned_unit)
 		_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + PrologueChapterBriefsClass.CH3_PROGRESS_TOWER),
 			"Ch3 语义回归：奈德逼近塔前后使用统一第二阶段提示")
-		if ch3_phase != null:
-			_assert_eq(ch3_phase.text, PrologueChapterBriefsClass.get_progress_stage_badge(3, 2),
+		if ch3_phase_opening != null:
+			_assert_eq(ch3_phase_opening.text, PrologueChapterBriefsClass.get_progress_stage_badge(3, 2),
 				"Ch3 语义回归：塔前杀伤区阶段标签更新为第二阶段")
-		var ch3_guidance := ch3.get_node_or_null("UI/GuidanceLabel") as Label
-		_assert(ch3_guidance != null, "Ch3 语义回归：存在长期推进标签")
-		if ch3_guidance != null:
-			_assert_eq(ch3_guidance.text, "推进：" + PrologueChapterBriefsClass.CH3_PROGRESS_TOWER,
+		if ch3_guidance_opening != null:
+			_assert_eq(ch3_guidance_opening.text, "推进：" + PrologueChapterBriefsClass.CH3_PROGRESS_TOWER,
 				"Ch3 语义回归：长期推进标签会保留统一第二阶段提示")
 	if is_instance_valid(ch3):
 		ch3.queue_free()
