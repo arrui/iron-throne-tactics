@@ -1909,16 +1909,22 @@ func _test_ch1_save_and_deploy_flow() -> void:
 	var deploy := TestDeployScreenClass.new()
 	root.add_child(deploy)
 	await process_frame
-	var premise_label := deploy.get_node_or_null("PremiseLabel") as Label
-	var objective_summary_label := deploy.get_node_or_null("ObjectiveSummaryLabel") as Label
-	var faction_summary_label := deploy.get_node_or_null("FactionSummaryLabel") as Label
-	var deploy_summary_label := deploy.get_node_or_null("DeploySummaryLabel") as Label
+	var premise_label := deploy.get_node_or_null("LayoutRoot/InfoPanel/InfoVBox/PremiseLabel") as Label
+	var objective_summary_label := deploy.get_node_or_null("LayoutRoot/InfoPanel/InfoVBox/ObjectiveSummaryLabel") as Label
+	var faction_summary_label := deploy.get_node_or_null("LayoutRoot/InfoPanel/InfoVBox/FactionSummaryLabel") as Label
+	var deploy_summary_label := deploy.get_node_or_null("LayoutRoot/InfoPanel/InfoVBox/DeploySummaryLabel") as Label
 	var count_label := deploy.get_node_or_null("CountLabel") as Label
-	var confirm_btn := deploy.get_node_or_null("ConfirmBtn") as Button
+	var confirm_btn := deploy.get_node_or_null("ConfirmButton") as Button
+	var unit_grid := deploy.get_node_or_null("LayoutRoot/UnitGrid") as GridContainer
+	var mandatory_card := deploy.get_node_or_null("LayoutRoot/UnitGrid/UnitCard_0") as PanelContainer
+	var optional_card := deploy.get_node_or_null("LayoutRoot/UnitGrid/UnitCard_1") as PanelContainer
 	_assert(premise_label != null, "部署界面包含战前态势说明")
 	_assert(objective_summary_label != null, "部署界面包含章节目标摘要")
 	_assert(faction_summary_label != null, "部署界面包含兰军中立说明")
 	_assert(deploy_summary_label != null, "部署界面包含编组建议说明")
+	_assert(unit_grid != null, "部署界面包含单位卡网格")
+	if unit_grid != null:
+		_assert_eq(unit_grid.columns, 3, "部署界面单位卡按三列布局")
 	if premise_label != null:
 		_assert("黑水桥" in premise_label.text and "红堡" in premise_label.text,
 			"部署界面态势说明点明黑水桥与红堡中轴")
@@ -1932,17 +1938,81 @@ func _test_ch1_save_and_deploy_flow() -> void:
 		_assert("最多再带 4 名北境骑士" in deploy_summary_label.text,
 			"部署界面说明最多携带 4 名骑士")
 	if count_label != null:
-		_assert_eq(count_label.text, "已选骑士：0 / 4", "部署界面初始人数统计正确")
+		_assert("已选骑士：0 / 4" in count_label.text, "部署界面初始人数统计正确")
+		_assert("建议至少 3 人" in count_label.text, "部署界面初始人数统计带有编组建议")
 	if confirm_btn != null:
 		_assert(confirm_btn.disabled, "部署界面初始未选人时禁止确认")
+		_assert("至少选择 1 名骑士" in confirm_btn.text, "部署界面未选人时确认按钮给出提示")
+	if mandatory_card != null:
+		var mandatory_name := mandatory_card.get_node_or_null("VBox/NameLabel") as Label
+		var mandatory_role := mandatory_card.get_node_or_null("VBox/RoleLabel") as Label
+		var mandatory_stats := mandatory_card.get_node_or_null("VBox/StatsLabel") as Label
+		var mandatory_status := mandatory_card.get_node_or_null("VBox/StatusLabel") as Label
+		var mandatory_tag := mandatory_card.get_node_or_null("VBox/MandatoryTag") as Label
+		var mandatory_portrait := mandatory_card.get_node_or_null("VBox/Portrait") as TextureRect
+		if mandatory_name != null:
+			_assert_eq(mandatory_name.text, "奈德", "部署界面固定主将卡显示奈德")
+		if mandatory_role != null:
+			_assert("中轴突破" in mandatory_role.text, "部署界面固定主将卡说明中轴职责")
+		if mandatory_stats != null:
+			_assert("剑C" in mandatory_stats.text and "移动5" in mandatory_stats.text,
+				"部署界面固定主将卡显示武器等级与机动")
+		if mandatory_status != null:
+			_assert_eq(mandatory_status.text, "状态：固定出战", "部署界面固定主将卡状态明确")
+		if mandatory_tag != null:
+			_assert_eq(mandatory_tag.text, "【必须参战】", "部署界面固定主将卡保留必须参战标签")
+		if mandatory_portrait != null:
+			_assert(mandatory_portrait.texture != null, "部署界面固定主将卡加载立绘")
+	if optional_card != null:
+		var optional_role := optional_card.get_node_or_null("VBox/RoleLabel") as Label
+		var optional_stats := optional_card.get_node_or_null("VBox/StatsLabel") as Label
+		var optional_status := optional_card.get_node_or_null("VBox/StatusLabel") as Label
+		var optional_button := optional_card.get_node_or_null("VBox/SelectBtn") as Button
+		var optional_portrait := optional_card.get_node_or_null("VBox/Portrait") as TextureRect
+		if optional_role != null:
+			_assert("黑水桥突破" in optional_role.text, "部署界面可选卡给出桥头职责")
+		if optional_stats != null:
+			_assert("斧D" in optional_stats.text and "移动4" in optional_stats.text,
+				"部署界面可选卡显示武器等级与机动")
+		if optional_status != null:
+			_assert_eq(optional_status.text, "状态：待命", "部署界面可选卡默认处于待命")
+		if optional_button != null:
+			_assert_eq(optional_button.text, "选择", "部署界面可选卡默认按钮文案为选择")
+		if optional_portrait != null:
+			_assert(optional_portrait.texture != null, "部署界面可选卡加载立绘")
 
-	deploy._selected = [1, 3, 5]
+	if optional_card != null:
+		var optional_button_before := optional_card.get_node_or_null("VBox/SelectBtn") as Button
+		if optional_button_before != null:
+			deploy._on_card_toggled(1, true, optional_button_before)
+			if count_label != null:
+				_assert("已选骑士：1 / 4" in count_label.text, "部署界面选第1人后人数统计更新")
+			if confirm_btn != null:
+				_assert(not confirm_btn.disabled, "部署界面选第1人后可确认出发")
+				_assert("奈德 + 1" in confirm_btn.text, "部署界面选第1人后确认按钮同步数量")
+			var optional_status_selected := optional_card.get_node_or_null("VBox/StatusLabel") as Label
+			var optional_button_selected := optional_card.get_node_or_null("VBox/SelectBtn") as Button
+			if optional_status_selected != null:
+				_assert_eq(optional_status_selected.text, "状态：已编入突击队", "部署界面选中卡状态更新为已编入")
+			if optional_button_selected != null:
+				_assert_eq(optional_button_selected.text, "已选中", "部署界面选中卡按钮文案更新")
+
+	var optional_card_3 := deploy.get_node_or_null("LayoutRoot/UnitGrid/UnitCard_3") as PanelContainer
+	var optional_card_5 := deploy.get_node_or_null("LayoutRoot/UnitGrid/UnitCard_5") as PanelContainer
+	if optional_card_3 != null:
+		var button3 := optional_card_3.get_node_or_null("VBox/SelectBtn") as Button
+		if button3 != null:
+			deploy._on_card_toggled(3, true, button3)
+	if optional_card_5 != null:
+		var button5 := optional_card_5.get_node_or_null("VBox/SelectBtn") as Button
+		if button5 != null:
+			deploy._on_card_toggled(5, true, button5)
 	if count_label != null:
-		count_label.text = "已选骑士：%d / %d" % [deploy._selected.size(), deploy.MAX_KNIGHTS]
+		_assert("已选骑士：3 / 4" in count_label.text, "部署界面选满3人后人数统计可更新")
+		_assert("编组较稳" in count_label.text, "部署界面选满3人后显示较稳提示")
 	if confirm_btn != null:
-		confirm_btn.disabled = deploy._selected.is_empty()
-		_assert_eq(count_label.text, "已选骑士：3 / 4", "部署界面选人后人数统计可更新")
-		_assert(not confirm_btn.disabled, "部署界面选人后可确认出发")
+		_assert(not confirm_btn.disabled, "部署界面选满3人后可确认出发")
+		_assert("奈德 + 3" in confirm_btn.text, "部署界面选满3人后确认按钮同步数量")
 	deploy.test_confirm()
 	_assert_eq(GameState.deploy_selection.size(), 4, "部署确认后写入奈德+3名骑士")
 	_assert_eq(GameState.deploy_selection[0], "ned_stark.json", "部署列表首位固定为奈德")
