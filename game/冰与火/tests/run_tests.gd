@@ -1243,13 +1243,16 @@ func _test_visual_style_unification() -> void:
 	_assert(src.contains("func _draw_river_detail"), "BattleMap 存在河流细节绘制")
 	_assert(src.contains("func _draw_bridge_detail"), "BattleMap 存在桥梁细节绘制")
 	_assert(src.contains("var _objective_label"), "BattleMap 存在长期目标标签引用")
+	_assert(src.contains("var _guidance_label"), "BattleMap 存在长期推进标签引用")
 	_assert(src.contains("_objective_label.text = msg"), "BattleMap 会把目标/战局信息同步到长期目标标签")
+	_assert(src.contains("_guidance_label.text = msg"), "BattleMap 会把推进信息同步到推进标签")
 	_assert(src.contains("func _terrain_at_or_cliff"), "BattleMap 提供邻接地形查询辅助，用于统一图块语言")
 	_assert(src.contains("func _bridge_runs_vertical"), "BattleMap 根据邻接地形判定桥梁朝向")
 	var scene_text := FileAccess.get_file_as_string("res://scenes/battle/BattleMap.tscn")
 	_assert(not scene_text.contains("TileMapLayer"), "BattleMap 场景已移除旧 TileMapLayer 节点")
 	_assert(not scene_text.contains("medieval_tileset.png"), "BattleMap 场景已移除旧瓦片贴图依赖")
 	_assert(scene_text.contains("ObjectiveLabel"), "BattleMap 场景已加入长期目标标签")
+	_assert(scene_text.contains("GuidanceLabel"), "BattleMap 场景已加入长期推进标签")
 
 	for chapter: int in [1, 2, 3, 4]:
 		GameState.current_chapter = chapter
@@ -1311,6 +1314,11 @@ func _test_map_visual_language_spec() -> void:
 		"Ch1 语义回归：教学结束后出现中途推进提示")
 	_assert(ch1.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("推进：") and "山道缺口" in msg),
 		"Ch1 语义回归：中途提示采用推进前缀")
+	var ch1_guidance := ch1.get_node_or_null("UI/GuidanceLabel") as Label
+	_assert(ch1_guidance != null, "Ch1 语义回归：存在长期推进标签")
+	if ch1_guidance != null:
+		_assert("山道缺口" in ch1_guidance.text,
+			"Ch1 语义回归：长期推进标签显示当前推进提示")
 	if is_instance_valid(ch1):
 		ch1.queue_free()
 	await process_frame
@@ -1362,6 +1370,11 @@ func _test_map_visual_language_spec() -> void:
 		ch2._on_player_unit_action_position_updated(ch2_lead)
 		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return "抢上北岸桥头" in msg),
 			"Ch2 语义回归：冲上北岸后出现压向雷加提示")
+		var ch2_guidance := ch2.get_node_or_null("UI/GuidanceLabel") as Label
+		_assert(ch2_guidance != null, "Ch2 语义回归：存在长期推进标签")
+		if ch2_guidance != null:
+			_assert("抢上北岸桥头" in ch2_guidance.text,
+				"Ch2 语义回归：长期推进标签会跟随阶段推进更新")
 	if is_instance_valid(ch2):
 		ch2.queue_free()
 	await process_frame
@@ -1406,6 +1419,11 @@ func _test_map_visual_language_spec() -> void:
 			"Ch3 语义回归：奈德逼近塔前后继续强调到塔目标")
 		_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("推进：") and "目标是进塔" in msg),
 			"Ch3 语义回归：塔前提示采用推进前缀")
+		var ch3_guidance := ch3.get_node_or_null("UI/GuidanceLabel") as Label
+		_assert(ch3_guidance != null, "Ch3 语义回归：存在长期推进标签")
+		if ch3_guidance != null:
+			_assert("目标是进塔" in ch3_guidance.text,
+				"Ch3 语义回归：长期推进标签会保留塔前指引")
 	if is_instance_valid(ch3):
 		ch3.queue_free()
 	await process_frame
@@ -1459,6 +1477,11 @@ func _test_map_visual_language_spec() -> void:
 			"Ch4 语义回归：攻入红堡外院后出现指挥官定位提示")
 		_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("推进：") and "攻入红堡外院" in msg),
 			"Ch4 语义回归：红堡外院提示采用推进前缀")
+		var ch4_guidance := ch4.get_node_or_null("UI/GuidanceLabel") as Label
+		_assert(ch4_guidance != null, "Ch4 语义回归：存在长期推进标签")
+		if ch4_guidance != null:
+			_assert("攻入红堡外院" in ch4_guidance.text,
+				"Ch4 语义回归：长期推进标签会保留当前攻城阶段")
 	if is_instance_valid(ch4):
 		ch4.queue_free()
 	await process_frame

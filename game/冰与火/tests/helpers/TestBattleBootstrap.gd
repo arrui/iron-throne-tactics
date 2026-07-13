@@ -25,6 +25,9 @@ func _enter_tree() -> void:
 		var objective := Label.new()
 		objective.name = "ObjectiveLabel"
 		ui.add_child(objective)
+		var guidance := Label.new()
+		guidance.name = "GuidanceLabel"
+		ui.add_child(guidance)
 		var status := Label.new()
 		status.name = "StatusLabel"
 		ui.add_child(status)
@@ -65,5 +68,8 @@ func _set_status(msg: String) -> void:
 	var objective_label := get_node_or_null("UI/ObjectiveLabel") as Label
 	if objective_label != null and (msg.begins_with("目标：") or msg.begins_with("战局：")):
 		objective_label.text = msg
+	var guidance_label := get_node_or_null("UI/GuidanceLabel") as Label
+	if guidance_label != null and msg.begins_with("推进："):
+		guidance_label.text = msg
 	if _status_label:
 		_status_label.text = msg

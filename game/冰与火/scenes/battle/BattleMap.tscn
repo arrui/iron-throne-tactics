@@ -36,18 +36,27 @@ theme_override_colors/font_color = Color(0.95, 0.84, 0.45, 1)
 theme_override_font_sizes/font_size = 14
 text = ""
 
-[node name="StatusLabel" type="Label" parent="UI" unique_id=143831413]
+[node name="GuidanceLabel" type="Label" parent="UI"]
 offset_left = 8.0
 offset_top = 56.0
 offset_right = 760.0
 offset_bottom = 80.0
+theme_override_colors/font_color = Color(0.72, 0.86, 0.98, 1)
+theme_override_font_sizes/font_size = 13
+text = ""
+
+[node name="StatusLabel" type="Label" parent="UI" unique_id=143831413]
+offset_left = 8.0
+offset_top = 80.0
+offset_right = 760.0
+offset_bottom = 104.0
 theme_override_font_sizes/font_size = 13
 
 [node name="HintLabel" type="Label" parent="UI" unique_id=1056106503]
 offset_left = 8.0
-offset_top = 80.0
+offset_top = 104.0
 offset_right = 600.0
-offset_bottom = 100.0
+offset_bottom = 124.0
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
 theme_override_font_sizes/font_size = 11
 text = "方向键滚动地图 | 右键/ESC取消 | D危险区 | 点击敌方查看安全距离 | A自动托管 | M小地图"
