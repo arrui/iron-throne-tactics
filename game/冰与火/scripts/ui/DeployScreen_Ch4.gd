@@ -220,15 +220,28 @@ func _build_ui() -> void:
 	bg.color = Color(0.05, 0.05, 0.08, 0.97)
 	add_child(bg)
 
+	var scroll := ScrollContainer.new()
+	scroll.name = "LayoutRoot"
+	scroll.anchor_left = 0.0
+	scroll.anchor_top = 0.0
+	scroll.anchor_right = 1.0
+	scroll.anchor_bottom = 1.0
+	scroll.offset_left = 48.0
+	scroll.offset_top = 24.0
+	scroll.offset_right = -48.0
+	scroll.offset_bottom = -24.0
+	add_child(scroll)
+
 	var vbox := VBoxContainer.new()
-	vbox.name = "LayoutRoot"
-	vbox.set_anchors_preset(Control.PRESET_CENTER)
-	vbox.offset_left = -360.0
-	vbox.offset_right = 360.0
-	vbox.offset_top = -300.0
-	vbox.offset_bottom = 300.0
+	vbox.name = "ContentVBox"
+	vbox.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	vbox.offset_left = 160.0
+	vbox.offset_top = 12.0
+	vbox.offset_right = -160.0
+	vbox.offset_bottom = 12.0
+	vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_theme_constant_override("separation", 12)
-	add_child(vbox)
+	scroll.add_child(vbox)
 
 	# 标题
 	var title := Label.new()

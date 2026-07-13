@@ -175,6 +175,12 @@ func _set_progress_status(msg: String) -> void:
 func _set_battle_status(msg: String) -> void:
 	_set_status("战局：%s" % msg)
 
+func _set_prologue_stage(chapter: int, stage_idx: int) -> void:
+	_set_phase_badge(PrologueChapterBriefs.get_progress_stage_badge(chapter, stage_idx))
+	var steps := PrologueChapterBriefs.get_progress_steps(chapter)
+	if stage_idx >= 1 and stage_idx <= steps.size():
+		_set_progress_status(str(steps[stage_idx - 1]))
+
 func _set_ch4_stage(stage_idx: int) -> void:
 	if GameState.current_chapter != 4:
 		return
@@ -297,7 +303,7 @@ func _wait_for_turn_switched() -> void:
 	while _turn_count == initial_turn:
 		if not await _safe_frame(): return
 	if not _battle_over:
-		_set_progress_status(PrologueChapterBriefs.CH1_PROGRESS_MIDWAY)
+		_set_prologue_stage(1, 1)
 
 # ── 序章一胜利检测 ────────────────────────────────────────
 func _check_ch1_victory_loop() -> void:
@@ -367,24 +373,24 @@ func _on_player_unit_action_position_updated(unit: Unit) -> void:
 					and unit.grid_pos.y <= 12 \
 					and unit.grid_pos.x >= 12 and unit.grid_pos.x <= 16:
 				_ch2_south_bank_hint_shown = true
-				_set_progress_status(PrologueChapterBriefs.CH2_PROGRESS_SOUTH_BANK)
+				_set_prologue_stage(2, 1)
 			elif not _ch2_bridge_hint_shown \
 					and unit.grid_pos.y >= 8 and unit.grid_pos.y <= 10 \
 					and unit.grid_pos.x >= 13 and unit.grid_pos.x <= 15:
 				_ch2_bridge_hint_shown = true
-				_set_progress_status(PrologueChapterBriefs.CH2_PROGRESS_CENTER_BRIDGE)
+				_set_prologue_stage(2, 2)
 			elif not _ch2_north_bank_hint_shown \
 					and unit.grid_pos.y <= 7 \
 					and unit.grid_pos.x >= 12 and unit.grid_pos.x <= 16:
 				_ch2_north_bank_hint_shown = true
-				_set_progress_status(PrologueChapterBriefs.CH2_PROGRESS_NORTH_BANK)
+				_set_prologue_stage(2, 3)
 		3:
 			if not _ch3_swamp_hint_shown and unit.grid_pos.y <= 12:
 				_ch3_swamp_hint_shown = true
-				_set_progress_status(PrologueChapterBriefs.CH3_PROGRESS_SWAMP)
+				_set_prologue_stage(3, 1)
 			elif not _ch3_tower_hint_shown and unit == _ned_unit and unit.grid_pos.y <= 9:
 				_ch3_tower_hint_shown = true
-				_set_progress_status(PrologueChapterBriefs.CH3_PROGRESS_TOWER)
+				_set_prologue_stage(3, 2)
 		4:
 			if not _ch4_blackwater_hint_shown \
 					and unit.grid_pos.y <= 20 \

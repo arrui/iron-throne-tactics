@@ -1301,6 +1301,10 @@ func _test_map_visual_language_spec() -> void:
 	_assert_eq(PrologueChapterBriefsClass.get_progress_steps(2).size(), 3, "Ch2 推进提示常量共3步")
 	_assert_eq(PrologueChapterBriefsClass.get_progress_steps(3).size(), 2, "Ch3 推进提示常量共2步")
 	_assert_eq(PrologueChapterBriefsClass.get_progress_steps(4).size(), 4, "Ch4 推进提示常量共4步")
+	_assert_eq(PrologueChapterBriefsClass.get_progress_stage_badge(2, 1), "阶段：第一段：南岸桥头", "Ch2 第一阶段徽标可生成")
+	_assert_eq(PrologueChapterBriefsClass.get_progress_stage_badge(2, 3), "阶段：第三段：北岸桥头", "Ch2 第三阶段徽标可生成")
+	_assert_eq(PrologueChapterBriefsClass.get_progress_stage_badge(3, 1), "阶段：第一段：湿地区", "Ch3 第一阶段徽标可生成")
+	_assert_eq(PrologueChapterBriefsClass.get_progress_stage_badge(3, 2), "阶段：第二段：塔前杀伤区", "Ch3 第二阶段徽标可生成")
 	_assert("山道缺口" in PrologueChapterBriefsClass.CH1_PROGRESS_MIDWAY, "Ch1 推进提示锁定山道缺口")
 	_assert("南岸桥头" in PrologueChapterBriefsClass.CH2_PROGRESS_SOUTH_BANK, "Ch2 第一阶段推进提示锁定南岸桥头")
 	_assert("中桥主攻" in PrologueChapterBriefsClass.CH2_PROGRESS_CENTER_BRIDGE, "Ch2 第二阶段推进提示锁定中桥主攻")
@@ -1349,6 +1353,11 @@ func _test_map_visual_language_spec() -> void:
 	await ch1._wait_for_turn_switched()
 	_assert(ch1.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + PrologueChapterBriefsClass.CH1_PROGRESS_MIDWAY),
 		"Ch1 语义回归：教学结束后使用统一中途推进提示")
+	var ch1_phase := ch1.get_node_or_null("UI/PhaseLabel") as Label
+	_assert(ch1_phase != null, "Ch1 语义回归：存在阶段标签")
+	if ch1_phase != null:
+		_assert_eq(ch1_phase.text, PrologueChapterBriefsClass.get_progress_stage_badge(1, 1),
+			"Ch1 语义回归：教学结束后阶段标签锁定山道缺口")
 	var ch1_guidance := ch1.get_node_or_null("UI/GuidanceLabel") as Label
 	_assert(ch1_guidance != null, "Ch1 语义回归：存在长期推进标签")
 	if ch1_guidance != null:
@@ -1391,18 +1400,29 @@ func _test_map_visual_language_spec() -> void:
 			"Ch2 语义回归：长期目标标签显示三桥主目标")
 	if ch2.player_units.size() > 0:
 		var ch2_lead: Unit = ch2.player_units[0]
+		var ch2_phase := ch2.get_node_or_null("UI/PhaseLabel") as Label
+		_assert(ch2_phase != null, "Ch2 语义回归：存在阶段标签")
 		ch2_lead.grid_pos = Vector2i(14, 12)
 		ch2._on_player_unit_action_position_updated(ch2_lead)
 		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + PrologueChapterBriefsClass.CH2_PROGRESS_SOUTH_BANK),
 			"Ch2 语义回归：逼近南岸桥头时使用统一第一阶段提示")
+		if ch2_phase != null:
+			_assert_eq(ch2_phase.text, PrologueChapterBriefsClass.get_progress_stage_badge(2, 1),
+				"Ch2 语义回归：南岸桥头阶段标签更新为第一阶段")
 		ch2_lead.grid_pos = Vector2i(14, 9)
 		ch2._on_player_unit_action_position_updated(ch2_lead)
 		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + PrologueChapterBriefsClass.CH2_PROGRESS_CENTER_BRIDGE),
 			"Ch2 语义回归：推进到中桥时使用统一第二阶段提示")
+		if ch2_phase != null:
+			_assert_eq(ch2_phase.text, PrologueChapterBriefsClass.get_progress_stage_badge(2, 2),
+				"Ch2 语义回归：中桥主攻阶段标签更新为第二阶段")
 		ch2_lead.grid_pos = Vector2i(14, 7)
 		ch2._on_player_unit_action_position_updated(ch2_lead)
 		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + PrologueChapterBriefsClass.CH2_PROGRESS_NORTH_BANK),
 			"Ch2 语义回归：冲上北岸后使用统一第三阶段提示")
+		if ch2_phase != null:
+			_assert_eq(ch2_phase.text, PrologueChapterBriefsClass.get_progress_stage_badge(2, 3),
+				"Ch2 语义回归：北岸桥头阶段标签更新为第三阶段")
 		var ch2_guidance := ch2.get_node_or_null("UI/GuidanceLabel") as Label
 		_assert(ch2_guidance != null, "Ch2 语义回归：存在长期推进标签")
 		if ch2_guidance != null:
@@ -1442,14 +1462,22 @@ func _test_map_visual_language_spec() -> void:
 		_assert("欢乐塔" in ch3_objective.text,
 			"Ch3 语义回归：长期目标标签显示塔楼目标")
 	if ch3._ned_unit != null:
+		var ch3_phase := ch3.get_node_or_null("UI/PhaseLabel") as Label
+		_assert(ch3_phase != null, "Ch3 语义回归：存在阶段标签")
 		ch3._ned_unit.grid_pos = Vector2i(12, 12)
 		ch3._on_player_unit_action_position_updated(ch3._ned_unit)
 		_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + PrologueChapterBriefsClass.CH3_PROGRESS_SWAMP),
 			"Ch3 语义回归：进入湿地区前沿时使用统一第一阶段提示")
+		if ch3_phase != null:
+			_assert_eq(ch3_phase.text, PrologueChapterBriefsClass.get_progress_stage_badge(3, 1),
+				"Ch3 语义回归：湿地区阶段标签更新为第一阶段")
 		ch3._ned_unit.grid_pos = Vector2i(12, 9)
 		ch3._on_player_unit_action_position_updated(ch3._ned_unit)
 		_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + PrologueChapterBriefsClass.CH3_PROGRESS_TOWER),
 			"Ch3 语义回归：奈德逼近塔前后使用统一第二阶段提示")
+		if ch3_phase != null:
+			_assert_eq(ch3_phase.text, PrologueChapterBriefsClass.get_progress_stage_badge(3, 2),
+				"Ch3 语义回归：塔前杀伤区阶段标签更新为第二阶段")
 		var ch3_guidance := ch3.get_node_or_null("UI/GuidanceLabel") as Label
 		_assert(ch3_guidance != null, "Ch3 语义回归：存在长期推进标签")
 		if ch3_guidance != null:
@@ -1970,20 +1998,24 @@ func _test_ch1_save_and_deploy_flow() -> void:
 	var deploy := TestDeployScreenClass.new()
 	root.add_child(deploy)
 	await process_frame
-	var premise_label := deploy.get_node_or_null("LayoutRoot/InfoPanel/InfoVBox/PremiseLabel") as Label
-	var objective_summary_label := deploy.get_node_or_null("LayoutRoot/InfoPanel/InfoVBox/ObjectiveSummaryLabel") as Label
-	var phase_badge_label := deploy.get_node_or_null("LayoutRoot/InfoPanel/InfoVBox/PhaseBadgeLabel") as Label
-	var faction_summary_label := deploy.get_node_or_null("LayoutRoot/InfoPanel/InfoVBox/FactionSummaryLabel") as Label
-	var deploy_summary_label := deploy.get_node_or_null("LayoutRoot/InfoPanel/InfoVBox/DeploySummaryLabel") as Label
-	var count_label := deploy.get_node_or_null("CountLabel") as Label
-	var confirm_btn := deploy.get_node_or_null("ConfirmButton") as Button
-	var unit_grid := deploy.get_node_or_null("LayoutRoot/UnitGrid") as GridContainer
-	var battle_flow_panel := deploy.get_node_or_null("LayoutRoot/BattleFlowPanel") as PanelContainer
-	var flow_grid := deploy.get_node_or_null("LayoutRoot/BattleFlowPanel/BattleFlowVBox/FlowGrid") as GridContainer
-	var flow_title := deploy.get_node_or_null("LayoutRoot/BattleFlowPanel/BattleFlowVBox/FlowTitle") as Label
-	var deploy_advice_label := deploy.get_node_or_null("LayoutRoot/BattleFlowPanel/BattleFlowVBox/DeployAdviceLabel") as Label
-	var mandatory_card := deploy.get_node_or_null("LayoutRoot/UnitGrid/UnitCard_0") as PanelContainer
-	var optional_card := deploy.get_node_or_null("LayoutRoot/UnitGrid/UnitCard_1") as PanelContainer
+	var layout_root := deploy.get_node_or_null("LayoutRoot") as ScrollContainer
+	var content_vbox := deploy.get_node_or_null("LayoutRoot/ContentVBox") as VBoxContainer
+	var premise_label := deploy.get_node_or_null("LayoutRoot/ContentVBox/InfoPanel/InfoVBox/PremiseLabel") as Label
+	var objective_summary_label := deploy.get_node_or_null("LayoutRoot/ContentVBox/InfoPanel/InfoVBox/ObjectiveSummaryLabel") as Label
+	var phase_badge_label := deploy.get_node_or_null("LayoutRoot/ContentVBox/InfoPanel/InfoVBox/PhaseBadgeLabel") as Label
+	var faction_summary_label := deploy.get_node_or_null("LayoutRoot/ContentVBox/InfoPanel/InfoVBox/FactionSummaryLabel") as Label
+	var deploy_summary_label := deploy.get_node_or_null("LayoutRoot/ContentVBox/InfoPanel/InfoVBox/DeploySummaryLabel") as Label
+	var count_label := deploy.get_node_or_null("LayoutRoot/ContentVBox/CountLabel") as Label
+	var confirm_btn := deploy.get_node_or_null("LayoutRoot/ContentVBox/ButtonRow/ConfirmButton") as Button
+	var unit_grid := deploy.get_node_or_null("LayoutRoot/ContentVBox/UnitGrid") as GridContainer
+	var battle_flow_panel := deploy.get_node_or_null("LayoutRoot/ContentVBox/BattleFlowPanel") as PanelContainer
+	var flow_grid := deploy.get_node_or_null("LayoutRoot/ContentVBox/BattleFlowPanel/BattleFlowVBox/FlowGrid") as GridContainer
+	var flow_title := deploy.get_node_or_null("LayoutRoot/ContentVBox/BattleFlowPanel/BattleFlowVBox/FlowTitle") as Label
+	var deploy_advice_label := deploy.get_node_or_null("LayoutRoot/ContentVBox/BattleFlowPanel/BattleFlowVBox/DeployAdviceLabel") as Label
+	var mandatory_card := deploy.get_node_or_null("LayoutRoot/ContentVBox/UnitGrid/UnitCard_0") as PanelContainer
+	var optional_card := deploy.get_node_or_null("LayoutRoot/ContentVBox/UnitGrid/UnitCard_1") as PanelContainer
+	_assert(layout_root != null, "部署界面使用可滚动容器承载长内容")
+	_assert(content_vbox != null, "部署界面滚动容器内存在内容根节点")
 	_assert(premise_label != null, "部署界面包含战前态势说明")
 	_assert(objective_summary_label != null, "部署界面包含章节目标摘要")
 	_assert(phase_badge_label != null, "部署界面包含开场阶段徽标")
@@ -1994,6 +2026,11 @@ func _test_ch1_save_and_deploy_flow() -> void:
 	_assert(flow_title != null, "部署界面包含作战分段标题")
 	_assert(deploy_advice_label != null, "部署界面包含额外部署建议")
 	_assert(unit_grid != null, "部署界面包含单位卡网格")
+	if layout_root != null and content_vbox != null:
+		_assert(layout_root.vertical_scroll_mode == ScrollContainer.SCROLL_MODE_AUTO or layout_root.vertical_scroll_mode == ScrollContainer.SCROLL_MODE_SHOW_ALWAYS,
+			"部署界面纵向滚动已启用")
+		_assert(content_vbox.size_flags_vertical == Control.SIZE_EXPAND_FILL,
+			"部署界面内容根节点允许纵向展开")
 	if unit_grid != null:
 		_assert_eq(unit_grid.columns, 3, "部署界面单位卡按三列布局")
 	if flow_title != null:
@@ -2114,8 +2151,8 @@ func _test_ch1_save_and_deploy_flow() -> void:
 			if optional_button_selected != null:
 				_assert_eq(optional_button_selected.text, "已选中", "部署界面选中卡按钮文案更新")
 
-	var optional_card_3 := deploy.get_node_or_null("LayoutRoot/UnitGrid/UnitCard_3") as PanelContainer
-	var optional_card_5 := deploy.get_node_or_null("LayoutRoot/UnitGrid/UnitCard_5") as PanelContainer
+	var optional_card_3 := deploy.get_node_or_null("LayoutRoot/ContentVBox/UnitGrid/UnitCard_3") as PanelContainer
+	var optional_card_5 := deploy.get_node_or_null("LayoutRoot/ContentVBox/UnitGrid/UnitCard_5") as PanelContainer
 	if optional_card_3 != null:
 		var button3 := optional_card_3.get_node_or_null("VBox/SelectBtn") as Button
 		if button3 != null:

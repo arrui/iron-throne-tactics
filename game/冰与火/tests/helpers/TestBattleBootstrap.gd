@@ -74,5 +74,8 @@ func _set_status(msg: String) -> void:
 	var guidance_label := get_node_or_null("UI/GuidanceLabel") as Label
 	if guidance_label != null and msg.begins_with("推进："):
 		guidance_label.text = msg
+	var phase_label := get_node_or_null("UI/PhaseLabel") as Label
+	if phase_label != null and msg.begins_with("阶段："):
+		phase_label.text = msg
 	if _status_label:
 		_status_label.text = msg

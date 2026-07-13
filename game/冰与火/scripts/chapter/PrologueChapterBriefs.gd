@@ -67,6 +67,18 @@ static func get_progress_steps(chapter: int) -> Array[String]:
 		_:
 			return []
 
+static func get_progress_stage_title(chapter: int, stage_idx: int) -> String:
+	var steps := get_progress_steps(chapter)
+	if stage_idx < 1 or stage_idx > steps.size():
+		return ""
+	var step_text := str(steps[stage_idx - 1])
+	var parts := step_text.split("——", false, 1)
+	return parts[0] if not parts.is_empty() else step_text
+
+static func get_progress_stage_badge(chapter: int, stage_idx: int) -> String:
+	var title := get_progress_stage_title(chapter, stage_idx)
+	return "" if title == "" else "阶段：%s" % title
+
 static func get_battle_resolution(chapter: int) -> String:
 	match chapter:
 		1:
