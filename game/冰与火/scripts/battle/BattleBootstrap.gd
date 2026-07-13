@@ -297,7 +297,7 @@ func _wait_for_turn_switched() -> void:
 	while _turn_count == initial_turn:
 		if not await _safe_frame(): return
 	if not _battle_over:
-		_set_progress_status("敌军开始应对山道缺口——继续向北推进，别被封锁线拖住。")
+		_set_progress_status(PrologueChapterBriefs.CH1_PROGRESS_MIDWAY)
 
 # ── 序章一胜利检测 ────────────────────────────────────────
 func _check_ch1_victory_loop() -> void:
@@ -314,7 +314,7 @@ func _on_won_ch1() -> void:
 	_battle_over = true
 	_hide_all_panels()
 	if _result_panel: _result_panel.visible = false
-	_set_battle_status("山道已打开！后军可以北上——奈德继续前进。")
+	_set_battle_status(PrologueChapterBriefs.CH1_BATTLE_RESOLUTION)
 	await _play_dialogue("res://data/dialogues/prologue_1_post.json")
 	if not is_inside_tree(): return
 	await _advance_to(2)
@@ -367,24 +367,24 @@ func _on_player_unit_action_position_updated(unit: Unit) -> void:
 					and unit.grid_pos.y <= 12 \
 					and unit.grid_pos.x >= 12 and unit.grid_pos.x <= 16:
 				_ch2_south_bank_hint_shown = true
-				_set_progress_status("前方就是三桥战场——中桥最短，两翼负责牵制与分压。")
+				_set_progress_status(PrologueChapterBriefs.CH2_PROGRESS_SOUTH_BANK)
 			elif not _ch2_bridge_hint_shown \
 					and unit.grid_pos.y >= 8 and unit.grid_pos.y <= 10 \
 					and unit.grid_pos.x >= 13 and unit.grid_pos.x <= 15:
 				_ch2_bridge_hint_shown = true
-				_set_progress_status("义军已踏上中桥——稳住两翼，别让主攻轴线断掉。")
+				_set_progress_status(PrologueChapterBriefs.CH2_PROGRESS_CENTER_BRIDGE)
 			elif not _ch2_north_bank_hint_shown \
 					and unit.grid_pos.y <= 7 \
 					and unit.grid_pos.x >= 12 and unit.grid_pos.x <= 16:
 				_ch2_north_bank_hint_shown = true
-				_set_progress_status("你已抢上北岸桥头——继续压向雷加本阵，别被两翼牵住。")
+				_set_progress_status(PrologueChapterBriefs.CH2_PROGRESS_NORTH_BANK)
 		3:
 			if not _ch3_swamp_hint_shown and unit.grid_pos.y <= 12:
 				_ch3_swamp_hint_shown = true
-				_set_progress_status("湿地会拖慢推进——两翼绕开泥地，为奈德撕出塔前通路。")
+				_set_progress_status(PrologueChapterBriefs.CH3_PROGRESS_SWAMP)
 			elif not _ch3_tower_hint_shown and unit == _ned_unit and unit.grid_pos.y <= 9:
 				_ch3_tower_hint_shown = true
-				_set_progress_status("奈德已逼近欢乐塔——目标是进塔，不是清光所有守军。")
+				_set_progress_status(PrologueChapterBriefs.CH3_PROGRESS_TOWER)
 		4:
 			if not _ch4_blackwater_hint_shown \
 					and unit.grid_pos.y <= 20 \
@@ -759,14 +759,14 @@ func _on_unit_died(unit: Unit) -> void:
 
 func _trigger_ch2_rhaegar() -> void:
 	_battle_over = true
-	_set_battle_status("雷加倒下了！中桥决战结束，王家防线开始崩溃。")
+	_set_battle_status(PrologueChapterBriefs.CH2_BATTLE_RESOLUTION)
 	await _play_cutscene("res://data/cutscenes/ch2_rhaegar_fall.json")
 	if not is_inside_tree(): return
 	await _on_won_ch2()
 
 func _trigger_ch3_tower() -> void:
 	_battle_over = true
-	_set_battle_status("奈德已抵达欢乐塔——亚瑟守线被撕开，真相就在塔内。")
+	_set_battle_status(PrologueChapterBriefs.CH3_BATTLE_RESOLUTION)
 	await _play_cutscene("res://data/cutscenes/ch3_dayne_trigger.json")
 	if is_instance_valid(_dayne_unit):
 		enemy_units.erase(_dayne_unit); _dayne_unit.queue_free(); _redraw_all()

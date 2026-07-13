@@ -1297,6 +1297,19 @@ func _test_map_visual_language_spec() -> void:
 	_assert_eq(PrologueChapterBriefsClass.CH2_BATTLE_OBJECTIVE, "争夺三桥并稳住两翼，从中桥突破雷加本阵。", "Ch2 战斗目标常量锁定")
 	_assert_eq(PrologueChapterBriefsClass.CH3_BATTLE_OBJECTIVE, "让奈德抵达欢乐塔，不必全歼守军。", "Ch3 战斗目标常量锁定")
 	_assert_eq(PrologueChapterBriefsClass.CH4_BATTLE_OBJECTIVE, Ch4BattleBriefClass.BATTLE_OBJECTIVE, "Ch4 战斗目标与战前简报统一")
+	_assert_eq(PrologueChapterBriefsClass.get_progress_steps(1).size(), 1, "Ch1 推进提示常量共1步")
+	_assert_eq(PrologueChapterBriefsClass.get_progress_steps(2).size(), 3, "Ch2 推进提示常量共3步")
+	_assert_eq(PrologueChapterBriefsClass.get_progress_steps(3).size(), 2, "Ch3 推进提示常量共2步")
+	_assert_eq(PrologueChapterBriefsClass.get_progress_steps(4).size(), 4, "Ch4 推进提示常量共4步")
+	_assert("山道缺口" in PrologueChapterBriefsClass.CH1_PROGRESS_MIDWAY, "Ch1 推进提示锁定山道缺口")
+	_assert("南岸桥头" in PrologueChapterBriefsClass.CH2_PROGRESS_SOUTH_BANK, "Ch2 第一阶段推进提示锁定南岸桥头")
+	_assert("中桥主攻" in PrologueChapterBriefsClass.CH2_PROGRESS_CENTER_BRIDGE, "Ch2 第二阶段推进提示锁定中桥主攻")
+	_assert("北岸桥头" in PrologueChapterBriefsClass.CH2_PROGRESS_NORTH_BANK, "Ch2 第三阶段推进提示锁定北岸桥头")
+	_assert("湿地区" in PrologueChapterBriefsClass.CH3_PROGRESS_SWAMP, "Ch3 第一阶段推进提示锁定湿地区")
+	_assert("塔前杀伤区" in PrologueChapterBriefsClass.CH3_PROGRESS_TOWER, "Ch3 第二阶段推进提示锁定塔前杀伤区")
+	_assert("山道缺口已夺回" in PrologueChapterBriefsClass.CH1_BATTLE_RESOLUTION, "Ch1 战局反馈锁定缺口夺回")
+	_assert("雷加倒下" in PrologueChapterBriefsClass.CH2_BATTLE_RESOLUTION, "Ch2 战局反馈锁定雷加倒下")
+	_assert("奈德已抵达欢乐塔" in PrologueChapterBriefsClass.CH3_BATTLE_RESOLUTION, "Ch3 战局反馈锁定欢乐塔抵达")
 	_assert_eq(Ch4BattleBriefClass.BATTLE_FLOW_STEPS.size(), 4, "Ch4 作战简报常量共4个阶段")
 	_assert_eq(Ch4BattleBriefClass.get_stage_badge(1), "阶段：第一段：黑水桥", "Ch4 作战简报可生成第一阶段徽标")
 	_assert_eq(Ch4BattleBriefClass.get_stage_badge(4), "阶段：第四段：红堡内院", "Ch4 作战简报可生成第四阶段徽标")
@@ -1334,15 +1347,13 @@ func _test_map_visual_language_spec() -> void:
 	var ch1_turn_before: int = ch1._turn_count
 	ch1.call_deferred("set", "_turn_count", ch1_turn_before + 1)
 	await ch1._wait_for_turn_switched()
-	_assert(ch1.recorded_statuses.any(func(msg: String) -> bool: return "敌军开始应对山道缺口" in msg),
-		"Ch1 语义回归：教学结束后出现中途推进提示")
-	_assert(ch1.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("推进：") and "山道缺口" in msg),
-		"Ch1 语义回归：中途提示采用推进前缀")
+	_assert(ch1.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + PrologueChapterBriefsClass.CH1_PROGRESS_MIDWAY),
+		"Ch1 语义回归：教学结束后使用统一中途推进提示")
 	var ch1_guidance := ch1.get_node_or_null("UI/GuidanceLabel") as Label
 	_assert(ch1_guidance != null, "Ch1 语义回归：存在长期推进标签")
 	if ch1_guidance != null:
-		_assert("山道缺口" in ch1_guidance.text,
-			"Ch1 语义回归：长期推进标签显示当前推进提示")
+		_assert_eq(ch1_guidance.text, "推进：" + PrologueChapterBriefsClass.CH1_PROGRESS_MIDWAY,
+			"Ch1 语义回归：长期推进标签显示统一后的山道推进提示")
 	if is_instance_valid(ch1):
 		ch1.queue_free()
 	await process_frame
@@ -1382,25 +1393,21 @@ func _test_map_visual_language_spec() -> void:
 		var ch2_lead: Unit = ch2.player_units[0]
 		ch2_lead.grid_pos = Vector2i(14, 12)
 		ch2._on_player_unit_action_position_updated(ch2_lead)
-		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return "前方就是三桥战场" in msg),
-			"Ch2 语义回归：逼近南岸桥头时出现三桥分工提示")
-		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("推进：") and "三桥战场" in msg),
-			"Ch2 语义回归：南岸桥头提示采用推进前缀")
+		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + PrologueChapterBriefsClass.CH2_PROGRESS_SOUTH_BANK),
+			"Ch2 语义回归：逼近南岸桥头时使用统一第一阶段提示")
 		ch2_lead.grid_pos = Vector2i(14, 9)
 		ch2._on_player_unit_action_position_updated(ch2_lead)
-		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return "踏上中桥" in msg),
-			"Ch2 语义回归：推进到中桥时出现主攻轴提示")
-		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("推进：") and "踏上中桥" in msg),
-			"Ch2 语义回归：中桥提示采用推进前缀")
+		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + PrologueChapterBriefsClass.CH2_PROGRESS_CENTER_BRIDGE),
+			"Ch2 语义回归：推进到中桥时使用统一第二阶段提示")
 		ch2_lead.grid_pos = Vector2i(14, 7)
 		ch2._on_player_unit_action_position_updated(ch2_lead)
-		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return "抢上北岸桥头" in msg),
-			"Ch2 语义回归：冲上北岸后出现压向雷加提示")
+		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + PrologueChapterBriefsClass.CH2_PROGRESS_NORTH_BANK),
+			"Ch2 语义回归：冲上北岸后使用统一第三阶段提示")
 		var ch2_guidance := ch2.get_node_or_null("UI/GuidanceLabel") as Label
 		_assert(ch2_guidance != null, "Ch2 语义回归：存在长期推进标签")
 		if ch2_guidance != null:
-			_assert("抢上北岸桥头" in ch2_guidance.text,
-				"Ch2 语义回归：长期推进标签会跟随阶段推进更新")
+			_assert_eq(ch2_guidance.text, "推进：" + PrologueChapterBriefsClass.CH2_PROGRESS_NORTH_BANK,
+				"Ch2 语义回归：长期推进标签会保留统一第三阶段提示")
 	if is_instance_valid(ch2):
 		ch2.queue_free()
 	await process_frame
@@ -1437,21 +1444,17 @@ func _test_map_visual_language_spec() -> void:
 	if ch3._ned_unit != null:
 		ch3._ned_unit.grid_pos = Vector2i(12, 12)
 		ch3._on_player_unit_action_position_updated(ch3._ned_unit)
-		_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return "湿地会拖慢推进" in msg),
-			"Ch3 语义回归：进入湿地区前沿时出现绕行提示")
-		_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("推进：") and "湿地会拖慢推进" in msg),
-			"Ch3 语义回归：湿地区提示采用推进前缀")
+		_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + PrologueChapterBriefsClass.CH3_PROGRESS_SWAMP),
+			"Ch3 语义回归：进入湿地区前沿时使用统一第一阶段提示")
 		ch3._ned_unit.grid_pos = Vector2i(12, 9)
 		ch3._on_player_unit_action_position_updated(ch3._ned_unit)
-		_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return "目标是进塔" in msg),
-			"Ch3 语义回归：奈德逼近塔前后继续强调到塔目标")
-		_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("推进：") and "目标是进塔" in msg),
-			"Ch3 语义回归：塔前提示采用推进前缀")
+		_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + PrologueChapterBriefsClass.CH3_PROGRESS_TOWER),
+			"Ch3 语义回归：奈德逼近塔前后使用统一第二阶段提示")
 		var ch3_guidance := ch3.get_node_or_null("UI/GuidanceLabel") as Label
 		_assert(ch3_guidance != null, "Ch3 语义回归：存在长期推进标签")
 		if ch3_guidance != null:
-			_assert("目标是进塔" in ch3_guidance.text,
-				"Ch3 语义回归：长期推进标签会保留塔前指引")
+			_assert_eq(ch3_guidance.text, "推进：" + PrologueChapterBriefsClass.CH3_PROGRESS_TOWER,
+				"Ch3 语义回归：长期推进标签会保留统一第二阶段提示")
 	if is_instance_valid(ch3):
 		ch3.queue_free()
 	await process_frame
@@ -1799,14 +1802,12 @@ func _test_chapter_event_flow() -> void:
 		await process_frame
 		await process_frame
 		_assert(ch2._rhaegar_death_done, "Ch2 雷加死亡标记已置位")
-		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return "雷加倒下了" in msg),
-			"Ch2 雷加死亡后出现桥头崩溃反馈")
-		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("战局：") and "雷加倒下了" in msg),
-			"Ch2 雷加死亡反馈采用战局前缀")
+		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg == "战局：" + PrologueChapterBriefsClass.CH2_BATTLE_RESOLUTION),
+			"Ch2 雷加死亡后使用统一战局反馈")
 		var ch2_objective_event := ch2.get_node_or_null("UI/ObjectiveLabel") as Label
 		if ch2_objective_event != null:
-			_assert("雷加倒下了" in ch2_objective_event.text,
-				"Ch2 事件回归：长期目标标签会更新为战局结果")
+			_assert_eq(ch2_objective_event.text, "战局：" + PrologueChapterBriefsClass.CH2_BATTLE_RESOLUTION,
+				"Ch2 事件回归：长期目标标签会更新为统一战局反馈")
 		_assert(ch2.recorded_cutscenes.has("res://data/cutscenes/ch2_rhaegar_fall.json"),
 			"Ch2 雷加死亡触发过场")
 		_assert(ch2.recorded_cutscenes.has("res://data/cutscenes/ch2_split.json"),
@@ -1831,14 +1832,12 @@ func _test_chapter_event_flow() -> void:
 	await process_frame
 	await process_frame
 	await process_frame
-	_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return "奈德已抵达欢乐塔" in msg),
-		"Ch3 抵达塔门后出现关键节点反馈")
-	_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("战局：") and "奈德已抵达欢乐塔" in msg),
-		"Ch3 塔门事件反馈采用战局前缀")
+	_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return msg == "战局：" + PrologueChapterBriefsClass.CH3_BATTLE_RESOLUTION),
+		"Ch3 抵达塔门后使用统一战局反馈")
 	var ch3_objective_event := ch3.get_node_or_null("UI/ObjectiveLabel") as Label
 	if ch3_objective_event != null:
-		_assert("奈德已抵达欢乐塔" in ch3_objective_event.text,
-			"Ch3 事件回归：长期目标标签会更新为塔门战局")
+		_assert_eq(ch3_objective_event.text, "战局：" + PrologueChapterBriefsClass.CH3_BATTLE_RESOLUTION,
+			"Ch3 事件回归：长期目标标签会更新为统一塔门战局")
 	_assert(ch3.recorded_cutscenes.has("res://data/cutscenes/ch3_dayne_trigger.json"),
 		"Ch3 触发霍兰刺杀戴恩过场")
 	_assert(ch3.recorded_cutscenes.has("res://data/cutscenes/ch3_lyanna.json"),
