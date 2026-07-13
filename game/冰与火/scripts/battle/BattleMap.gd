@@ -71,6 +71,7 @@ var _minimap: MiniMap = null
 
 # ── UI 节点引用 ──────────────────────────────────────────
 var _turn_label:       Label         = null
+var _objective_label:  Label         = null
 var _status_label:     Label         = null
 var _terrain_label:    Label         = null
 var _action_menu:      PanelContainer = null
@@ -275,6 +276,7 @@ func _tile_to_screen(grid_pos: Vector2i) -> Vector2:
 # ── UI 绑定 ──────────────────────────────────────────────
 func _bind_ui() -> void:
 	_turn_label    = get_node_or_null("UI/TurnLabel")    as Label
+	_objective_label = get_node_or_null("UI/ObjectiveLabel") as Label
 	_status_label  = get_node_or_null("UI/StatusLabel")  as Label
 	_terrain_label = get_node_or_null("UI/TerrainLabel") as Label
 	_action_menu   = get_node_or_null("UI/ActionMenu")   as PanelContainer
@@ -1477,7 +1479,14 @@ func _update_turn_label() -> void:
 		if _end_turn_btn: _end_turn_btn.disabled = true
 
 func _set_status(msg: String) -> void:
-	if _status_label: _status_label.text = msg
+	if _status_label:
+		_status_label.text = msg
+	if _objective_label == null:
+		return
+	if msg.begins_with("目标："):
+		_objective_label.text = msg
+	elif msg.begins_with("战局："):
+		_objective_label.text = msg
 
 func _on_player_unit_action_position_updated(_unit: Unit) -> void:
 	pass

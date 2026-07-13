@@ -1242,11 +1242,14 @@ func _test_visual_style_unification() -> void:
 	_assert(src.contains("func _draw_wall_detail"), "BattleMap 存在城墙/建筑细节绘制")
 	_assert(src.contains("func _draw_river_detail"), "BattleMap 存在河流细节绘制")
 	_assert(src.contains("func _draw_bridge_detail"), "BattleMap 存在桥梁细节绘制")
+	_assert(src.contains("var _objective_label"), "BattleMap 存在长期目标标签引用")
+	_assert(src.contains("_objective_label.text = msg"), "BattleMap 会把目标/战局信息同步到长期目标标签")
 	_assert(src.contains("func _terrain_at_or_cliff"), "BattleMap 提供邻接地形查询辅助，用于统一图块语言")
 	_assert(src.contains("func _bridge_runs_vertical"), "BattleMap 根据邻接地形判定桥梁朝向")
 	var scene_text := FileAccess.get_file_as_string("res://scenes/battle/BattleMap.tscn")
 	_assert(not scene_text.contains("TileMapLayer"), "BattleMap 场景已移除旧 TileMapLayer 节点")
 	_assert(not scene_text.contains("medieval_tileset.png"), "BattleMap 场景已移除旧瓦片贴图依赖")
+	_assert(scene_text.contains("ObjectiveLabel"), "BattleMap 场景已加入长期目标标签")
 
 	for chapter: int in [1, 2, 3, 4]:
 		GameState.current_chapter = chapter
@@ -1296,6 +1299,11 @@ func _test_map_visual_language_spec() -> void:
 		"Ch1 语义回归：开场状态提示明确山道突破目标")
 	_assert(ch1.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("目标：")),
 		"Ch1 语义回归：开场提示采用目标前缀")
+	var ch1_objective := ch1.get_node_or_null("UI/ObjectiveLabel") as Label
+	_assert(ch1_objective != null, "Ch1 语义回归：存在长期目标标签")
+	if ch1_objective != null:
+		_assert("突破山道封锁" in ch1_objective.text,
+			"Ch1 语义回归：长期目标标签显示山道突破目标")
 	var ch1_turn_before: int = ch1._turn_count
 	ch1.call_deferred("set", "_turn_count", ch1_turn_before + 1)
 	await ch1._wait_for_turn_switched()
@@ -1331,6 +1339,11 @@ func _test_map_visual_language_spec() -> void:
 		"Ch2 语义回归：开场状态提示明确三桥与雷加目标")
 	_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("目标：") and "争夺三桥" in msg),
 		"Ch2 语义回归：开场提示采用目标前缀")
+	var ch2_objective := ch2.get_node_or_null("UI/ObjectiveLabel") as Label
+	_assert(ch2_objective != null, "Ch2 语义回归：存在长期目标标签")
+	if ch2_objective != null:
+		_assert("争夺三桥" in ch2_objective.text,
+			"Ch2 语义回归：长期目标标签显示三桥主目标")
 	if ch2.player_units.size() > 0:
 		var ch2_lead: Unit = ch2.player_units[0]
 		ch2_lead.grid_pos = Vector2i(14, 12)
@@ -1375,6 +1388,11 @@ func _test_map_visual_language_spec() -> void:
 		"Ch3 语义回归：开场状态提示明确到塔目标而非全歼")
 	_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("目标：") and "欢乐塔" in msg),
 		"Ch3 语义回归：开场提示采用目标前缀")
+	var ch3_objective := ch3.get_node_or_null("UI/ObjectiveLabel") as Label
+	_assert(ch3_objective != null, "Ch3 语义回归：存在长期目标标签")
+	if ch3_objective != null:
+		_assert("欢乐塔" in ch3_objective.text,
+			"Ch3 语义回归：长期目标标签显示塔楼目标")
 	if ch3._ned_unit != null:
 		ch3._ned_unit.grid_pos = Vector2i(12, 12)
 		ch3._on_player_unit_action_position_updated(ch3._ned_unit)
@@ -1417,6 +1435,11 @@ func _test_map_visual_language_spec() -> void:
 		"Ch4 语义回归：开场状态提示明确中轴推进与指挥官目标")
 	_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("目标：") and "王军指挥官" in msg),
 		"Ch4 语义回归：开场提示采用目标前缀")
+	var ch4_objective := ch4.get_node_or_null("UI/ObjectiveLabel") as Label
+	_assert(ch4_objective != null, "Ch4 语义回归：存在长期目标标签")
+	if ch4_objective != null:
+		_assert("王军指挥官" in ch4_objective.text,
+			"Ch4 语义回归：长期目标标签显示红堡主目标")
 	if ch4._ned_unit != null:
 		ch4._ned_unit.grid_pos = Vector2i(18, 20)
 		ch4._on_player_unit_action_position_updated(ch4._ned_unit)
@@ -1604,6 +1627,10 @@ func _test_chapter_event_flow() -> void:
 			"Ch2 雷加死亡后出现桥头崩溃反馈")
 		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("战局：") and "雷加倒下了" in msg),
 			"Ch2 雷加死亡反馈采用战局前缀")
+		var ch2_objective_event := ch2.get_node_or_null("UI/ObjectiveLabel") as Label
+		if ch2_objective_event != null:
+			_assert("雷加倒下了" in ch2_objective_event.text,
+				"Ch2 事件回归：长期目标标签会更新为战局结果")
 		_assert(ch2.recorded_cutscenes.has("res://data/cutscenes/ch2_rhaegar_fall.json"),
 			"Ch2 雷加死亡触发过场")
 		_assert(ch2.recorded_cutscenes.has("res://data/cutscenes/ch2_split.json"),
@@ -1632,6 +1659,10 @@ func _test_chapter_event_flow() -> void:
 		"Ch3 抵达塔门后出现关键节点反馈")
 	_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("战局：") and "奈德已抵达欢乐塔" in msg),
 		"Ch3 塔门事件反馈采用战局前缀")
+	var ch3_objective_event := ch3.get_node_or_null("UI/ObjectiveLabel") as Label
+	if ch3_objective_event != null:
+		_assert("奈德已抵达欢乐塔" in ch3_objective_event.text,
+			"Ch3 事件回归：长期目标标签会更新为塔门战局")
 	_assert(ch3.recorded_cutscenes.has("res://data/cutscenes/ch3_dayne_trigger.json"),
 		"Ch3 触发霍兰刺杀戴恩过场")
 	_assert(ch3.recorded_cutscenes.has("res://data/cutscenes/ch3_lyanna.json"),
@@ -1666,6 +1697,10 @@ func _test_chapter_event_flow() -> void:
 		"Ch4 指挥官死亡后出现归降道路反馈")
 	_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("战局：") and "兰尼斯特军已归降" in msg),
 		"Ch4 兰军归降反馈采用战局前缀")
+	var ch4_objective_event := ch4.get_node_or_null("UI/ObjectiveLabel") as Label
+	if ch4_objective_event != null:
+		_assert("兰尼斯特军已归降" in ch4_objective_event.text,
+			"Ch4 事件回归：长期目标标签会更新为归降战局")
 	_assert(ch4.recorded_dialogues.has("res://data/dialogues/ch4_post.json"),
 		"Ch4 最终结局对话触发")
 	_assert(ch4.recorded_cutscenes.has("res://data/cutscenes/ch4_ending.json"),

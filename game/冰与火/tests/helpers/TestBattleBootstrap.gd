@@ -22,6 +22,12 @@ func _enter_tree() -> void:
 		var ui := CanvasLayer.new()
 		ui.name = "UI"
 		add_child(ui)
+		var objective := Label.new()
+		objective.name = "ObjectiveLabel"
+		ui.add_child(objective)
+		var status := Label.new()
+		status.name = "StatusLabel"
+		ui.add_child(status)
 
 func _apply_cam_limits() -> void:
 	pass
@@ -56,5 +62,8 @@ func _advance_to(next_chapter: int) -> void:
 
 func _set_status(msg: String) -> void:
 	recorded_statuses.append(msg)
+	var objective_label := get_node_or_null("UI/ObjectiveLabel") as Label
+	if objective_label != null and (msg.begins_with("目标：") or msg.begins_with("战局：")):
+		objective_label.text = msg
 	if _status_label:
 		_status_label.text = msg
