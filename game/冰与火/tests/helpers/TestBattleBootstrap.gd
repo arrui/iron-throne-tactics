@@ -25,6 +25,9 @@ func _enter_tree() -> void:
 		var objective := Label.new()
 		objective.name = "ObjectiveLabel"
 		ui.add_child(objective)
+		var phase := Label.new()
+		phase.name = "PhaseLabel"
+		ui.add_child(phase)
 		var guidance := Label.new()
 		guidance.name = "GuidanceLabel"
 		ui.add_child(guidance)

@@ -273,6 +273,13 @@ func _build_ui() -> void:
 	objective_lbl.add_theme_color_override("font_color", Color(0.95, 0.86, 0.45))
 	info_vbox.add_child(objective_lbl)
 
+	var phase_lbl := Label.new()
+	phase_lbl.name = "PhaseBadgeLabel"
+	phase_lbl.text = Ch4BattleBrief.get_stage_badge(1)
+	phase_lbl.add_theme_font_size_override("font_size", 12)
+	phase_lbl.add_theme_color_override("font_color", Color(0.95, 0.82, 0.38))
+	info_vbox.add_child(phase_lbl)
+
 	var faction_lbl := Label.new()
 	faction_lbl.name = "FactionSummaryLabel"
 	faction_lbl.text = FACTION_SUMMARY

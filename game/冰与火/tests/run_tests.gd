@@ -1245,14 +1245,17 @@ func _test_visual_style_unification() -> void:
 	_assert(src.contains("func _draw_river_detail"), "BattleMap 存在河流细节绘制")
 	_assert(src.contains("func _draw_bridge_detail"), "BattleMap 存在桥梁细节绘制")
 	_assert(src.contains("var _objective_label"), "BattleMap 存在长期目标标签引用")
+	_assert(src.contains("var _phase_label"), "BattleMap 存在阶段标签引用")
 	_assert(src.contains("var _guidance_label"), "BattleMap 存在长期推进标签引用")
 	_assert(src.contains("_objective_label.text = msg"), "BattleMap 会把目标/战局信息同步到长期目标标签")
 	_assert(src.contains("_guidance_label.text = msg"), "BattleMap 会把推进信息同步到推进标签")
+	_assert(src.contains("func _set_phase_badge"), "BattleMap 提供阶段徽标刷新入口")
 	_assert(src.contains("func _terrain_at_or_cliff"), "BattleMap 提供邻接地形查询辅助，用于统一图块语言")
 	_assert(src.contains("func _bridge_runs_vertical"), "BattleMap 根据邻接地形判定桥梁朝向")
 	var scene_text := FileAccess.get_file_as_string("res://scenes/battle/BattleMap.tscn")
 	_assert(not scene_text.contains("TileMapLayer"), "BattleMap 场景已移除旧 TileMapLayer 节点")
 	_assert(not scene_text.contains("medieval_tileset.png"), "BattleMap 场景已移除旧瓦片贴图依赖")
+	_assert(scene_text.contains("PhaseLabel"), "BattleMap 场景已加入阶段标签")
 	_assert(scene_text.contains("ObjectiveLabel"), "BattleMap 场景已加入长期目标标签")
 	_assert(scene_text.contains("GuidanceLabel"), "BattleMap 场景已加入长期推进标签")
 
@@ -1286,6 +1289,8 @@ func _test_map_visual_language_spec() -> void:
 	_assert(spec_src.contains("桥邻接河流"), "规范文档包含桥梁与河流的功能红线")
 	_assert(spec_src.contains("关键地图存在从出生点到目标的可达路径"), "规范文档包含关键路径可达性要求")
 	_assert_eq(Ch4BattleBriefClass.BATTLE_FLOW_STEPS.size(), 4, "Ch4 作战简报常量共4个阶段")
+	_assert_eq(Ch4BattleBriefClass.get_stage_badge(1), "阶段：第一段：黑水桥", "Ch4 作战简报可生成第一阶段徽标")
+	_assert_eq(Ch4BattleBriefClass.get_stage_badge(4), "阶段：第四段：红堡内院", "Ch4 作战简报可生成第四阶段徽标")
 	_assert("黑水桥" in Ch4BattleBriefClass.STAGE_1_GUIDANCE, "Ch4 作战简报第一阶段文案锁定黑水桥")
 	_assert("南城墙" in Ch4BattleBriefClass.STAGE_2_GUIDANCE, "Ch4 作战简报第二阶段文案锁定南城墙")
 	_assert("中央大道" in Ch4BattleBriefClass.STAGE_3_GUIDANCE, "Ch4 作战简报第三阶段文案锁定中央大道")
@@ -1469,6 +1474,11 @@ func _test_map_visual_language_spec() -> void:
 	if ch4_objective != null:
 		_assert("王军指挥官" in ch4_objective.text,
 			"Ch4 语义回归：长期目标标签显示红堡主目标")
+	var ch4_phase_opening := ch4.get_node_or_null("UI/PhaseLabel") as Label
+	_assert(ch4_phase_opening != null, "Ch4 语义回归：开场存在阶段标签")
+	if ch4_phase_opening != null:
+		_assert_eq(ch4_phase_opening.text, Ch4BattleBriefClass.get_stage_badge(1),
+			"Ch4 语义回归：开场阶段标签锁定第一阶段")
 	var ch4_guidance_opening := ch4.get_node_or_null("UI/GuidanceLabel") as Label
 	_assert(ch4_guidance_opening != null, "Ch4 语义回归：开场存在长期推进标签")
 	if ch4_guidance_opening != null:
@@ -1483,14 +1493,23 @@ func _test_map_visual_language_spec() -> void:
 		ch4._on_player_unit_action_position_updated(ch4._ned_unit)
 		_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + Ch4BattleBriefClass.STAGE_2_GUIDANCE),
 			"Ch4 语义回归：穿过南城墙后使用第二阶段标准提示")
+		if ch4_phase_opening != null:
+			_assert_eq(ch4_phase_opening.text, Ch4BattleBriefClass.get_stage_badge(2),
+				"Ch4 语义回归：穿过南城墙后阶段标签更新为第二阶段")
 		ch4._ned_unit.grid_pos = Vector2i(18, 16)
 		ch4._on_player_unit_action_position_updated(ch4._ned_unit)
 		_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + Ch4BattleBriefClass.STAGE_3_GUIDANCE),
 			"Ch4 语义回归：进入中央大道后使用第三阶段标准提示")
+		if ch4_phase_opening != null:
+			_assert_eq(ch4_phase_opening.text, Ch4BattleBriefClass.get_stage_badge(3),
+				"Ch4 语义回归：进入中央大道后阶段标签更新为第三阶段")
 		ch4._ned_unit.grid_pos = Vector2i(18, 11)
 		ch4._on_player_unit_action_position_updated(ch4._ned_unit)
 		_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + Ch4BattleBriefClass.STAGE_4_GUIDANCE),
 			"Ch4 语义回归：攻入红堡外院后使用第四阶段标准提示")
+		if ch4_phase_opening != null:
+			_assert_eq(ch4_phase_opening.text, Ch4BattleBriefClass.get_stage_badge(4),
+				"Ch4 语义回归：攻入红堡外院后阶段标签更新为第四阶段")
 		var ch4_guidance := ch4.get_node_or_null("UI/GuidanceLabel") as Label
 		_assert(ch4_guidance != null, "Ch4 语义回归：存在长期推进标签")
 		if ch4_guidance != null:
@@ -1834,6 +1853,10 @@ func _test_chapter_event_flow() -> void:
 	if ch4_objective_event != null:
 		_assert("兰尼斯特军已归降" in ch4_objective_event.text,
 			"Ch4 事件回归：长期目标标签会更新为归降战局")
+	var ch4_phase_event := ch4.get_node_or_null("UI/PhaseLabel") as Label
+	if ch4_phase_event != null:
+		_assert_eq(ch4_phase_event.text, Ch4BattleBriefClass.get_stage_badge(4),
+			"Ch4 事件回归：归降后阶段标签保持第四阶段")
 	_assert(ch4.recorded_dialogues.has("res://data/dialogues/ch4_post.json"),
 		"Ch4 最终结局对话触发")
 	_assert(ch4.recorded_cutscenes.has("res://data/cutscenes/ch4_ending.json"),
@@ -1924,6 +1947,7 @@ func _test_ch1_save_and_deploy_flow() -> void:
 	await process_frame
 	var premise_label := deploy.get_node_or_null("LayoutRoot/InfoPanel/InfoVBox/PremiseLabel") as Label
 	var objective_summary_label := deploy.get_node_or_null("LayoutRoot/InfoPanel/InfoVBox/ObjectiveSummaryLabel") as Label
+	var phase_badge_label := deploy.get_node_or_null("LayoutRoot/InfoPanel/InfoVBox/PhaseBadgeLabel") as Label
 	var faction_summary_label := deploy.get_node_or_null("LayoutRoot/InfoPanel/InfoVBox/FactionSummaryLabel") as Label
 	var deploy_summary_label := deploy.get_node_or_null("LayoutRoot/InfoPanel/InfoVBox/DeploySummaryLabel") as Label
 	var count_label := deploy.get_node_or_null("CountLabel") as Label
@@ -1937,6 +1961,7 @@ func _test_ch1_save_and_deploy_flow() -> void:
 	var optional_card := deploy.get_node_or_null("LayoutRoot/UnitGrid/UnitCard_1") as PanelContainer
 	_assert(premise_label != null, "部署界面包含战前态势说明")
 	_assert(objective_summary_label != null, "部署界面包含章节目标摘要")
+	_assert(phase_badge_label != null, "部署界面包含开场阶段徽标")
 	_assert(faction_summary_label != null, "部署界面包含兰军中立说明")
 	_assert(deploy_summary_label != null, "部署界面包含编组建议说明")
 	_assert(battle_flow_panel != null, "部署界面包含作战分段简报面板")
@@ -1993,6 +2018,9 @@ func _test_ch1_save_and_deploy_flow() -> void:
 		_assert_eq(objective_summary_label.text, Ch4BattleBriefClass.OBJECTIVE_SUMMARY, "部署界面目标摘要与 Ch4 简报常量一致")
 		_assert(objective_summary_label.text.begins_with("目标："), "部署界面目标摘要采用目标前缀")
 		_assert("王军指挥官" in objective_summary_label.text, "部署界面目标摘要点明王军指挥官")
+	if phase_badge_label != null:
+		_assert_eq(phase_badge_label.text, Ch4BattleBriefClass.get_stage_badge(1), "部署界面阶段徽标与首段简报一致")
+		_assert("黑水桥" in phase_badge_label.text, "部署界面阶段徽标点明黑水桥")
 	if faction_summary_label != null:
 		_assert_eq(faction_summary_label.text, Ch4BattleBriefClass.FACTION_SUMMARY, "部署界面势力说明与 Ch4 简报常量一致")
 		_assert("中立" in faction_summary_label.text and "兰军" in faction_summary_label.text,
