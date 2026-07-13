@@ -1292,6 +1292,8 @@ func _test_map_visual_language_spec() -> void:
 	_assert_eq(ch1._terrain_at_or_cliff(5, 1), 0, "Ch1 语义回归：北侧主缺口前一格保持为通路")
 	_assert(ch1._terrain_at_or_cliff(3, 1) == 2 and ch1._terrain_at_or_cliff(7, 1) == 2,
 		"Ch1 语义回归：缺口两侧仍保留封锁墙体")
+	_assert(ch1.recorded_statuses.any(func(msg: String) -> bool: return "突破山道封锁" in msg and "奈德" in msg),
+		"Ch1 语义回归：开场状态提示明确山道突破目标")
 	if is_instance_valid(ch1):
 		ch1.queue_free()
 	await process_frame
@@ -1316,6 +1318,8 @@ func _test_map_visual_language_spec() -> void:
 	_assert(ch2._terrain_at_or_cliff(12, 7) == 2 and ch2._terrain_at_or_cliff(15, 7) == 2,
 		"Ch2 语义回归：中桥北桥头两侧营垒仍在，形成主决战桥头")
 	_assert_eq(ch2._terrain_at_or_cliff(13, 7), 6, "Ch2 语义回归：中桥北桥头桥面保持完整")
+	_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return "争夺三桥" in msg and "雷加" in msg),
+		"Ch2 语义回归：开场状态提示明确三桥与雷加目标")
 	if is_instance_valid(ch2):
 		ch2.queue_free()
 	await process_frame
@@ -1338,6 +1342,8 @@ func _test_map_visual_language_spec() -> void:
 			"Ch3 语义回归：亚瑟·戴恩位于塔目标南侧门神位")
 		_assert_eq(ch3._dayne_unit.grid_pos, Vector2i(12, 6),
 			"Ch3 语义回归：亚瑟·戴恩保持中轴堵门")
+	_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return "欢乐塔" in msg and "不必全歼" in msg),
+		"Ch3 语义回归：开场状态提示明确到塔目标而非全歼")
 	if is_instance_valid(ch3):
 		ch3.queue_free()
 	await process_frame
@@ -1363,6 +1369,8 @@ func _test_map_visual_language_spec() -> void:
 	_assert_eq(ch4._terrain_at_or_cliff(18, 11), 0, "Ch4 语义回归：红堡外墙主门保持通路")
 	_assert_eq(ch4._terrain_at_or_cliff(18, 13), 0, "Ch4 语义回归：内城墙主门保持通路")
 	_assert_eq(ch4._terrain_at_or_cliff(18, 18), 0, "Ch4 语义回归：南城墙主门保持通路")
+	_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return "中轴" in msg and "王军指挥官" in msg),
+		"Ch4 语义回归：开场状态提示明确中轴推进与指挥官目标")
 	if is_instance_valid(ch4):
 		ch4.queue_free()
 	await process_frame

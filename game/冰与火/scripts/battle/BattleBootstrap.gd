@@ -180,6 +180,7 @@ func _setup_ch1() -> void:
 	_override_enemy_stats(e1); _override_enemy_stats(e2); _override_enemy_stats(e3)
 	_ch1_enemies_spawned = true  # 标记已生成，供胜利检查使用
 	_redraw_all()
+	_set_status("目标：突破山道封锁，让奈德抵达北侧缺口。")
 	_run_ch1_tutorial()
 
 func _override_enemy_stats(unit: Unit) -> void:
@@ -346,6 +347,7 @@ func _setup_ch2() -> void:
 	_make_unit("targaryen_soldier.json",  1, Vector2i(22, 6))
 	_make_unit("targaryen_soldier.json",  1, Vector2i(20, 7))
 	_redraw_all()
+	_set_status("目标：争夺三桥，稳住两翼；从中桥杀向雷加的北岸主阵地。")
 	await _play_dialogue("res://data/dialogues/ch2_pre.json")
 
 func _on_won_ch2() -> void:
@@ -388,6 +390,7 @@ func _setup_ch3() -> void:
 	_make_unit("dorne_knight.json", 1, Vector2i(15, 11))
 	_make_unit("dorne_knight.json", 1, Vector2i(12, 8))
 	_redraw_all()
+	_set_status("目标：让奈德抵达欢乐塔。亚瑟·戴恩堵守塔门，不必全歼敌军。")
 	await _play_dialogue("res://data/dialogues/ch3_pre.json")
 
 # ══════════════════════════════════════════════════════════
@@ -439,9 +442,9 @@ func _setup_ch4() -> void:
 		_royal_commander.data.move = 0               # 守卫铁王座，原地不动
 
 	_redraw_all()
+	# 开场提示：说明兰军是中立，指挥官是目标，中轴是主推进方向
+	_set_status("兰尼斯特军（金色）持观望态度——沿中轴突破城门与红堡，击败★王军指挥官方可使其归降！")
 	await _play_dialogue("res://data/dialogues/ch4_pre.json")
-	# 开场提示：说明兰军是中立，指挥官是目标
-	_set_status("兰尼斯特军（金色）持观望态度——击败★王军指挥官方可使其归降！")
 
 func _build_map_ch4() -> Array:
 	const W := 36; const H := 26
