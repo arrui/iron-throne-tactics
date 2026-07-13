@@ -181,6 +181,28 @@ func _set_prologue_stage(chapter: int, stage_idx: int) -> void:
 	if stage_idx >= 1 and stage_idx <= steps.size():
 		_set_progress_status(str(steps[stage_idx - 1]))
 
+func _play_opening_hud_sequence(chapter: int, objective_msg: String) -> void:
+	_set_objective_status(objective_msg)
+	if DisplayServer.get_name() == "headless":
+		if chapter == 4:
+			_set_ch4_stage(1)
+		else:
+			_set_prologue_stage(chapter, 1)
+		return
+	if not await _safe_frame(): return
+	if chapter == 4:
+		_ch4_current_stage = 1
+		_set_phase_badge(Ch4BattleBrief.get_stage_badge(1))
+	else:
+		_set_phase_badge(PrologueChapterBriefs.get_progress_stage_badge(chapter, 1))
+	if not await _safe_frame(): return
+	if chapter == 4:
+		_set_progress_status(Ch4BattleBrief.get_stage_guidance(1))
+	else:
+		var steps := PrologueChapterBriefs.get_progress_steps(chapter)
+		if not steps.is_empty():
+			_set_progress_status(str(steps[0]))
+
 func _set_ch4_stage(stage_idx: int) -> void:
 	if GameState.current_chapter != 4:
 		return
@@ -218,8 +240,7 @@ func _setup_ch1() -> void:
 	_override_enemy_stats(e1); _override_enemy_stats(e2); _override_enemy_stats(e3)
 	_ch1_enemies_spawned = true  # 标记已生成，供胜利检查使用
 	_redraw_all()
-	_set_objective_status(PrologueChapterBriefs.CH1_BATTLE_OBJECTIVE)
-	_set_prologue_stage(1, 1)
+	await _play_opening_hud_sequence(1, PrologueChapterBriefs.CH1_BATTLE_OBJECTIVE)
 	_run_ch1_tutorial()
 
 func _override_enemy_stats(unit: Unit) -> void:
@@ -439,8 +460,7 @@ func _setup_ch2() -> void:
 	_make_unit("targaryen_soldier.json",  1, Vector2i(22, 6))
 	_make_unit("targaryen_soldier.json",  1, Vector2i(20, 7))
 	_redraw_all()
-	_set_objective_status(PrologueChapterBriefs.CH2_BATTLE_OBJECTIVE)
-	_set_prologue_stage(2, 1)
+	await _play_opening_hud_sequence(2, PrologueChapterBriefs.CH2_BATTLE_OBJECTIVE)
 	await _play_dialogue("res://data/dialogues/ch2_pre.json")
 
 func _on_won_ch2() -> void:
@@ -483,8 +503,7 @@ func _setup_ch3() -> void:
 	_make_unit("dorne_knight.json", 1, Vector2i(15, 11))
 	_make_unit("dorne_knight.json", 1, Vector2i(12, 8))
 	_redraw_all()
-	_set_objective_status(PrologueChapterBriefs.CH3_BATTLE_OBJECTIVE)
-	_set_prologue_stage(3, 1)
+	await _play_opening_hud_sequence(3, PrologueChapterBriefs.CH3_BATTLE_OBJECTIVE)
 	await _play_dialogue("res://data/dialogues/ch3_pre.json")
 
 # ══════════════════════════════════════════════════════════
@@ -538,8 +557,7 @@ func _setup_ch4() -> void:
 
 	_redraw_all()
 	# 开场提示：说明兰军是中立，指挥官是目标，中轴是主推进方向
-	_set_objective_status(Ch4BattleBrief.BATTLE_OBJECTIVE)
-	_set_ch4_stage(1)
+	await _play_opening_hud_sequence(4, Ch4BattleBrief.BATTLE_OBJECTIVE)
 	await _play_dialogue("res://data/dialogues/ch4_pre.json")
 
 func _build_map_ch4() -> Array:
