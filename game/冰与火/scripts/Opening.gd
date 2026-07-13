@@ -1,6 +1,8 @@
 # Opening.gd — 序章·一开场流程 + 存档路由 + Debug 章节选择器
 extends Node
 
+const PrologueChapterBriefs := preload("res://scripts/chapter/PrologueChapterBriefs.gd")
+
 const CUTSCENE_SCENE := preload("res://scenes/cutscene/CutscenePlayer.tscn")
 const BATTLE_SCENE   := "res://scenes/battle/BattleMap.tscn"
 const TRANSITION_PATH := "res://scenes/ui/ChapterTransition.tscn"
@@ -13,7 +15,7 @@ const CH1_CHAPTER_NUMBER    := "序章·一"
 const CH1_CHAPTER_TITLE     := "风暴地"
 const CH1_CHAPTER_TIME      := "篡夺者战争 · 第一年"
 const CH1_CHAPTER_SUB_LABEL := "起义开端 / 山道突破"
-const CH1_CHAPTER_OBJECTIVE := "目标：夺回北侧山道缺口，为劳勃后军打开通路。"
+const CH1_CHAPTER_OBJECTIVE := PrologueChapterBriefs.CH1_OBJECTIVE_SUMMARY
 
 const CHAPTER_SCENE_MAP := {
 	2: "res://scenes/chapter/Ch2_Opening.tscn",

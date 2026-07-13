@@ -2,6 +2,7 @@
 # 根据 GameState.current_chapter 决定运行哪个章节的地图/单位/事件逻辑
 extends "res://scripts/battle/BattleMap.gd"
 
+const PrologueChapterBriefs := preload("res://scripts/chapter/PrologueChapterBriefs.gd")
 const Ch4BattleBrief := preload("res://scripts/chapter/Ch4BattleBrief.gd")
 
 const UNIT_SCENE         := preload("res://scenes/battle/Unit.tscn")
@@ -211,7 +212,7 @@ func _setup_ch1() -> void:
 	_override_enemy_stats(e1); _override_enemy_stats(e2); _override_enemy_stats(e3)
 	_ch1_enemies_spawned = true  # 标记已生成，供胜利检查使用
 	_redraw_all()
-	_set_objective_status("突破山道封锁，让奈德抵达北侧缺口。")
+	_set_objective_status(PrologueChapterBriefs.CH1_BATTLE_OBJECTIVE)
 	_run_ch1_tutorial()
 
 func _override_enemy_stats(unit: Unit) -> void:
@@ -431,7 +432,7 @@ func _setup_ch2() -> void:
 	_make_unit("targaryen_soldier.json",  1, Vector2i(22, 6))
 	_make_unit("targaryen_soldier.json",  1, Vector2i(20, 7))
 	_redraw_all()
-	_set_objective_status("争夺三桥，稳住两翼；从中桥杀向雷加的北岸主阵地。")
+	_set_objective_status(PrologueChapterBriefs.CH2_BATTLE_OBJECTIVE)
 	await _play_dialogue("res://data/dialogues/ch2_pre.json")
 
 func _on_won_ch2() -> void:
@@ -474,7 +475,7 @@ func _setup_ch3() -> void:
 	_make_unit("dorne_knight.json", 1, Vector2i(15, 11))
 	_make_unit("dorne_knight.json", 1, Vector2i(12, 8))
 	_redraw_all()
-	_set_objective_status("让奈德抵达欢乐塔。亚瑟·戴恩堵守塔门，不必全歼敌军。")
+	_set_objective_status(PrologueChapterBriefs.CH3_BATTLE_OBJECTIVE)
 	await _play_dialogue("res://data/dialogues/ch3_pre.json")
 
 # ══════════════════════════════════════════════════════════

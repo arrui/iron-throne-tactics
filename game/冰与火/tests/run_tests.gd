@@ -19,6 +19,7 @@ const BattleCalculatorClass := preload("res://scripts/battle/BattleCalculator.gd
 const UnitDataClass          := preload("res://scripts/data/UnitData.gd")
 const EnemyAIClass           := preload("res://scripts/battle/EnemyAI.gd")
 const BootstrapClass         := preload("res://scripts/battle/BattleBootstrap.gd")
+const PrologueChapterBriefsClass := preload("res://scripts/chapter/PrologueChapterBriefs.gd")
 const Ch4BattleBriefClass    := preload("res://scripts/chapter/Ch4BattleBrief.gd")
 const TestBootstrapClass     := preload("res://tests/helpers/TestBattleBootstrap.gd")
 const TestOpeningClass       := preload("res://tests/helpers/TestOpening.gd")
@@ -1288,6 +1289,14 @@ func _test_map_visual_language_spec() -> void:
 	_assert(spec_src.length() > 0, "地图视觉语言规范文档存在")
 	_assert(spec_src.contains("桥邻接河流"), "规范文档包含桥梁与河流的功能红线")
 	_assert(spec_src.contains("关键地图存在从出生点到目标的可达路径"), "规范文档包含关键路径可达性要求")
+	_assert_eq(PrologueChapterBriefsClass.CH1_OBJECTIVE_SUMMARY, "目标：夺回北侧山道缺口，为劳勃后军打开通路。", "Ch1 章节目标摘要常量锁定")
+	_assert_eq(PrologueChapterBriefsClass.CH2_OBJECTIVE_SUMMARY, "目标：争夺三桥并稳住两翼，从中桥突破雷加本阵。", "Ch2 章节目标摘要常量锁定")
+	_assert_eq(PrologueChapterBriefsClass.CH3_OBJECTIVE_SUMMARY, "目标：让奈德抵达欢乐塔，不必全歼守军。", "Ch3 章节目标摘要常量锁定")
+	_assert_eq(PrologueChapterBriefsClass.CH4_OBJECTIVE_SUMMARY, Ch4BattleBriefClass.OBJECTIVE_SUMMARY, "Ch4 章节目标摘要与战前简报统一")
+	_assert_eq(PrologueChapterBriefsClass.CH1_BATTLE_OBJECTIVE, "夺回北侧山道缺口，为劳勃后军打开通路。", "Ch1 战斗目标常量锁定")
+	_assert_eq(PrologueChapterBriefsClass.CH2_BATTLE_OBJECTIVE, "争夺三桥并稳住两翼，从中桥突破雷加本阵。", "Ch2 战斗目标常量锁定")
+	_assert_eq(PrologueChapterBriefsClass.CH3_BATTLE_OBJECTIVE, "让奈德抵达欢乐塔，不必全歼守军。", "Ch3 战斗目标常量锁定")
+	_assert_eq(PrologueChapterBriefsClass.CH4_BATTLE_OBJECTIVE, Ch4BattleBriefClass.BATTLE_OBJECTIVE, "Ch4 战斗目标与战前简报统一")
 	_assert_eq(Ch4BattleBriefClass.BATTLE_FLOW_STEPS.size(), 4, "Ch4 作战简报常量共4个阶段")
 	_assert_eq(Ch4BattleBriefClass.get_stage_badge(1), "阶段：第一段：黑水桥", "Ch4 作战简报可生成第一阶段徽标")
 	_assert_eq(Ch4BattleBriefClass.get_stage_badge(4), "阶段：第四段：红堡内院", "Ch4 作战简报可生成第四阶段徽标")
@@ -1311,15 +1320,17 @@ func _test_map_visual_language_spec() -> void:
 	_assert_eq(ch1._terrain_at_or_cliff(5, 1), 0, "Ch1 语义回归：北侧主缺口前一格保持为通路")
 	_assert(ch1._terrain_at_or_cliff(3, 1) == 2 and ch1._terrain_at_or_cliff(7, 1) == 2,
 		"Ch1 语义回归：缺口两侧仍保留封锁墙体")
-	_assert(ch1.recorded_statuses.any(func(msg: String) -> bool: return "突破山道封锁" in msg and "奈德" in msg),
-		"Ch1 语义回归：开场状态提示明确山道突破目标")
+	_assert(ch1.recorded_statuses.any(func(msg: String) -> bool: return msg == PrologueChapterBriefsClass.CH1_OBJECTIVE_SUMMARY),
+		"Ch1 语义回归：开场状态提示明确山道口目标")
 	_assert(ch1.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("目标：")),
 		"Ch1 语义回归：开场提示采用目标前缀")
+	_assert(ch1.recorded_statuses.any(func(msg: String) -> bool: return msg == PrologueChapterBriefsClass.CH1_OBJECTIVE_SUMMARY),
+		"Ch1 语义回归：战斗目标与标题卡摘要完全一致")
 	var ch1_objective := ch1.get_node_or_null("UI/ObjectiveLabel") as Label
 	_assert(ch1_objective != null, "Ch1 语义回归：存在长期目标标签")
 	if ch1_objective != null:
-		_assert("突破山道封锁" in ch1_objective.text,
-			"Ch1 语义回归：长期目标标签显示山道突破目标")
+		_assert_eq(ch1_objective.text, PrologueChapterBriefsClass.CH1_OBJECTIVE_SUMMARY,
+			"Ch1 语义回归：长期目标标签显示统一后的山道口目标")
 	var ch1_turn_before: int = ch1._turn_count
 	ch1.call_deferred("set", "_turn_count", ch1_turn_before + 1)
 	await ch1._wait_for_turn_switched()
@@ -1360,6 +1371,8 @@ func _test_map_visual_language_spec() -> void:
 		"Ch2 语义回归：开场状态提示明确三桥与雷加目标")
 	_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("目标：") and "争夺三桥" in msg),
 		"Ch2 语义回归：开场提示采用目标前缀")
+	_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg == PrologueChapterBriefsClass.CH2_OBJECTIVE_SUMMARY),
+		"Ch2 语义回归：战斗目标与标题卡摘要完全一致")
 	var ch2_objective := ch2.get_node_or_null("UI/ObjectiveLabel") as Label
 	_assert(ch2_objective != null, "Ch2 语义回归：存在长期目标标签")
 	if ch2_objective != null:
@@ -1414,6 +1427,8 @@ func _test_map_visual_language_spec() -> void:
 		"Ch3 语义回归：开场状态提示明确到塔目标而非全歼")
 	_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("目标：") and "欢乐塔" in msg),
 		"Ch3 语义回归：开场提示采用目标前缀")
+	_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return msg == PrologueChapterBriefsClass.CH3_OBJECTIVE_SUMMARY),
+		"Ch3 语义回归：战斗目标与标题卡摘要完全一致")
 	var ch3_objective := ch3.get_node_or_null("UI/ObjectiveLabel") as Label
 	_assert(ch3_objective != null, "Ch3 语义回归：存在长期目标标签")
 	if ch3_objective != null:
@@ -1710,6 +1725,7 @@ func _test_chapter_transition_metadata() -> void:
 	await process_frame
 
 	var opening_src := FileAccess.get_file_as_string("res://scripts/Opening.gd")
+	_assert("PrologueChapterBriefs" in opening_src, "Opening.gd 通过统一章节简报常量提供 Ch1 目标")
 	_assert("CH1_CHAPTER_SUB_LABEL" in opening_src, "Opening.gd 包含 Ch1 标题卡副标题常量")
 	_assert("CH1_CHAPTER_OBJECTIVE" in opening_src, "Opening.gd 包含 Ch1 标题卡目标常量")
 	_assert("_play_ch1_title_card" in opening_src, "Opening.gd 包含 Ch1 标题卡播放流程")
@@ -1756,6 +1772,13 @@ func _test_chapter_transition_metadata() -> void:
 		_assert_eq(opening._chapter_sub_label, spec["sub"], "%s 副标题正确" % spec["title"])
 		_assert_eq(opening._chapter_objective, spec["objective"], "%s 目标摘要正确" % spec["title"])
 		_assert(opening._chapter_objective.begins_with("目标："), "%s 目标摘要遵循 HUD 语义前缀" % spec["title"])
+
+	var ch2_opening_src := FileAccess.get_file_as_string("res://scripts/chapter/Opening_Ch2.gd")
+	var ch3_opening_src := FileAccess.get_file_as_string("res://scripts/chapter/Opening_Ch3.gd")
+	var ch4_opening_src := FileAccess.get_file_as_string("res://scripts/chapter/Opening_Ch4.gd")
+	_assert("PrologueChapterBriefs" in ch2_opening_src, "Opening_Ch2 通过统一章节简报常量提供目标")
+	_assert("PrologueChapterBriefs" in ch3_opening_src, "Opening_Ch3 通过统一章节简报常量提供目标")
+	_assert("PrologueChapterBriefs" in ch4_opening_src, "Opening_Ch4 通过统一章节简报常量提供目标")
 
 func _test_chapter_event_flow() -> void:
 	var opening_scene: PackedScene = load("res://scenes/Opening.tscn") as PackedScene
