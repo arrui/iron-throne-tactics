@@ -19,6 +19,25 @@ const CHAPTER_PREMISE := "君临已乱，兰尼斯特军（金色）暂持观望
 const OBJECTIVE_SUMMARY := "目标：沿中轴攻入红堡，击败王军指挥官后迫使兰军归降。"
 const FACTION_SUMMARY := "态势：兰军当前中立，不会主动支援你；王军指挥官一倒，金袍与兰军将放弃抵抗。"
 const DEPLOY_SUMMARY := "编组：奈德固定出战，最多再带 4 名北境骑士。建议尽量带满，以降低攻城轴线断裂风险。"
+const DEPLOY_ADVICE := "建议：前锋尽快过黑水桥，中轴直取南城门；两翼负责护桥与补位，别在兰军观望阵线前白白耗回合。"
+const BATTLE_FLOW_STEPS := [
+	{
+		"title": "第一段：黑水桥",
+		"desc": "先夺桥头，保证中轴能完整越河。",
+	},
+	{
+		"title": "第二段：南城墙",
+		"desc": "穿过城门缺口，避免在墙外被拖成消耗战。",
+	},
+	{
+		"title": "第三段：中央大道",
+		"desc": "保持中轴推进，两翼负责护侧与补刀。",
+	},
+	{
+		"title": "第四段：红堡内院",
+		"desc": "击破王军指挥官后，兰军与金袍会放弃抵抗。",
+	},
+]
 const PORTRAIT_PATH_MAP := {
 	"ned_stark.json": "res://assets/units/ned_stark_portrait.png",
 	"northern_knight.json": "res://assets/units/northern_knight_portrait.png",
@@ -167,6 +186,41 @@ func _refresh_deploy_summary() -> void:
 		else:
 			_confirm_btn.text = "⚔ 确认部署出发（奈德 + %d）" % _selected.size()
 
+func _make_flow_card(step_idx: int, step_data: Dictionary) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.name = "FlowStep_%d" % (step_idx + 1)
+	panel.custom_minimum_size = Vector2(0, 86)
+	panel.add_theme_stylebox_override("panel", _make_card_style(false, false))
+
+	var vb := VBoxContainer.new()
+	vb.name = "VBox"
+	vb.add_theme_constant_override("separation", 4)
+	panel.add_child(vb)
+
+	var step_num := Label.new()
+	step_num.name = "StepNumber"
+	step_num.text = "阶段 %d" % (step_idx + 1)
+	step_num.add_theme_font_size_override("font_size", 10)
+	step_num.add_theme_color_override("font_color", Color(0.95, 0.82, 0.38))
+	vb.add_child(step_num)
+
+	var title := Label.new()
+	title.name = "StepTitle"
+	title.text = str(step_data.get("title", "阶段"))
+	title.add_theme_font_size_override("font_size", 12)
+	title.add_theme_color_override("font_color", Color(0.9, 0.9, 0.94))
+	vb.add_child(title)
+
+	var desc := Label.new()
+	desc.name = "StepDesc"
+	desc.text = str(step_data.get("desc", ""))
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.add_theme_font_size_override("font_size", 11)
+	desc.add_theme_color_override("font_color", Color(0.72, 0.78, 0.84))
+	vb.add_child(desc)
+
+	return panel
+
 func _ready() -> void:
 	layer = 40
 	_build_ui()
@@ -249,6 +303,41 @@ func _build_ui() -> void:
 	deploy_lbl.add_theme_font_size_override("font_size", 12)
 	deploy_lbl.add_theme_color_override("font_color", Color(0.72, 0.9, 0.74))
 	info_vbox.add_child(deploy_lbl)
+
+	var battle_flow_panel := PanelContainer.new()
+	battle_flow_panel.name = "BattleFlowPanel"
+	battle_flow_panel.custom_minimum_size = Vector2(0, 196)
+	vbox.add_child(battle_flow_panel)
+
+	var battle_flow_vbox := VBoxContainer.new()
+	battle_flow_vbox.name = "BattleFlowVBox"
+	battle_flow_vbox.add_theme_constant_override("separation", 8)
+	battle_flow_panel.add_child(battle_flow_vbox)
+
+	var flow_title := Label.new()
+	flow_title.name = "FlowTitle"
+	flow_title.text = "作战分段简报"
+	flow_title.add_theme_font_size_override("font_size", 15)
+	flow_title.add_theme_color_override("font_color", Color(0.95, 0.88, 0.46))
+	battle_flow_vbox.add_child(flow_title)
+
+	var flow_grid := GridContainer.new()
+	flow_grid.name = "FlowGrid"
+	flow_grid.columns = 2
+	flow_grid.add_theme_constant_override("h_separation", 10)
+	flow_grid.add_theme_constant_override("v_separation", 10)
+	battle_flow_vbox.add_child(flow_grid)
+
+	for step_idx: int in BATTLE_FLOW_STEPS.size():
+		flow_grid.add_child(_make_flow_card(step_idx, BATTLE_FLOW_STEPS[step_idx]))
+
+	var advice_label := Label.new()
+	advice_label.name = "DeployAdviceLabel"
+	advice_label.text = DEPLOY_ADVICE
+	advice_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	advice_label.add_theme_font_size_override("font_size", 12)
+	advice_label.add_theme_color_override("font_color", Color(0.84, 0.86, 0.78))
+	battle_flow_vbox.add_child(advice_label)
 
 	_count_label = Label.new()
 	_count_label.name = "CountLabel"

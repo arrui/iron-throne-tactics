@@ -1916,15 +1916,49 @@ func _test_ch1_save_and_deploy_flow() -> void:
 	var count_label := deploy.get_node_or_null("CountLabel") as Label
 	var confirm_btn := deploy.get_node_or_null("ConfirmButton") as Button
 	var unit_grid := deploy.get_node_or_null("LayoutRoot/UnitGrid") as GridContainer
+	var battle_flow_panel := deploy.get_node_or_null("LayoutRoot/BattleFlowPanel") as PanelContainer
+	var flow_grid := deploy.get_node_or_null("LayoutRoot/BattleFlowPanel/BattleFlowVBox/FlowGrid") as GridContainer
+	var flow_title := deploy.get_node_or_null("LayoutRoot/BattleFlowPanel/BattleFlowVBox/FlowTitle") as Label
+	var deploy_advice_label := deploy.get_node_or_null("LayoutRoot/BattleFlowPanel/BattleFlowVBox/DeployAdviceLabel") as Label
 	var mandatory_card := deploy.get_node_or_null("LayoutRoot/UnitGrid/UnitCard_0") as PanelContainer
 	var optional_card := deploy.get_node_or_null("LayoutRoot/UnitGrid/UnitCard_1") as PanelContainer
 	_assert(premise_label != null, "部署界面包含战前态势说明")
 	_assert(objective_summary_label != null, "部署界面包含章节目标摘要")
 	_assert(faction_summary_label != null, "部署界面包含兰军中立说明")
 	_assert(deploy_summary_label != null, "部署界面包含编组建议说明")
+	_assert(battle_flow_panel != null, "部署界面包含作战分段简报面板")
+	_assert(flow_grid != null, "部署界面包含作战分段网格")
+	_assert(flow_title != null, "部署界面包含作战分段标题")
+	_assert(deploy_advice_label != null, "部署界面包含额外部署建议")
 	_assert(unit_grid != null, "部署界面包含单位卡网格")
 	if unit_grid != null:
 		_assert_eq(unit_grid.columns, 3, "部署界面单位卡按三列布局")
+	if flow_title != null:
+		_assert_eq(flow_title.text, "作战分段简报", "部署界面作战分段标题正确")
+	if flow_grid != null:
+		_assert_eq(flow_grid.columns, 2, "部署界面作战分段按两列布局")
+		_assert_eq(flow_grid.get_child_count(), 4, "部署界面作战分段共4步")
+		var step_1 := flow_grid.get_node_or_null("FlowStep_1") as PanelContainer
+		var step_4 := flow_grid.get_node_or_null("FlowStep_4") as PanelContainer
+		if step_1 != null:
+			var step_1_title := step_1.get_node_or_null("VBox/StepTitle") as Label
+			var step_1_desc := step_1.get_node_or_null("VBox/StepDesc") as Label
+			if step_1_title != null:
+				_assert("黑水桥" in step_1_title.text, "部署界面第一阶段指向黑水桥")
+			if step_1_desc != null:
+				_assert("桥头" in step_1_desc.text, "部署界面第一阶段说明夺桥目标")
+		if step_4 != null:
+			var step_4_title := step_4.get_node_or_null("VBox/StepTitle") as Label
+			var step_4_desc := step_4.get_node_or_null("VBox/StepDesc") as Label
+			if step_4_title != null:
+				_assert("红堡内院" in step_4_title.text, "部署界面最终阶段指向红堡内院")
+			if step_4_desc != null:
+				_assert("兰军" in step_4_desc.text and "放弃抵抗" in step_4_desc.text,
+					"部署界面最终阶段说明击杀指挥官后的政治结果")
+	if deploy_advice_label != null:
+		_assert("黑水桥" in deploy_advice_label.text and "南城门" in deploy_advice_label.text,
+			"部署界面部署建议点明桥头与南城门")
+		_assert("两翼" in deploy_advice_label.text, "部署界面部署建议强调两翼职责")
 	if premise_label != null:
 		_assert("黑水桥" in premise_label.text and "红堡" in premise_label.text,
 			"部署界面态势说明点明黑水桥与红堡中轴")
