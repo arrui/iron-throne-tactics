@@ -158,6 +158,15 @@ var _tutorial_mgr:         TutorialManager = null
 var _ned_reached_victory:  bool = false
 var _ch1_enemies_spawned:  bool = false  # 敌人已生成标记（防止unit死亡后数组清空导致胜利检查失败）
 
+func _set_objective_status(msg: String) -> void:
+	_set_status("目标：%s" % msg)
+
+func _set_progress_status(msg: String) -> void:
+	_set_status("推进：%s" % msg)
+
+func _set_battle_status(msg: String) -> void:
+	_set_status("战局：%s" % msg)
+
 # ══════════════════════════════════════════════════════════
 func _ready() -> void:
 	match GameState.current_chapter:
@@ -185,7 +194,7 @@ func _setup_ch1() -> void:
 	_override_enemy_stats(e1); _override_enemy_stats(e2); _override_enemy_stats(e3)
 	_ch1_enemies_spawned = true  # 标记已生成，供胜利检查使用
 	_redraw_all()
-	_set_status("目标：突破山道封锁，让奈德抵达北侧缺口。")
+	_set_objective_status("突破山道封锁，让奈德抵达北侧缺口。")
 	_run_ch1_tutorial()
 
 func _override_enemy_stats(unit: Unit) -> void:
@@ -270,7 +279,7 @@ func _wait_for_turn_switched() -> void:
 	while _turn_count == initial_turn:
 		if not await _safe_frame(): return
 	if not _battle_over:
-		_set_status("敌军开始应对山道缺口——继续向北推进，别被封锁线拖住。")
+		_set_progress_status("敌军开始应对山道缺口——继续向北推进，别被封锁线拖住。")
 
 # ── 序章一胜利检测 ────────────────────────────────────────
 func _check_ch1_victory_loop() -> void:
@@ -287,7 +296,7 @@ func _on_won_ch1() -> void:
 	_battle_over = true
 	_hide_all_panels()
 	if _result_panel: _result_panel.visible = false
-	_set_status("山道已打开！后军可以北上——奈德继续前进。")
+	_set_battle_status("山道已打开！后军可以北上——奈德继续前进。")
 	await _play_dialogue("res://data/dialogues/prologue_1_post.json")
 	if not is_inside_tree(): return
 	await _advance_to(2)
@@ -322,7 +331,7 @@ func _check_victory() -> void:
 				if royal_alive.is_empty() and is_instance_valid(_royal_commander) \
 						and not _royal_commander.is_dead():
 					_ch4_midway_hint_shown = true
-					_set_status("王军已溃散！★ 王军指挥官仍在红堡深处——击败他，兰军将归降！")
+					_set_battle_status("王军已溃散！★ 王军指挥官仍在红堡深处——击败他，兰军将归降！")
 			# 胜利：奈德抵达铁王座
 			if is_instance_valid(_ned_unit) and not _ned_unit.is_dead() \
 					and _ned_unit.grid_pos == victory_pos:
@@ -339,27 +348,27 @@ func _on_player_unit_action_position_updated(unit: Unit) -> void:
 					and unit.grid_pos.y >= 8 and unit.grid_pos.y <= 10 \
 					and unit.grid_pos.x >= 13 and unit.grid_pos.x <= 15:
 				_ch2_bridge_hint_shown = true
-				_set_status("义军已踏上中桥——稳住两翼，别让主攻轴线断掉。")
+				_set_progress_status("义军已踏上中桥——稳住两翼，别让主攻轴线断掉。")
 			elif not _ch2_north_bank_hint_shown \
 					and unit.grid_pos.y <= 7 \
 					and unit.grid_pos.x >= 12 and unit.grid_pos.x <= 16:
 				_ch2_north_bank_hint_shown = true
-				_set_status("你已抢上北岸桥头——继续压向雷加本阵，别被两翼牵住。")
+				_set_progress_status("你已抢上北岸桥头——继续压向雷加本阵，别被两翼牵住。")
 		3:
 			if not _ch3_tower_hint_shown and unit == _ned_unit and unit.grid_pos.y <= 9:
 				_ch3_tower_hint_shown = true
-				_set_status("奈德已逼近欢乐塔——目标是进塔，不是清光所有守军。")
+				_set_progress_status("奈德已逼近欢乐塔——目标是进塔，不是清光所有守军。")
 		4:
 			if not _ch4_gate_hint_shown \
 					and unit.grid_pos.y <= 18 \
 					and unit.grid_pos.x >= 17 and unit.grid_pos.x <= 20:
 				_ch4_gate_hint_shown = true
-				_set_status("已突破南城墙——沿中央大道继续推向红堡。")
+				_set_progress_status("已突破南城墙——沿中央大道继续推向红堡。")
 			elif not _ch4_red_keep_hint_shown \
 					and unit.grid_pos.y <= 11 \
 					and unit.grid_pos.x >= 17 and unit.grid_pos.x <= 20:
 				_ch4_red_keep_hint_shown = true
-				_set_status("已攻入红堡外院——王军指挥官就在前方内院。")
+				_set_progress_status("已攻入红堡外院——王军指挥官就在前方内院。")
 
 # ══════════════════════════════════════════════════════════
 # 序章·二《三叉戟》
@@ -386,7 +395,7 @@ func _setup_ch2() -> void:
 	_make_unit("targaryen_soldier.json",  1, Vector2i(22, 6))
 	_make_unit("targaryen_soldier.json",  1, Vector2i(20, 7))
 	_redraw_all()
-	_set_status("目标：争夺三桥，稳住两翼；从中桥杀向雷加的北岸主阵地。")
+	_set_objective_status("争夺三桥，稳住两翼；从中桥杀向雷加的北岸主阵地。")
 	await _play_dialogue("res://data/dialogues/ch2_pre.json")
 
 func _on_won_ch2() -> void:
@@ -429,7 +438,7 @@ func _setup_ch3() -> void:
 	_make_unit("dorne_knight.json", 1, Vector2i(15, 11))
 	_make_unit("dorne_knight.json", 1, Vector2i(12, 8))
 	_redraw_all()
-	_set_status("目标：让奈德抵达欢乐塔。亚瑟·戴恩堵守塔门，不必全歼敌军。")
+	_set_objective_status("让奈德抵达欢乐塔。亚瑟·戴恩堵守塔门，不必全歼敌军。")
 	await _play_dialogue("res://data/dialogues/ch3_pre.json")
 
 # ══════════════════════════════════════════════════════════
@@ -482,7 +491,7 @@ func _setup_ch4() -> void:
 
 	_redraw_all()
 	# 开场提示：说明兰军是中立，指挥官是目标，中轴是主推进方向
-	_set_status("兰尼斯特军（金色）持观望态度——沿中轴突破城门与红堡，击败★王军指挥官方可使其归降！")
+	_set_objective_status("沿中轴突破城门与红堡，击败★王军指挥官；兰尼斯特军（金色）暂持观望态度。")
 	await _play_dialogue("res://data/dialogues/ch4_pre.json")
 
 func _build_map_ch4() -> Array:
@@ -711,14 +720,14 @@ func _on_unit_died(unit: Unit) -> void:
 
 func _trigger_ch2_rhaegar() -> void:
 	_battle_over = true
-	_set_status("雷加倒下了！中桥决战结束，王家防线开始崩溃。")
+	_set_battle_status("雷加倒下了！中桥决战结束，王家防线开始崩溃。")
 	await _play_cutscene("res://data/cutscenes/ch2_rhaegar_fall.json")
 	if not is_inside_tree(): return
 	await _on_won_ch2()
 
 func _trigger_ch3_tower() -> void:
 	_battle_over = true
-	_set_status("奈德已抵达欢乐塔——亚瑟守线被撕开，真相就在塔内。")
+	_set_battle_status("奈德已抵达欢乐塔——亚瑟守线被撕开，真相就在塔内。")
 	await _play_cutscene("res://data/cutscenes/ch3_dayne_trigger.json")
 	if is_instance_valid(_dayne_unit):
 		enemy_units.erase(_dayne_unit); _dayne_unit.queue_free(); _redraw_all()
@@ -747,13 +756,13 @@ func _trigger_ch4_lannister_join() -> void:
 	# ── 关键：兰军消失后，所有战斗目标已完成，直接触发结局 ──
 	# （等待玩家手动走到铁王座是反高潮设计，此处直接流向叙事结局）
 	if is_instance_valid(_ned_unit) and not _ned_unit.is_dead():
-		_set_status("兰尼斯特军已归降——道路已通！")
+		_set_battle_status("兰尼斯特军已归降——道路已通！")
 		await get_tree().create_timer(1.0).timeout
 		if not is_inside_tree() or _battle_over: return
 		_trigger_ch4_throne()
 	else:
 		# 奈德阵亡的边缘情况（理论上不应发生）
-		_set_status("兰尼斯特军已归降，然而……")
+		_set_battle_status("兰尼斯特军已归降，然而……")
 
 func _trigger_ch4_throne() -> void:
 	if _battle_over: return   # 防止重复触发
