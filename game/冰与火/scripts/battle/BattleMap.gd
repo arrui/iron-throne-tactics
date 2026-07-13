@@ -71,6 +71,7 @@ var _minimap: MiniMap = null
 
 # ── UI 节点引用 ──────────────────────────────────────────
 var _turn_label:       Label         = null
+var _phase_label:      Label         = null
 var _objective_label:  Label         = null
 var _guidance_label:   Label         = null
 var _status_label:     Label         = null
@@ -277,6 +278,7 @@ func _tile_to_screen(grid_pos: Vector2i) -> Vector2:
 # ── UI 绑定 ──────────────────────────────────────────────
 func _bind_ui() -> void:
 	_turn_label    = get_node_or_null("UI/TurnLabel")    as Label
+	_phase_label   = get_node_or_null("UI/PhaseLabel")   as Label
 	_objective_label = get_node_or_null("UI/ObjectiveLabel") as Label
 	_guidance_label = get_node_or_null("UI/GuidanceLabel") as Label
 	_status_label  = get_node_or_null("UI/StatusLabel")  as Label
@@ -1490,6 +1492,10 @@ func _set_status(msg: String) -> void:
 			_objective_label.text = msg
 	if _guidance_label != null and msg.begins_with("推进："):
 		_guidance_label.text = msg
+
+func _set_phase_badge(msg: String) -> void:
+	if _phase_label != null:
+		_phase_label.text = msg
 
 func _on_player_unit_action_position_updated(_unit: Unit) -> void:
 	pass

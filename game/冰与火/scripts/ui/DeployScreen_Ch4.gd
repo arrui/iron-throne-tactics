@@ -2,6 +2,8 @@
 # 让玩家选择最多4名北境骑士参战（奈德自动参战）
 extends CanvasLayer
 
+const Ch4BattleBrief := preload("res://scripts/chapter/Ch4BattleBrief.gd")
+
 const MAX_KNIGHTS := 4
 const BATTLE_SCENE := "res://scenes/battle/BattleMap.tscn"
 const DATA_PATH    := "res://data/units/"
@@ -15,29 +17,12 @@ const AVAILABLE_UNITS := [
 	{"file": "northern_knight.json", "mandatory": false},
 ]
 
-const CHAPTER_PREMISE := "君临已乱，兰尼斯特军（金色）暂持观望。你必须带着北境骑士穿过黑水桥、城墙与红堡中轴，尽快斩断残余王军指挥链。"
-const OBJECTIVE_SUMMARY := "目标：沿中轴攻入红堡，击败王军指挥官后迫使兰军归降。"
-const FACTION_SUMMARY := "态势：兰军当前中立，不会主动支援你；王军指挥官一倒，金袍与兰军将放弃抵抗。"
-const DEPLOY_SUMMARY := "编组：奈德固定出战，最多再带 4 名北境骑士。建议尽量带满，以降低攻城轴线断裂风险。"
-const DEPLOY_ADVICE := "建议：前锋尽快过黑水桥，中轴直取南城门；两翼负责护桥与补位，别在兰军观望阵线前白白耗回合。"
-const BATTLE_FLOW_STEPS := [
-	{
-		"title": "第一段：黑水桥",
-		"desc": "先夺桥头，保证中轴能完整越河。",
-	},
-	{
-		"title": "第二段：南城墙",
-		"desc": "穿过城门缺口，避免在墙外被拖成消耗战。",
-	},
-	{
-		"title": "第三段：中央大道",
-		"desc": "保持中轴推进，两翼负责护侧与补刀。",
-	},
-	{
-		"title": "第四段：红堡内院",
-		"desc": "击破王军指挥官后，兰军与金袍会放弃抵抗。",
-	},
-]
+const CHAPTER_PREMISE := Ch4BattleBrief.CHAPTER_PREMISE
+const OBJECTIVE_SUMMARY := Ch4BattleBrief.OBJECTIVE_SUMMARY
+const FACTION_SUMMARY := Ch4BattleBrief.FACTION_SUMMARY
+const DEPLOY_SUMMARY := Ch4BattleBrief.DEPLOY_SUMMARY
+const DEPLOY_ADVICE := Ch4BattleBrief.DEPLOY_ADVICE
+const BATTLE_FLOW_STEPS := Ch4BattleBrief.BATTLE_FLOW_STEPS
 const PORTRAIT_PATH_MAP := {
 	"ned_stark.json": "res://assets/units/ned_stark_portrait.png",
 	"northern_knight.json": "res://assets/units/northern_knight_portrait.png",

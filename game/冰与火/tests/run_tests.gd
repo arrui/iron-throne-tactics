@@ -19,6 +19,7 @@ const BattleCalculatorClass := preload("res://scripts/battle/BattleCalculator.gd
 const UnitDataClass          := preload("res://scripts/data/UnitData.gd")
 const EnemyAIClass           := preload("res://scripts/battle/EnemyAI.gd")
 const BootstrapClass         := preload("res://scripts/battle/BattleBootstrap.gd")
+const Ch4BattleBriefClass    := preload("res://scripts/chapter/Ch4BattleBrief.gd")
 const TestBootstrapClass     := preload("res://tests/helpers/TestBattleBootstrap.gd")
 const TestOpeningClass       := preload("res://tests/helpers/TestOpening.gd")
 const TestDeployScreenClass  := preload("res://tests/helpers/TestDeployScreen.gd")
@@ -1284,6 +1285,11 @@ func _test_map_visual_language_spec() -> void:
 	_assert(spec_src.length() > 0, "地图视觉语言规范文档存在")
 	_assert(spec_src.contains("桥邻接河流"), "规范文档包含桥梁与河流的功能红线")
 	_assert(spec_src.contains("关键地图存在从出生点到目标的可达路径"), "规范文档包含关键路径可达性要求")
+	_assert_eq(Ch4BattleBriefClass.BATTLE_FLOW_STEPS.size(), 4, "Ch4 作战简报常量共4个阶段")
+	_assert("黑水桥" in Ch4BattleBriefClass.STAGE_1_GUIDANCE, "Ch4 作战简报第一阶段文案锁定黑水桥")
+	_assert("南城墙" in Ch4BattleBriefClass.STAGE_2_GUIDANCE, "Ch4 作战简报第二阶段文案锁定南城墙")
+	_assert("中央大道" in Ch4BattleBriefClass.STAGE_3_GUIDANCE, "Ch4 作战简报第三阶段文案锁定中央大道")
+	_assert("红堡内院" in Ch4BattleBriefClass.STAGE_4_GUIDANCE, "Ch4 作战简报第四阶段文案锁定红堡内院")
 
 	# Ch1：出生区到胜利格必须存在一条有效路径
 	GameState.current_chapter = 1
@@ -1454,35 +1460,42 @@ func _test_map_visual_language_spec() -> void:
 		"Ch4 语义回归：开场状态提示明确中轴推进与指挥官目标")
 	_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("目标：") and "王军指挥官" in msg),
 		"Ch4 语义回归：开场提示采用目标前缀")
+	_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg == "目标：" + Ch4BattleBriefClass.BATTLE_OBJECTIVE),
+		"Ch4 语义回归：战斗目标与部署简报主目标一致")
+	_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + Ch4BattleBriefClass.STAGE_1_GUIDANCE),
+		"Ch4 语义回归：开场即显示第一阶段推进提示")
 	var ch4_objective := ch4.get_node_or_null("UI/ObjectiveLabel") as Label
 	_assert(ch4_objective != null, "Ch4 语义回归：存在长期目标标签")
 	if ch4_objective != null:
 		_assert("王军指挥官" in ch4_objective.text,
 			"Ch4 语义回归：长期目标标签显示红堡主目标")
+	var ch4_guidance_opening := ch4.get_node_or_null("UI/GuidanceLabel") as Label
+	_assert(ch4_guidance_opening != null, "Ch4 语义回归：开场存在长期推进标签")
+	if ch4_guidance_opening != null:
+		_assert_eq(ch4_guidance_opening.text, "推进：" + Ch4BattleBriefClass.STAGE_1_GUIDANCE,
+			"Ch4 语义回归：开场长期推进标签与第一阶段简报一致")
 	if ch4._ned_unit != null:
 		ch4._ned_unit.grid_pos = Vector2i(18, 20)
 		ch4._on_player_unit_action_position_updated(ch4._ned_unit)
-		_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return "黑水桥头已夺下" in msg),
-			"Ch4 语义回归：越过黑水桥后出现城墙前压提示")
-		_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("推进：") and "黑水桥头已夺下" in msg),
-			"Ch4 语义回归：黑水桥提示采用推进前缀")
+		_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + Ch4BattleBriefClass.STAGE_1_GUIDANCE),
+			"Ch4 语义回归：越过黑水桥后仍使用第一阶段标准提示")
 		ch4._ned_unit.grid_pos = Vector2i(18, 18)
 		ch4._on_player_unit_action_position_updated(ch4._ned_unit)
-		_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return "突破南城墙" in msg),
-			"Ch4 语义回归：穿过南城墙后出现中央大道推进提示")
-		_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("推进：") and "突破南城墙" in msg),
-			"Ch4 语义回归：南城墙提示采用推进前缀")
+		_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + Ch4BattleBriefClass.STAGE_2_GUIDANCE),
+			"Ch4 语义回归：穿过南城墙后使用第二阶段标准提示")
+		ch4._ned_unit.grid_pos = Vector2i(18, 16)
+		ch4._on_player_unit_action_position_updated(ch4._ned_unit)
+		_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + Ch4BattleBriefClass.STAGE_3_GUIDANCE),
+			"Ch4 语义回归：进入中央大道后使用第三阶段标准提示")
 		ch4._ned_unit.grid_pos = Vector2i(18, 11)
 		ch4._on_player_unit_action_position_updated(ch4._ned_unit)
-		_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return "攻入红堡外院" in msg),
-			"Ch4 语义回归：攻入红堡外院后出现指挥官定位提示")
-		_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("推进：") and "攻入红堡外院" in msg),
-			"Ch4 语义回归：红堡外院提示采用推进前缀")
+		_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + Ch4BattleBriefClass.STAGE_4_GUIDANCE),
+			"Ch4 语义回归：攻入红堡外院后使用第四阶段标准提示")
 		var ch4_guidance := ch4.get_node_or_null("UI/GuidanceLabel") as Label
 		_assert(ch4_guidance != null, "Ch4 语义回归：存在长期推进标签")
 		if ch4_guidance != null:
-			_assert("攻入红堡外院" in ch4_guidance.text,
-				"Ch4 语义回归：长期推进标签会保留当前攻城阶段")
+			_assert_eq(ch4_guidance.text, "推进：" + Ch4BattleBriefClass.STAGE_4_GUIDANCE,
+				"Ch4 语义回归：长期推进标签会保留第四阶段标准提示")
 	if is_instance_valid(ch4):
 		ch4.queue_free()
 	await process_frame
@@ -1938,6 +1951,18 @@ func _test_ch1_save_and_deploy_flow() -> void:
 	if flow_grid != null:
 		_assert_eq(flow_grid.columns, 2, "部署界面作战分段按两列布局")
 		_assert_eq(flow_grid.get_child_count(), 4, "部署界面作战分段共4步")
+		for step_idx: int in Ch4BattleBriefClass.BATTLE_FLOW_STEPS.size():
+			var step_panel := flow_grid.get_node_or_null("FlowStep_%d" % (step_idx + 1)) as PanelContainer
+			_assert(step_panel != null, "部署界面作战分段卡存在：%d" % (step_idx + 1))
+			if step_panel != null:
+				var step_title := step_panel.get_node_or_null("VBox/StepTitle") as Label
+				var step_desc := step_panel.get_node_or_null("VBox/StepDesc") as Label
+				if step_title != null:
+					_assert_eq(step_title.text, str((Ch4BattleBriefClass.BATTLE_FLOW_STEPS[step_idx] as Dictionary).get("title", "")),
+						"部署界面作战分段标题与 Ch4 简报常量一致：%d" % (step_idx + 1))
+				if step_desc != null:
+					_assert_eq(step_desc.text, str((Ch4BattleBriefClass.BATTLE_FLOW_STEPS[step_idx] as Dictionary).get("desc", "")),
+						"部署界面作战分段说明与 Ch4 简报常量一致：%d" % (step_idx + 1))
 		var step_1 := flow_grid.get_node_or_null("FlowStep_1") as PanelContainer
 		var step_4 := flow_grid.get_node_or_null("FlowStep_4") as PanelContainer
 		if step_1 != null:
@@ -1956,19 +1981,24 @@ func _test_ch1_save_and_deploy_flow() -> void:
 				_assert("兰军" in step_4_desc.text and "放弃抵抗" in step_4_desc.text,
 					"部署界面最终阶段说明击杀指挥官后的政治结果")
 	if deploy_advice_label != null:
+		_assert_eq(deploy_advice_label.text, Ch4BattleBriefClass.DEPLOY_ADVICE, "部署界面部署建议与 Ch4 简报常量一致")
 		_assert("黑水桥" in deploy_advice_label.text and "南城门" in deploy_advice_label.text,
 			"部署界面部署建议点明桥头与南城门")
 		_assert("两翼" in deploy_advice_label.text, "部署界面部署建议强调两翼职责")
 	if premise_label != null:
+		_assert_eq(premise_label.text, Ch4BattleBriefClass.CHAPTER_PREMISE, "部署界面态势说明与 Ch4 简报常量一致")
 		_assert("黑水桥" in premise_label.text and "红堡" in premise_label.text,
 			"部署界面态势说明点明黑水桥与红堡中轴")
 	if objective_summary_label != null:
+		_assert_eq(objective_summary_label.text, Ch4BattleBriefClass.OBJECTIVE_SUMMARY, "部署界面目标摘要与 Ch4 简报常量一致")
 		_assert(objective_summary_label.text.begins_with("目标："), "部署界面目标摘要采用目标前缀")
 		_assert("王军指挥官" in objective_summary_label.text, "部署界面目标摘要点明王军指挥官")
 	if faction_summary_label != null:
+		_assert_eq(faction_summary_label.text, Ch4BattleBriefClass.FACTION_SUMMARY, "部署界面势力说明与 Ch4 简报常量一致")
 		_assert("中立" in faction_summary_label.text and "兰军" in faction_summary_label.text,
 			"部署界面说明兰军当前中立")
 	if deploy_summary_label != null:
+		_assert_eq(deploy_summary_label.text, Ch4BattleBriefClass.DEPLOY_SUMMARY, "部署界面编组说明与 Ch4 简报常量一致")
 		_assert("最多再带 4 名北境骑士" in deploy_summary_label.text,
 			"部署界面说明最多携带 4 名骑士")
 	if count_label != null:

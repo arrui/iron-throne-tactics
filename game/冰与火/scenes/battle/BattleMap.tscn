@@ -27,6 +27,15 @@ offset_bottom = 36.0
 theme_override_font_sizes/font_size = 18
 text = "我方回合 [1]"
 
+[node name="PhaseLabel" type="Label" parent="UI"]
+offset_left = 330.0
+offset_top = 10.0
+offset_right = 760.0
+offset_bottom = 34.0
+theme_override_colors/font_color = Color(0.95, 0.82, 0.38, 1)
+theme_override_font_sizes/font_size = 13
+text = ""
+
 [node name="ObjectiveLabel" type="Label" parent="UI"]
 offset_left = 8.0
 offset_top = 32.0

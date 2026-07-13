@@ -2,6 +2,8 @@
 # 根据 GameState.current_chapter 决定运行哪个章节的地图/单位/事件逻辑
 extends "res://scripts/battle/BattleMap.gd"
 
+const Ch4BattleBrief := preload("res://scripts/chapter/Ch4BattleBrief.gd")
+
 const UNIT_SCENE         := preload("res://scenes/battle/Unit.tscn")
 const DIALOGUE_BOX_SCENE := preload("res://scenes/dialogue/DialogueBox.tscn")
 const CUTSCENE_SCENE     := preload("res://scenes/cutscene/CutscenePlayer.tscn")
@@ -154,7 +156,9 @@ var _ch3_swamp_hint_shown:     bool = false
 var _ch3_tower_hint_shown:     bool = false
 var _ch4_blackwater_hint_shown: bool = false
 var _ch4_gate_hint_shown:      bool = false
+var _ch4_avenue_hint_shown:    bool = false
 var _ch4_red_keep_hint_shown:  bool = false
+var _ch4_current_stage:        int = 0
 
 # ── 序章一专属状态 ────────────────────────────────────────
 var _tutorial_mgr:         TutorialManager = null
@@ -169,6 +173,16 @@ func _set_progress_status(msg: String) -> void:
 
 func _set_battle_status(msg: String) -> void:
 	_set_status("战局：%s" % msg)
+
+func _set_ch4_stage(stage_idx: int) -> void:
+	if GameState.current_chapter != 4:
+		return
+	if stage_idx < 1 or stage_idx > 4:
+		return
+	if _ch4_current_stage != stage_idx:
+		_ch4_current_stage = stage_idx
+	_set_phase_badge(Ch4BattleBrief.get_stage_badge(stage_idx))
+	_set_progress_status(Ch4BattleBrief.get_stage_guidance(stage_idx))
 
 # ══════════════════════════════════════════════════════════
 func _ready() -> void:
@@ -334,7 +348,8 @@ func _check_victory() -> void:
 				if royal_alive.is_empty() and is_instance_valid(_royal_commander) \
 						and not _royal_commander.is_dead():
 					_ch4_midway_hint_shown = true
-					_set_battle_status("王军已溃散！★ 王军指挥官仍在红堡深处——击败他，兰军将归降！")
+					_set_phase_badge(Ch4BattleBrief.get_stage_badge(4))
+					_set_battle_status(Ch4BattleBrief.COMMANDER_REMAINS_STATUS)
 			# 胜利：奈德抵达铁王座
 			if is_instance_valid(_ned_unit) and not _ned_unit.is_dead() \
 					and _ned_unit.grid_pos == victory_pos:
@@ -374,17 +389,22 @@ func _on_player_unit_action_position_updated(unit: Unit) -> void:
 					and unit.grid_pos.y <= 20 \
 					and unit.grid_pos.x >= 17 and unit.grid_pos.x <= 20:
 				_ch4_blackwater_hint_shown = true
-				_set_progress_status("黑水桥头已夺下——前方就是君临南城墙。")
+				_set_ch4_stage(1)
 			elif not _ch4_gate_hint_shown \
 					and unit.grid_pos.y <= 18 \
 					and unit.grid_pos.x >= 17 and unit.grid_pos.x <= 20:
 				_ch4_gate_hint_shown = true
-				_set_progress_status("已突破南城墙——沿中央大道继续推向红堡。")
+				_set_ch4_stage(2)
+			elif not _ch4_avenue_hint_shown \
+					and unit.grid_pos.y <= 16 \
+					and unit.grid_pos.x >= 17 and unit.grid_pos.x <= 20:
+				_ch4_avenue_hint_shown = true
+				_set_ch4_stage(3)
 			elif not _ch4_red_keep_hint_shown \
 					and unit.grid_pos.y <= 11 \
 					and unit.grid_pos.x >= 17 and unit.grid_pos.x <= 20:
 				_ch4_red_keep_hint_shown = true
-				_set_progress_status("已攻入红堡外院——王军指挥官就在前方内院。")
+				_set_ch4_stage(4)
 
 # ══════════════════════════════════════════════════════════
 # 序章·二《三叉戟》
@@ -463,6 +483,7 @@ func _setup_ch3() -> void:
 func _setup_ch4() -> void:
 	map_width   = 36;  map_height = 26
 	victory_pos = Vector2i(18, 2)  # 铁王座大厅中央（北方）
+	_ch4_current_stage = 0
 	_terrain_cache_ch4 = _build_map_ch4()
 	_apply_cam_limits()
 	if is_instance_valid(_cam):
@@ -507,7 +528,8 @@ func _setup_ch4() -> void:
 
 	_redraw_all()
 	# 开场提示：说明兰军是中立，指挥官是目标，中轴是主推进方向
-	_set_objective_status("沿中轴突破城门与红堡，击败★王军指挥官；兰尼斯特军（金色）暂持观望态度。")
+	_set_objective_status(Ch4BattleBrief.BATTLE_OBJECTIVE)
+	_set_ch4_stage(1)
 	await _play_dialogue("res://data/dialogues/ch4_pre.json")
 
 func _build_map_ch4() -> Array:
@@ -772,7 +794,8 @@ func _trigger_ch4_lannister_join() -> void:
 	# ── 关键：兰军消失后，所有战斗目标已完成，直接触发结局 ──
 	# （等待玩家手动走到铁王座是反高潮设计，此处直接流向叙事结局）
 	if is_instance_valid(_ned_unit) and not _ned_unit.is_dead():
-		_set_battle_status("兰尼斯特军已归降——道路已通！")
+		_set_phase_badge(Ch4BattleBrief.get_stage_badge(4))
+		_set_battle_status(Ch4BattleBrief.LANNISTER_SURRENDER_STATUS)
 		await get_tree().create_timer(1.0).timeout
 		if not is_inside_tree() or _battle_over: return
 		_trigger_ch4_throne()
