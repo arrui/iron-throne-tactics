@@ -4,6 +4,8 @@ func _setup() -> void:
 	_chapter_num   = "序章·二"
 	_chapter_title = "三叉戟"
 	_chapter_time  = "篡夺者战争 · 第三年"
+	_chapter_sub_label = "决战章节 / 三桥争夺"
+	_chapter_objective = "目标：争夺三桥并稳住两翼，从中桥突破雷加本阵。"
 	_battle_scene  = "res://scenes/battle/BattleMap.tscn"
 	_cutscene_files = [
 		"res://data/cutscenes/ch2_opening.json",

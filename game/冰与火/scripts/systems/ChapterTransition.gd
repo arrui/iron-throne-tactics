@@ -8,6 +8,7 @@ signal transition_finished
 @onready var _chapter_title:   Label     = $ChapterTitle
 @onready var _time_label:      Label     = $TimeLabel
 @onready var _sub_label:       Label     = $SubLabel
+@onready var _objective_label: Label     = $ObjectiveLabel
 
 func _ready() -> void:
 	# 为章节转场标签应用中文字体
@@ -27,12 +28,14 @@ func _get_cjk_font() -> Font:
 	return sf
 
 func show_chapter(number: String, title: String,
-		time_label: String, sub_label: String = "") -> void:
+		time_label: String, sub_label: String = "", objective_label: String = "") -> void:
 	_chapter_number.text = number
 	_chapter_title.text  = title
 	_time_label.text     = time_label
 	_sub_label.text      = sub_label
 	_sub_label.visible   = sub_label != ""
+	_objective_label.text = objective_label
+	_objective_label.visible = objective_label != ""
 
 	# CanvasLayer 没有 modulate，对所有子 CanvasItem 单独操作
 	var items: Array[CanvasItem] = _get_canvas_items()

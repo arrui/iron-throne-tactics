@@ -3,10 +3,17 @@ extends Node
 
 const CUTSCENE_SCENE := preload("res://scenes/cutscene/CutscenePlayer.tscn")
 const BATTLE_SCENE   := "res://scenes/battle/BattleMap.tscn"
+const TRANSITION_PATH := "res://scenes/ui/ChapterTransition.tscn"
 
 const PROLOGUE_OPENING := "res://data/cutscenes/prologue_opening.json"
 const MAD_KING         := "res://data/cutscenes/prologue_mad_king.json"
 const UPRISING         := "res://data/cutscenes/prologue_uprising.json"
+
+const CH1_CHAPTER_NUMBER    := "序章·一"
+const CH1_CHAPTER_TITLE     := "风暴地"
+const CH1_CHAPTER_TIME      := "篡夺者战争 · 第一年"
+const CH1_CHAPTER_SUB_LABEL := "起义开端 / 山道突破"
+const CH1_CHAPTER_OBJECTIVE := "目标：夺回北侧山道缺口，为劳勃后军打开通路。"
 
 const CHAPTER_SCENE_MAP := {
 	2: "res://scenes/chapter/Ch2_Opening.tscn",
@@ -15,6 +22,7 @@ const CHAPTER_SCENE_MAP := {
 }
 
 var _cutscene: CutscenePlayer = null
+var _transition: Node = null
 
 func _ready() -> void:
 	# 设置中文字体（仅在有显示器时）
@@ -131,6 +139,40 @@ func _start_normal_flow() -> void:
 	_play_chapter_1()
 
 func _play_chapter_1() -> void:
+	_play_ch1_title_card()
+
+func _get_ch1_title_card_args() -> Array[String]:
+	return [
+		CH1_CHAPTER_NUMBER,
+		CH1_CHAPTER_TITLE,
+		CH1_CHAPTER_TIME,
+		CH1_CHAPTER_SUB_LABEL,
+		CH1_CHAPTER_OBJECTIVE,
+	]
+
+func _play_ch1_title_card() -> void:
+	if ResourceLoader.exists(TRANSITION_PATH):
+		_transition = load(TRANSITION_PATH).instantiate()
+		add_child(_transition)
+		if _transition.has_method("show_chapter"):
+			var chapter_args := _get_ch1_title_card_args()
+			_transition.call("show_chapter",
+				chapter_args[0], chapter_args[1], chapter_args[2], chapter_args[3], chapter_args[4])
+		if _transition.has_signal("transition_finished"):
+			_transition.connect("transition_finished", _on_ch1_title_done)
+		else:
+			await get_tree().create_timer(4.0).timeout
+			_on_ch1_title_done()
+	else:
+		_on_ch1_title_done()
+
+func _on_ch1_title_done() -> void:
+	if _transition != null:
+		_transition.queue_free()
+		_transition = null
+	_begin_ch1_cutscene_flow()
+
+func _begin_ch1_cutscene_flow() -> void:
 	_cutscene = CUTSCENE_SCENE.instantiate() as CutscenePlayer
 	add_child(_cutscene)
 	_cutscene.cutscene_finished.connect(_on_cutscene_finished)

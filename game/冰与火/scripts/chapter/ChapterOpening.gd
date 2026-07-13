@@ -8,6 +8,8 @@ const TRANSITION_PATH  := "res://scenes/ui/ChapterTransition.tscn"
 var _chapter_num:   String = "序章·一"
 var _chapter_title: String = "标题"
 var _chapter_time:  String = ""
+var _chapter_sub_label: String = ""
+var _chapter_objective: String = ""
 var _battle_scene:  String = ""
 var _cutscene_files: Array = []
 
@@ -29,7 +31,8 @@ func _play_title_card() -> void:
 		add_child(_transition)
 		if _transition.has_method("show_chapter"):
 			_transition.call("show_chapter",
-				_chapter_num, _chapter_title, _chapter_time)
+				_chapter_num, _chapter_title, _chapter_time,
+				_chapter_sub_label, _chapter_objective)
 		if _transition.has_signal("transition_finished"):
 			_transition.connect("transition_finished", _on_title_done)
 		else:

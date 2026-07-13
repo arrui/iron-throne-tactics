@@ -20,6 +20,11 @@ var _unit_cards: Array = []
 var _confirm_btn: Button = null
 var _count_label: Label = null
 
+const CHAPTER_PREMISE := "君临已乱，兰尼斯特军（金色）暂持观望。你必须带着北境骑士穿过黑水桥、城墙与红堡中轴，尽快斩断残余王军指挥链。"
+const OBJECTIVE_SUMMARY := "目标：沿中轴攻入红堡，击败王军指挥官后迫使兰军归降。"
+const FACTION_SUMMARY := "态势：兰军当前中立，不会主动支援你；王军指挥官一倒，金袍与兰军将放弃抵抗。"
+const DEPLOY_SUMMARY := "编组：奈德固定出战，最多再带 4 名北境骑士。建议尽量带满，以降低攻城轴线断裂风险。"
+
 func _get_cjk_font() -> Font:
 	const BUNDLED := "res://assets/fonts/ArialUnicode.ttf"
 	if ResourceLoader.exists(BUNDLED):
@@ -72,6 +77,46 @@ func _build_ui() -> void:
 	hint.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(hint)
+
+	var info_panel := PanelContainer.new()
+	info_panel.custom_minimum_size = Vector2(0, 132)
+	vbox.add_child(info_panel)
+
+	var info_vbox := VBoxContainer.new()
+	info_vbox.add_theme_constant_override("separation", 6)
+	info_panel.add_child(info_vbox)
+
+	var premise_lbl := Label.new()
+	premise_lbl.name = "PremiseLabel"
+	premise_lbl.text = CHAPTER_PREMISE
+	premise_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	premise_lbl.add_theme_font_size_override("font_size", 13)
+	premise_lbl.add_theme_color_override("font_color", Color(0.86, 0.86, 0.9))
+	info_vbox.add_child(premise_lbl)
+
+	var objective_lbl := Label.new()
+	objective_lbl.name = "ObjectiveSummaryLabel"
+	objective_lbl.text = OBJECTIVE_SUMMARY
+	objective_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	objective_lbl.add_theme_font_size_override("font_size", 13)
+	objective_lbl.add_theme_color_override("font_color", Color(0.95, 0.86, 0.45))
+	info_vbox.add_child(objective_lbl)
+
+	var faction_lbl := Label.new()
+	faction_lbl.name = "FactionSummaryLabel"
+	faction_lbl.text = FACTION_SUMMARY
+	faction_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	faction_lbl.add_theme_font_size_override("font_size", 12)
+	faction_lbl.add_theme_color_override("font_color", Color(0.74, 0.82, 0.9))
+	info_vbox.add_child(faction_lbl)
+
+	var deploy_lbl := Label.new()
+	deploy_lbl.name = "DeploySummaryLabel"
+	deploy_lbl.text = DEPLOY_SUMMARY
+	deploy_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	deploy_lbl.add_theme_font_size_override("font_size", 12)
+	deploy_lbl.add_theme_color_override("font_color", Color(0.72, 0.9, 0.74))
+	info_vbox.add_child(deploy_lbl)
 
 	_count_label = Label.new()
 	_count_label.text = "已选骑士：0 / %d" % MAX_KNIGHTS

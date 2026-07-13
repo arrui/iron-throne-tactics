@@ -66,6 +66,7 @@ func _run_all_tests() -> void:
 	await _run_suite("对话立绘映射完整性", _test_dialogue_portrait_mapping)
 	await _run_suite("字体初始化方法存在", _test_font_setup)
 	await _run_suite("关键场景与脚本冒烟加载", _test_scene_and_script_smoke)
+	await _run_suite("章节标题卡信息回归", _test_chapter_transition_metadata)
 	await _run_suite("章节事件流程回归", _test_chapter_event_flow)
 	await _run_suite("Ch1 / 存档 / 部署行为回归", _test_ch1_save_and_deploy_flow)
 
@@ -1627,6 +1628,102 @@ func _test_scene_and_script_smoke() -> void:
 		var script_res: Resource = load(path)
 		_assert(script_res != null, "脚本可加载：%s" % path)
 
+func _test_chapter_transition_metadata() -> void:
+	var transition_path := "res://scenes/ui/ChapterTransition.tscn"
+	var transition_scene := load(transition_path) as PackedScene
+	_assert(transition_scene != null, "ChapterTransition 场景可加载")
+	if transition_scene == null:
+		return
+
+	var transition := transition_scene.instantiate()
+	root.add_child(transition)
+	await process_frame
+	_assert(transition.get_node_or_null("ChapterNumber") != null, "标题卡包含 ChapterNumber")
+	_assert(transition.get_node_or_null("ChapterTitle") != null, "标题卡包含 ChapterTitle")
+	_assert(transition.get_node_or_null("TimeLabel") != null, "标题卡包含 TimeLabel")
+	_assert(transition.get_node_or_null("SubLabel") != null, "标题卡包含 SubLabel")
+	_assert(transition.get_node_or_null("ObjectiveLabel") != null, "标题卡包含 ObjectiveLabel")
+
+	transition.show_chapter(
+		"序章·二",
+		"三叉戟",
+		"篡夺者战争 · 第三年",
+		"决战章节 / 三桥争夺",
+		"目标：争夺三桥并稳住两翼，从中桥突破雷加本阵。"
+	)
+	await process_frame
+
+	var transition_ch_num := transition.get_node_or_null("ChapterNumber") as Label
+	var transition_title := transition.get_node_or_null("ChapterTitle") as Label
+	var transition_time := transition.get_node_or_null("TimeLabel") as Label
+	var transition_sub := transition.get_node_or_null("SubLabel") as Label
+	var transition_objective := transition.get_node_or_null("ObjectiveLabel") as Label
+	if transition_ch_num != null:
+		_assert_eq(transition_ch_num.text, "序章·二", "标题卡显示章节编号")
+	if transition_title != null:
+		_assert_eq(transition_title.text, "三叉戟", "标题卡显示章节标题")
+	if transition_time != null:
+		_assert_eq(transition_time.text, "篡夺者战争 · 第三年", "标题卡显示时间信息")
+	if transition_sub != null:
+		_assert_eq(transition_sub.text, "决战章节 / 三桥争夺", "标题卡显示章节副标题")
+		_assert(transition_sub.visible, "标题卡副标题在传入内容时可见")
+	if transition_objective != null:
+		_assert_eq(transition_objective.text,
+			"目标：争夺三桥并稳住两翼，从中桥突破雷加本阵。", "标题卡显示战术目标摘要")
+		_assert(transition_objective.visible, "标题卡目标摘要在传入内容时可见")
+
+	if is_instance_valid(transition):
+		transition.queue_free()
+	await process_frame
+
+	var opening_src := FileAccess.get_file_as_string("res://scripts/Opening.gd")
+	_assert("CH1_CHAPTER_SUB_LABEL" in opening_src, "Opening.gd 包含 Ch1 标题卡副标题常量")
+	_assert("CH1_CHAPTER_OBJECTIVE" in opening_src, "Opening.gd 包含 Ch1 标题卡目标常量")
+	_assert("_play_ch1_title_card" in opening_src, "Opening.gd 包含 Ch1 标题卡播放流程")
+	_assert("_get_ch1_title_card_args" in opening_src, "Opening.gd 包含 Ch1 标题卡参数封装")
+	_assert("_begin_ch1_cutscene_flow" in opening_src, "Opening.gd 将 Ch1 标题卡与过场串联")
+
+	var chapter_opening_src := FileAccess.get_file_as_string("res://scripts/chapter/ChapterOpening.gd")
+	_assert("_chapter_sub_label" in chapter_opening_src, "ChapterOpening 基类包含章节副标题字段")
+	_assert("_chapter_objective" in chapter_opening_src, "ChapterOpening 基类包含章节目标字段")
+	_assert("_chapter_sub_label, _chapter_objective" in chapter_opening_src,
+		"ChapterOpening 会把副标题与目标传给标题卡")
+
+	var opening_specs := [
+		{
+			"path": "res://scripts/chapter/Opening_Ch2.gd",
+			"title": "三叉戟",
+			"sub": "决战章节 / 三桥争夺",
+			"objective": "目标：争夺三桥并稳住两翼，从中桥突破雷加本阵。",
+		},
+		{
+			"path": "res://scripts/chapter/Opening_Ch3.gd",
+			"title": "极乐塔",
+			"sub": "追索真相 / 突破守门者",
+			"objective": "目标：让奈德抵达欢乐塔，不必全歼守军。",
+		},
+		{
+			"path": "res://scripts/chapter/Opening_Ch4.gd",
+			"title": "铁王座",
+			"sub": "攻城终章 / 红堡突破",
+			"objective": "目标：沿中轴攻入红堡，击败王军指挥官后迫使兰军归降。",
+		},
+	]
+	for spec: Dictionary in opening_specs:
+		var opening_script := load(spec["path"])
+		_assert(opening_script != null, "章节 Opening 脚本可加载：%s" % spec["path"])
+		if opening_script == null:
+			continue
+		var opening: Variant = opening_script.new()
+		_assert(opening != null, "章节 Opening 脚本可实例化：%s" % spec["path"])
+		if opening == null:
+			continue
+		opening._setup()
+		_assert_eq(opening._chapter_title, spec["title"], "%s 标题正确" % spec["title"])
+		_assert_eq(opening._chapter_sub_label, spec["sub"], "%s 副标题正确" % spec["title"])
+		_assert_eq(opening._chapter_objective, spec["objective"], "%s 目标摘要正确" % spec["title"])
+		_assert(opening._chapter_objective.begins_with("目标："), "%s 目标摘要遵循 HUD 语义前缀" % spec["title"])
+
 func _test_chapter_event_flow() -> void:
 	var opening_scene: PackedScene = load("res://scenes/Opening.tscn") as PackedScene
 	_assert(opening_scene != null, "Opening 场景可加载用于章节回归")
@@ -1778,6 +1875,16 @@ func _test_ch1_save_and_deploy_flow() -> void:
 	await process_frame
 	opening_fresh.run_start_normal_flow()
 	_assert(opening_fresh.played_chapter_1, "Opening 无存档时进入 Ch1 流程")
+	_assert(opening_fresh.played_ch1_title_card, "Opening 无存档时会先播放 Ch1 标题卡")
+	_assert(opening_fresh.started_ch1_cutscene_flow, "Opening 无存档时标题卡后进入 Ch1 过场流程")
+	_assert_eq(opening_fresh.recorded_ch1_title_card_args.size(), 5, "Opening 记录完整的 Ch1 标题卡参数")
+	if opening_fresh.recorded_ch1_title_card_args.size() == 5:
+		_assert_eq(opening_fresh.recorded_ch1_title_card_args[0], "序章·一", "Opening Ch1 标题卡编号正确")
+		_assert_eq(opening_fresh.recorded_ch1_title_card_args[1], "风暴地", "Opening Ch1 标题卡标题正确")
+		_assert_eq(opening_fresh.recorded_ch1_title_card_args[2], "篡夺者战争 · 第一年", "Opening Ch1 标题卡时间正确")
+		_assert_eq(opening_fresh.recorded_ch1_title_card_args[3], "起义开端 / 山道突破", "Opening Ch1 标题卡副标题正确")
+		_assert_eq(opening_fresh.recorded_ch1_title_card_args[4], "目标：夺回北侧山道缺口，为劳勃后军打开通路。",
+			"Opening Ch1 标题卡目标摘要正确")
 	_assert(opening_fresh.recorded_scene_changes.is_empty(), "Opening 无存档时不直接跳章节场景")
 	if is_instance_valid(opening_fresh):
 		opening_fresh.queue_free()
@@ -1789,6 +1896,7 @@ func _test_ch1_save_and_deploy_flow() -> void:
 	await process_frame
 	opening_saved.run_start_normal_flow()
 	_assert(not opening_saved.played_chapter_1, "Opening 有存档时不重新进入 Ch1")
+	_assert(not opening_saved.played_ch1_title_card, "Opening 有存档跳后续章节时不误播 Ch1 标题卡")
 	_assert(opening_saved.recorded_scene_changes.has("res://scenes/chapter/Ch3_Opening.tscn"),
 		"Opening 有存档时按章节路由到 Ch3")
 	if is_instance_valid(opening_saved):
@@ -1801,7 +1909,40 @@ func _test_ch1_save_and_deploy_flow() -> void:
 	var deploy := TestDeployScreenClass.new()
 	root.add_child(deploy)
 	await process_frame
+	var premise_label := deploy.get_node_or_null("PremiseLabel") as Label
+	var objective_summary_label := deploy.get_node_or_null("ObjectiveSummaryLabel") as Label
+	var faction_summary_label := deploy.get_node_or_null("FactionSummaryLabel") as Label
+	var deploy_summary_label := deploy.get_node_or_null("DeploySummaryLabel") as Label
+	var count_label := deploy.get_node_or_null("CountLabel") as Label
+	var confirm_btn := deploy.get_node_or_null("ConfirmBtn") as Button
+	_assert(premise_label != null, "部署界面包含战前态势说明")
+	_assert(objective_summary_label != null, "部署界面包含章节目标摘要")
+	_assert(faction_summary_label != null, "部署界面包含兰军中立说明")
+	_assert(deploy_summary_label != null, "部署界面包含编组建议说明")
+	if premise_label != null:
+		_assert("黑水桥" in premise_label.text and "红堡" in premise_label.text,
+			"部署界面态势说明点明黑水桥与红堡中轴")
+	if objective_summary_label != null:
+		_assert(objective_summary_label.text.begins_with("目标："), "部署界面目标摘要采用目标前缀")
+		_assert("王军指挥官" in objective_summary_label.text, "部署界面目标摘要点明王军指挥官")
+	if faction_summary_label != null:
+		_assert("中立" in faction_summary_label.text and "兰军" in faction_summary_label.text,
+			"部署界面说明兰军当前中立")
+	if deploy_summary_label != null:
+		_assert("最多再带 4 名北境骑士" in deploy_summary_label.text,
+			"部署界面说明最多携带 4 名骑士")
+	if count_label != null:
+		_assert_eq(count_label.text, "已选骑士：0 / 4", "部署界面初始人数统计正确")
+	if confirm_btn != null:
+		_assert(confirm_btn.disabled, "部署界面初始未选人时禁止确认")
+
 	deploy._selected = [1, 3, 5]
+	if count_label != null:
+		count_label.text = "已选骑士：%d / %d" % [deploy._selected.size(), deploy.MAX_KNIGHTS]
+	if confirm_btn != null:
+		confirm_btn.disabled = deploy._selected.is_empty()
+		_assert_eq(count_label.text, "已选骑士：3 / 4", "部署界面选人后人数统计可更新")
+		_assert(not confirm_btn.disabled, "部署界面选人后可确认出发")
 	deploy.test_confirm()
 	_assert_eq(GameState.deploy_selection.size(), 4, "部署确认后写入奈德+3名骑士")
 	_assert_eq(GameState.deploy_selection[0], "ned_stark.json", "部署列表首位固定为奈德")
