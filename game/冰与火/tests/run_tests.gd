@@ -1333,6 +1333,12 @@ func _test_map_visual_language_spec() -> void:
 		"Ch2 语义回归：开场提示采用目标前缀")
 	if ch2.player_units.size() > 0:
 		var ch2_lead: Unit = ch2.player_units[0]
+		ch2_lead.grid_pos = Vector2i(14, 12)
+		ch2._on_player_unit_action_position_updated(ch2_lead)
+		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return "前方就是三桥战场" in msg),
+			"Ch2 语义回归：逼近南岸桥头时出现三桥分工提示")
+		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("推进：") and "三桥战场" in msg),
+			"Ch2 语义回归：南岸桥头提示采用推进前缀")
 		ch2_lead.grid_pos = Vector2i(14, 9)
 		ch2._on_player_unit_action_position_updated(ch2_lead)
 		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return "踏上中桥" in msg),
@@ -1370,6 +1376,12 @@ func _test_map_visual_language_spec() -> void:
 	_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("目标：") and "欢乐塔" in msg),
 		"Ch3 语义回归：开场提示采用目标前缀")
 	if ch3._ned_unit != null:
+		ch3._ned_unit.grid_pos = Vector2i(12, 12)
+		ch3._on_player_unit_action_position_updated(ch3._ned_unit)
+		_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return "湿地会拖慢推进" in msg),
+			"Ch3 语义回归：进入湿地区前沿时出现绕行提示")
+		_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("推进：") and "湿地会拖慢推进" in msg),
+			"Ch3 语义回归：湿地区提示采用推进前缀")
 		ch3._ned_unit.grid_pos = Vector2i(12, 9)
 		ch3._on_player_unit_action_position_updated(ch3._ned_unit)
 		_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return "目标是进塔" in msg),
@@ -1406,6 +1418,12 @@ func _test_map_visual_language_spec() -> void:
 	_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("目标：") and "王军指挥官" in msg),
 		"Ch4 语义回归：开场提示采用目标前缀")
 	if ch4._ned_unit != null:
+		ch4._ned_unit.grid_pos = Vector2i(18, 20)
+		ch4._on_player_unit_action_position_updated(ch4._ned_unit)
+		_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return "黑水桥头已夺下" in msg),
+			"Ch4 语义回归：越过黑水桥后出现城墙前压提示")
+		_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("推进：") and "黑水桥头已夺下" in msg),
+			"Ch4 语义回归：黑水桥提示采用推进前缀")
 		ch4._ned_unit.grid_pos = Vector2i(18, 18)
 		ch4._on_player_unit_action_position_updated(ch4._ned_unit)
 		_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return "突破南城墙" in msg),

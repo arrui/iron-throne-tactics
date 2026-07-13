@@ -147,9 +147,12 @@ var _jaime_triggered:          bool = false
 var _lannister_units:          Array = []
 var _terrain_cache_ch4:        Array = []
 var _ch4_midway_hint_shown:    bool = false   # 王军被清除后的中途提示
+var _ch2_south_bank_hint_shown: bool = false
 var _ch2_bridge_hint_shown:    bool = false
 var _ch2_north_bank_hint_shown: bool = false
+var _ch3_swamp_hint_shown:     bool = false
 var _ch3_tower_hint_shown:     bool = false
+var _ch4_blackwater_hint_shown: bool = false
 var _ch4_gate_hint_shown:      bool = false
 var _ch4_red_keep_hint_shown:  bool = false
 
@@ -344,7 +347,12 @@ func _on_player_unit_action_position_updated(unit: Unit) -> void:
 		return
 	match GameState.current_chapter:
 		2:
-			if not _ch2_bridge_hint_shown \
+			if not _ch2_south_bank_hint_shown \
+					and unit.grid_pos.y <= 12 \
+					and unit.grid_pos.x >= 12 and unit.grid_pos.x <= 16:
+				_ch2_south_bank_hint_shown = true
+				_set_progress_status("前方就是三桥战场——中桥最短，两翼负责牵制与分压。")
+			elif not _ch2_bridge_hint_shown \
 					and unit.grid_pos.y >= 8 and unit.grid_pos.y <= 10 \
 					and unit.grid_pos.x >= 13 and unit.grid_pos.x <= 15:
 				_ch2_bridge_hint_shown = true
@@ -355,11 +363,19 @@ func _on_player_unit_action_position_updated(unit: Unit) -> void:
 				_ch2_north_bank_hint_shown = true
 				_set_progress_status("你已抢上北岸桥头——继续压向雷加本阵，别被两翼牵住。")
 		3:
-			if not _ch3_tower_hint_shown and unit == _ned_unit and unit.grid_pos.y <= 9:
+			if not _ch3_swamp_hint_shown and unit.grid_pos.y <= 12:
+				_ch3_swamp_hint_shown = true
+				_set_progress_status("湿地会拖慢推进——两翼绕开泥地，为奈德撕出塔前通路。")
+			elif not _ch3_tower_hint_shown and unit == _ned_unit and unit.grid_pos.y <= 9:
 				_ch3_tower_hint_shown = true
 				_set_progress_status("奈德已逼近欢乐塔——目标是进塔，不是清光所有守军。")
 		4:
-			if not _ch4_gate_hint_shown \
+			if not _ch4_blackwater_hint_shown \
+					and unit.grid_pos.y <= 20 \
+					and unit.grid_pos.x >= 17 and unit.grid_pos.x <= 20:
+				_ch4_blackwater_hint_shown = true
+				_set_progress_status("黑水桥头已夺下——前方就是君临南城墙。")
+			elif not _ch4_gate_hint_shown \
 					and unit.grid_pos.y <= 18 \
 					and unit.grid_pos.x >= 17 and unit.grid_pos.x <= 20:
 				_ch4_gate_hint_shown = true
