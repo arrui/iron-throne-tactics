@@ -950,8 +950,21 @@ func _draw_wall_detail(rect: Rect2, x: int, y: int) -> void:
 			var brick_tint := 0.12 + float((x + row_i + col_i) % 3) * 0.03
 			draw_rect(brick, Color(0.62, 0.54, 0.38, brick_tint))
 
+func _cliff_corner_mask(x: int, y: int) -> Dictionary:
+	var north_open := _terrain_at_or_cliff(x, y - 1) != TERRAIN_CLIFF
+	var south_open := _terrain_at_or_cliff(x, y + 1) != TERRAIN_CLIFF
+	var west_open := _terrain_at_or_cliff(x - 1, y) != TERRAIN_CLIFF
+	var east_open := _terrain_at_or_cliff(x + 1, y) != TERRAIN_CLIFF
+	return {
+		"nw": north_open and west_open,
+		"ne": north_open and east_open,
+		"sw": south_open and west_open,
+		"se": south_open and east_open,
+	}
+
 func _draw_cliff_detail(rect: Rect2, x: int, y: int) -> void:
 	var shade := Color(0.18, 0.18, 0.18, 0.35)
+	var corner_mask := _cliff_corner_mask(x, y)
 	if _terrain_at_or_cliff(x, y - 1) != TERRAIN_CLIFF:
 		draw_rect(Rect2(rect.position.x + 4, rect.position.y + 4, rect.size.x - 8, 10),
 			Color(0.42, 0.42, 0.38, 0.18))
@@ -967,6 +980,14 @@ func _draw_cliff_detail(rect: Rect2, x: int, y: int) -> void:
 	if _terrain_at_or_cliff(x + 1, y) != TERRAIN_CLIFF:
 		draw_rect(Rect2(rect.position.x + rect.size.x - 12, rect.position.y + 16, 8, rect.size.y - 20),
 			Color(0.08, 0.08, 0.08, 0.24))
+	if corner_mask.get("nw", false):
+		draw_circle(rect.position + Vector2(12, 12), 9.0, Color(0.32, 0.32, 0.30, 0.16))
+	if corner_mask.get("ne", false):
+		draw_circle(rect.position + Vector2(rect.size.x - 12, 12), 9.0, Color(0.30, 0.30, 0.28, 0.16))
+	if corner_mask.get("sw", false):
+		draw_circle(rect.position + Vector2(12, rect.size.y - 12), 9.0, Color(0.12, 0.12, 0.12, 0.18))
+	if corner_mask.get("se", false):
+		draw_circle(rect.position + Vector2(rect.size.x - 12, rect.size.y - 12), 9.0, Color(0.08, 0.08, 0.08, 0.22))
 	for i: int in 4:
 		var sx := rect.position.x + 10 + i * 14 + float((y + i) % 4)
 		draw_line(Vector2(sx, rect.position.y + 8), Vector2(sx - 6, rect.position.y + rect.size.y - 8), shade, 2.0, true)

@@ -1369,6 +1369,14 @@ func _test_visual_style_unification() -> void:
 		"BattleMap 会识别峭壁暴露顶缘，强化世界边界断面")
 	_assert(src.contains("if _terrain_at_or_cliff(x - 1, y) != TERRAIN_CLIFF:"),
 		"BattleMap 会识别峭壁暴露侧缘，避免边界读成平面黑块")
+	_assert(src.contains("func _cliff_corner_mask"),
+		"BattleMap 提供峭壁角部暴露检测，支撑边界转角断面强化")
+	_assert(src.contains("var corner_mask := _cliff_corner_mask(x, y)"),
+		"BattleMap 会按峭壁角部暴露信息补角部断面")
+	_assert(src.contains("if corner_mask.get(\"se\", false):"),
+		"BattleMap 会为右下暴露峭壁角补岩角压暗")
+	_assert(src.contains("draw_circle(rect.position + Vector2(rect.size.x - 12, rect.size.y - 12), 9.0"),
+		"BattleMap 会为峭壁角部补圆角岩体断面")
 	_assert(src.contains("draw_rect(Rect2(rect.position.x + 4, rect.position.y + 4, rect.size.x - 8, 10)"),
 		"BattleMap 会为暴露峭壁顶缘补高光台沿")
 	_assert(src.contains("draw_rect(Rect2(rect.position.x + 4, rect.position.y + 16, 8, rect.size.y - 20)"),
@@ -1717,6 +1725,10 @@ func _test_map_visual_language_spec() -> void:
 		_assert(ch1_gap_left_wall.get("nw", false), "Ch1 语义回归：北侧缺口左墙保留左上角体量")
 	_assert(ch1._terrain_at_or_cliff(0, 4) == 3 and ch1._terrain_at_or_cliff(1, 4) == 0,
 		"Ch1 语义回归：西侧世界边界紧贴前沿可行军通路")
+	_assert(ch1.has_method("_cliff_corner_mask"), "Ch1 语义回归：峭壁角部暴露检测辅助可用")
+	if ch1.has_method("_cliff_corner_mask"):
+		var ch1_exit_cliff_corner: Dictionary = ch1._cliff_corner_mask(4, 0)
+		_assert(ch1_exit_cliff_corner.get("se", false), "Ch1 语义回归：山道北侧缺口左缘峭壁保留右下角断面")
 	_assert(ch1.recorded_statuses.any(func(msg: String) -> bool: return msg == PrologueChapterBriefsClass.CH1_OBJECTIVE_SUMMARY),
 		"Ch1 语义回归：开场状态提示明确山道口目标")
 	_assert(ch1.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("目标：")),
