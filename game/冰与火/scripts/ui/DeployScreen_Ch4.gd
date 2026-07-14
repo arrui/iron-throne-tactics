@@ -3,6 +3,7 @@
 extends CanvasLayer
 
 const Ch4BattleBrief := preload("res://scripts/chapter/Ch4BattleBrief.gd")
+const BattleChromeTheme := preload("res://scripts/ui/BattleChromeTheme.gd")
 
 const MAX_KNIGHTS := 4
 const BATTLE_SCENE := "res://scenes/battle/BattleMap.tscn"
@@ -40,6 +41,57 @@ var _selected: Array[int] = []  # 已选骑士的索引（不含奈德）
 var _unit_cards: Array = []
 var _confirm_btn: Button = null
 var _count_label: Label = null
+
+func _apply_dark_ui_theme() -> void:
+	BattleChromeTheme.apply_dark_chrome_recursive(self)
+	var info_panel := get_node_or_null("LayoutRoot/ContentVBox/InfoPanel") as PanelContainer
+	if info_panel != null:
+		info_panel.add_theme_stylebox_override("panel", _make_section_style())
+	var battle_flow_panel := get_node_or_null("LayoutRoot/ContentVBox/BattleFlowPanel") as PanelContainer
+	if battle_flow_panel != null:
+		battle_flow_panel.add_theme_stylebox_override("panel", _make_section_style())
+	var roster_panel := get_node_or_null("LayoutRoot/ContentVBox/RosterPanel") as PanelContainer
+	if roster_panel != null:
+		roster_panel.add_theme_stylebox_override("panel", _make_summary_style())
+	for i: int in _unit_cards.size():
+		if _unit_cards[i] is PanelContainer:
+			_refresh_card_visual(_unit_cards[i] as PanelContainer, i, bool(AVAILABLE_UNITS[i].get("mandatory", false)))
+	var flow_grid := get_node_or_null("LayoutRoot/ContentVBox/BattleFlowPanel/BattleFlowVBox/FlowGrid") as GridContainer
+	if flow_grid != null:
+		for child in flow_grid.get_children():
+			if child is PanelContainer:
+				(child as PanelContainer).add_theme_stylebox_override("panel", _make_flow_style())
+
+func _make_section_style() -> StyleBoxFlat:
+	return BattleChromeTheme.make_panel_style(
+		BattleChromeTheme.PANEL_HIGHLIGHT_BG,
+		BattleChromeTheme.PANEL_HIGHLIGHT_BORDER,
+		10,
+		2,
+		14
+	)
+
+func _make_summary_style() -> StyleBoxFlat:
+	return BattleChromeTheme.make_panel_style(
+		BattleChromeTheme.PANEL_BG,
+		BattleChromeTheme.PANEL_BORDER,
+		10,
+		2,
+		14
+	)
+
+func _make_flow_style() -> StyleBoxFlat:
+	return BattleChromeTheme.make_panel_style(
+		BattleChromeTheme.PANEL_STEEL_BG,
+		BattleChromeTheme.PANEL_BORDER,
+		8,
+		2,
+		10
+	)
+
+func _style_section_header(label: Label) -> void:
+	label.add_theme_font_size_override("font_size", 15)
+	label.add_theme_color_override("font_color", BattleChromeTheme.TEXT_OBJECTIVE)
 
 func _get_cjk_font() -> Font:
 	const BUNDLED := "res://assets/fonts/ArialUnicode.ttf"
@@ -107,29 +159,29 @@ func _load_unit_preview(idx: int, entry: Dictionary) -> Dictionary:
 	return preview
 
 func _make_card_style(is_selected: bool, is_mandatory: bool) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.corner_radius_top_left = 10
-	style.corner_radius_top_right = 10
-	style.corner_radius_bottom_left = 10
-	style.corner_radius_bottom_right = 10
-	style.border_width_left = 2
-	style.border_width_top = 2
-	style.border_width_right = 2
-	style.border_width_bottom = 2
-	style.content_margin_left = 8
-	style.content_margin_top = 8
-	style.content_margin_right = 8
-	style.content_margin_bottom = 8
 	if is_selected:
-		style.bg_color = Color(0.12, 0.16, 0.14, 0.98)
-		style.border_color = Color(0.96, 0.82, 0.35, 1.0)
+		return BattleChromeTheme.make_panel_style(
+			BattleChromeTheme.PANEL_SELECTED_BG,
+			BattleChromeTheme.PANEL_SELECTED_BORDER,
+			10,
+			2,
+			10
+		)
 	elif is_mandatory:
-		style.bg_color = Color(0.11, 0.12, 0.16, 0.98)
-		style.border_color = Color(0.48, 0.82, 1.0, 1.0)
-	else:
-		style.bg_color = Color(0.09, 0.09, 0.12, 0.98)
-		style.border_color = Color(0.24, 0.24, 0.3, 1.0)
-	return style
+		return BattleChromeTheme.make_panel_style(
+			BattleChromeTheme.PANEL_STEEL_BG,
+			BattleChromeTheme.TEXT_MANDATORY,
+			10,
+			2,
+			10
+		)
+	return BattleChromeTheme.make_panel_style(
+		BattleChromeTheme.PANEL_BG,
+		BattleChromeTheme.PANEL_BORDER,
+		10,
+		2,
+		10
+	)
 
 func _refresh_card_visual(card: PanelContainer, idx: int, is_mandatory: bool) -> void:
 	var is_selected := _selected.has(idx)
@@ -138,13 +190,13 @@ func _refresh_card_visual(card: PanelContainer, idx: int, is_mandatory: bool) ->
 	if status_label != null:
 		if is_mandatory:
 			status_label.text = "状态：固定出战"
-			status_label.add_theme_color_override("font_color", Color(0.5, 0.9, 1.0))
+			status_label.add_theme_color_override("font_color", BattleChromeTheme.TEXT_MANDATORY)
 		elif is_selected:
 			status_label.text = "状态：已编入突击队"
-			status_label.add_theme_color_override("font_color", Color(0.98, 0.88, 0.42))
+			status_label.add_theme_color_override("font_color", BattleChromeTheme.TEXT_READY)
 		else:
 			status_label.text = "状态：待命"
-			status_label.add_theme_color_override("font_color", Color(0.66, 0.7, 0.76))
+			status_label.add_theme_color_override("font_color", BattleChromeTheme.TEXT_MUTED)
 	var select_btn := card.get_node_or_null("VBox/SelectBtn") as Button
 	if select_btn != null:
 		select_btn.text = "已选中" if is_selected else "选择"
@@ -153,15 +205,15 @@ func _refresh_deploy_summary() -> void:
 	if _count_label != null:
 		var selected_count := _selected.size()
 		var summary_suffix := " · 建议至少 3 人稳住中轴与两翼"
-		var color := Color(0.7, 0.82, 0.74)
+		var color := BattleChromeTheme.TEXT_SECONDARY
 		if selected_count >= 4:
 			summary_suffix = " · 编组完整，可直接出发"
-			color = Color(0.94, 0.84, 0.4)
+			color = BattleChromeTheme.TEXT_READY
 		elif selected_count >= 3:
 			summary_suffix = " · 编组较稳，已具攻城基本强度"
-			color = Color(0.82, 0.88, 0.56)
+			color = BattleChromeTheme.TEXT_GOOD
 		elif selected_count <= 1:
-			color = Color(0.78, 0.88, 0.86)
+			color = BattleChromeTheme.TEXT_GUIDANCE
 		_count_label.text = "已选骑士：%d / %d%s" % [selected_count, MAX_KNIGHTS, summary_suffix]
 		_count_label.add_theme_color_override("font_color", color)
 	if _confirm_btn != null:
@@ -186,14 +238,14 @@ func _make_flow_card(step_idx: int, step_data: Dictionary) -> PanelContainer:
 	step_num.name = "StepNumber"
 	step_num.text = "阶段 %d" % (step_idx + 1)
 	step_num.add_theme_font_size_override("font_size", 10)
-	step_num.add_theme_color_override("font_color", Color(0.95, 0.82, 0.38))
+	step_num.add_theme_color_override("font_color", BattleChromeTheme.TEXT_ACCENT)
 	vb.add_child(step_num)
 
 	var title := Label.new()
 	title.name = "StepTitle"
 	title.text = str(step_data.get("title", "阶段"))
 	title.add_theme_font_size_override("font_size", 12)
-	title.add_theme_color_override("font_color", Color(0.9, 0.9, 0.94))
+	title.add_theme_color_override("font_color", BattleChromeTheme.TEXT_PRIMARY)
 	vb.add_child(title)
 
 	var desc := Label.new()
@@ -201,7 +253,7 @@ func _make_flow_card(step_idx: int, step_data: Dictionary) -> PanelContainer:
 	desc.text = str(step_data.get("desc", ""))
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.add_theme_font_size_override("font_size", 11)
-	desc.add_theme_color_override("font_color", Color(0.72, 0.78, 0.84))
+	desc.add_theme_color_override("font_color", BattleChromeTheme.TEXT_SECONDARY)
 	vb.add_child(desc)
 
 	return panel
@@ -209,6 +261,7 @@ func _make_flow_card(step_idx: int, step_data: Dictionary) -> PanelContainer:
 func _ready() -> void:
 	layer = 40
 	_build_ui()
+	_apply_dark_ui_theme()
 	# 为所有动态创建的UI控件应用中文字体
 	call_deferred("_apply_cjk_font_to_node", self)
 
@@ -217,7 +270,7 @@ func _build_ui() -> void:
 	var bg := ColorRect.new()
 	bg.anchor_right = 1.0
 	bg.anchor_bottom = 1.0
-	bg.color = Color(0.05, 0.05, 0.08, 0.97)
+	bg.color = BattleChromeTheme.BACKGROUND_COLOR
 	add_child(bg)
 
 	var scroll := ScrollContainer.new()
@@ -248,7 +301,7 @@ func _build_ui() -> void:
 	title.name = "TitleLabel"
 	title.text = "序章·四《铁王座》— 战前部署"
 	title.add_theme_font_size_override("font_size", 22)
-	title.add_theme_color_override("font_color", Color(1.0, 0.88, 0.4))
+	title.add_theme_color_override("font_color", BattleChromeTheme.TEXT_OBJECTIVE)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
 
@@ -256,13 +309,14 @@ func _build_ui() -> void:
 	hint.name = "HintLabel"
 	hint.text = "奈德·史塔克自动参战。选择最多 %d 名北境骑士随行。" % MAX_KNIGHTS
 	hint.add_theme_font_size_override("font_size", 14)
-	hint.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+	hint.add_theme_color_override("font_color", BattleChromeTheme.TEXT_SECONDARY)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(hint)
 
 	var info_panel := PanelContainer.new()
 	info_panel.name = "InfoPanel"
 	info_panel.custom_minimum_size = Vector2(0, 132)
+	info_panel.add_theme_stylebox_override("panel", _make_section_style())
 	vbox.add_child(info_panel)
 
 	var info_vbox := VBoxContainer.new()
@@ -270,12 +324,18 @@ func _build_ui() -> void:
 	info_vbox.add_theme_constant_override("separation", 6)
 	info_panel.add_child(info_vbox)
 
+	var info_header := Label.new()
+	info_header.name = "InfoHeader"
+	info_header.text = "目标：红堡攻坚态势"
+	_style_section_header(info_header)
+	info_vbox.add_child(info_header)
+
 	var premise_lbl := Label.new()
 	premise_lbl.name = "PremiseLabel"
 	premise_lbl.text = CHAPTER_PREMISE
 	premise_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	premise_lbl.add_theme_font_size_override("font_size", 13)
-	premise_lbl.add_theme_color_override("font_color", Color(0.86, 0.86, 0.9))
+	premise_lbl.add_theme_color_override("font_color", BattleChromeTheme.TEXT_PRIMARY)
 	info_vbox.add_child(premise_lbl)
 
 	var objective_lbl := Label.new()
@@ -283,14 +343,14 @@ func _build_ui() -> void:
 	objective_lbl.text = OBJECTIVE_SUMMARY
 	objective_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	objective_lbl.add_theme_font_size_override("font_size", 13)
-	objective_lbl.add_theme_color_override("font_color", Color(0.95, 0.86, 0.45))
+	objective_lbl.add_theme_color_override("font_color", BattleChromeTheme.TEXT_OBJECTIVE)
 	info_vbox.add_child(objective_lbl)
 
 	var phase_lbl := Label.new()
 	phase_lbl.name = "PhaseBadgeLabel"
 	phase_lbl.text = Ch4BattleBrief.get_stage_badge(1)
 	phase_lbl.add_theme_font_size_override("font_size", 12)
-	phase_lbl.add_theme_color_override("font_color", Color(0.95, 0.82, 0.38))
+	phase_lbl.add_theme_color_override("font_color", BattleChromeTheme.TEXT_ACCENT)
 	info_vbox.add_child(phase_lbl)
 
 	var faction_lbl := Label.new()
@@ -298,7 +358,7 @@ func _build_ui() -> void:
 	faction_lbl.text = FACTION_SUMMARY
 	faction_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	faction_lbl.add_theme_font_size_override("font_size", 12)
-	faction_lbl.add_theme_color_override("font_color", Color(0.74, 0.82, 0.9))
+	faction_lbl.add_theme_color_override("font_color", BattleChromeTheme.TEXT_GUIDANCE)
 	info_vbox.add_child(faction_lbl)
 
 	var deploy_lbl := Label.new()
@@ -306,12 +366,13 @@ func _build_ui() -> void:
 	deploy_lbl.text = DEPLOY_SUMMARY
 	deploy_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	deploy_lbl.add_theme_font_size_override("font_size", 12)
-	deploy_lbl.add_theme_color_override("font_color", Color(0.72, 0.9, 0.74))
+	deploy_lbl.add_theme_color_override("font_color", BattleChromeTheme.TEXT_GOOD)
 	info_vbox.add_child(deploy_lbl)
 
 	var battle_flow_panel := PanelContainer.new()
 	battle_flow_panel.name = "BattleFlowPanel"
 	battle_flow_panel.custom_minimum_size = Vector2(0, 196)
+	battle_flow_panel.add_theme_stylebox_override("panel", _make_section_style())
 	vbox.add_child(battle_flow_panel)
 
 	var battle_flow_vbox := VBoxContainer.new()
@@ -322,8 +383,7 @@ func _build_ui() -> void:
 	var flow_title := Label.new()
 	flow_title.name = "FlowTitle"
 	flow_title.text = "作战分段简报"
-	flow_title.add_theme_font_size_override("font_size", 15)
-	flow_title.add_theme_color_override("font_color", Color(0.95, 0.88, 0.46))
+	_style_section_header(flow_title)
 	battle_flow_vbox.add_child(flow_title)
 
 	var flow_grid := GridContainer.new()
@@ -341,14 +401,30 @@ func _build_ui() -> void:
 	advice_label.text = DEPLOY_ADVICE
 	advice_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	advice_label.add_theme_font_size_override("font_size", 12)
-	advice_label.add_theme_color_override("font_color", Color(0.84, 0.86, 0.78))
+	advice_label.add_theme_color_override("font_color", BattleChromeTheme.TEXT_PRIMARY)
 	battle_flow_vbox.add_child(advice_label)
+
+	var roster_panel := PanelContainer.new()
+	roster_panel.name = "RosterPanel"
+	roster_panel.add_theme_stylebox_override("panel", _make_summary_style())
+	vbox.add_child(roster_panel)
+
+	var roster_vbox := VBoxContainer.new()
+	roster_vbox.name = "RosterVBox"
+	roster_vbox.add_theme_constant_override("separation", 8)
+	roster_panel.add_child(roster_vbox)
+
+	var roster_header := Label.new()
+	roster_header.name = "RosterHeader"
+	roster_header.text = "推进：突击队编组"
+	_style_section_header(roster_header)
+	roster_vbox.add_child(roster_header)
 
 	_count_label = Label.new()
 	_count_label.name = "CountLabel"
 	_count_label.add_theme_font_size_override("font_size", 14)
 	_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(_count_label)
+	roster_vbox.add_child(_count_label)
 
 	# 单位卡片列表
 	var grid := GridContainer.new()
@@ -356,7 +432,7 @@ func _build_ui() -> void:
 	grid.columns = 3
 	grid.add_theme_constant_override("h_separation", 16)
 	grid.add_theme_constant_override("v_separation", 16)
-	vbox.add_child(grid)
+	roster_vbox.add_child(grid)
 
 	for i: int in AVAILABLE_UNITS.size():
 		var entry: Dictionary = AVAILABLE_UNITS[i]
@@ -369,7 +445,7 @@ func _build_ui() -> void:
 	btn_row.name = "ButtonRow"
 	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	btn_row.add_theme_constant_override("separation", 24)
-	vbox.add_child(btn_row)
+	roster_vbox.add_child(btn_row)
 
 	var new_game_btn := Button.new()
 	new_game_btn.name = "NewGameButton"
@@ -415,7 +491,7 @@ func _make_unit_card(idx: int, entry: Dictionary) -> PanelContainer:
 	name_lbl.add_theme_font_size_override("font_size", 13)
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	if is_mandatory:
-		name_lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.4))
+		name_lbl.add_theme_color_override("font_color", BattleChromeTheme.TEXT_OBJECTIVE)
 	vb.add_child(name_lbl)
 
 	var role_lbl := Label.new()
@@ -423,7 +499,7 @@ func _make_unit_card(idx: int, entry: Dictionary) -> PanelContainer:
 	role_lbl.text = str(preview.get("role", "职责：机动支援"))
 	role_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	role_lbl.add_theme_font_size_override("font_size", 11)
-	role_lbl.add_theme_color_override("font_color", Color(0.76, 0.84, 0.9))
+	role_lbl.add_theme_color_override("font_color", BattleChromeTheme.TEXT_GUIDANCE)
 	role_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(role_lbl)
 
@@ -433,7 +509,7 @@ func _make_unit_card(idx: int, entry: Dictionary) -> PanelContainer:
 	stats_lbl.text = stats_lbl_text
 	stats_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	stats_lbl.add_theme_font_size_override("font_size", 11)
-	stats_lbl.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+	stats_lbl.add_theme_color_override("font_color", BattleChromeTheme.TEXT_SECONDARY)
 	stats_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(stats_lbl)
 
@@ -448,7 +524,7 @@ func _make_unit_card(idx: int, entry: Dictionary) -> PanelContainer:
 		tag.name = "MandatoryTag"
 		tag.text = "【必须参战】"
 		tag.add_theme_font_size_override("font_size", 11)
-		tag.add_theme_color_override("font_color", Color(0.5, 0.9, 1.0))
+		tag.add_theme_color_override("font_color", BattleChromeTheme.TEXT_MANDATORY)
 		tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		vb.add_child(tag)
 	else:

@@ -21,6 +21,7 @@ const EnemyAIClass           := preload("res://scripts/battle/EnemyAI.gd")
 const BootstrapClass         := preload("res://scripts/battle/BattleBootstrap.gd")
 const PrologueChapterBriefsClass := preload("res://scripts/chapter/PrologueChapterBriefs.gd")
 const Ch4BattleBriefClass    := preload("res://scripts/chapter/Ch4BattleBrief.gd")
+const BattleChromeThemeClass := preload("res://scripts/ui/BattleChromeTheme.gd")
 const TestBootstrapClass     := preload("res://tests/helpers/TestBattleBootstrap.gd")
 const TestOpeningClass       := preload("res://tests/helpers/TestOpening.gd")
 const TestDeployScreenClass  := preload("res://tests/helpers/TestDeployScreen.gd")
@@ -137,6 +138,12 @@ func _path_exists_on_passable_grid(battle: Node, start: Vector2i, goal: Vector2i
 func _bridge_span_has_river_flanks(battle: Node, y: int, left_bridge_x: int, right_bridge_x: int) -> bool:
 	return battle._terrain_at_or_cliff(left_bridge_x - 1, y) == 4 \
 		and battle._terrain_at_or_cliff(right_bridge_x + 1, y) == 4
+
+func _battle_info_label(battle: Node, label_name: String) -> Label:
+	var direct := battle.get_node_or_null("UI/%s" % label_name) as Label
+	if direct != null:
+		return direct
+	return battle.get_node_or_null("UI/TopInfoPanel/TopInfoMargin/TopInfoVBox/%s" % label_name) as Label
 
 # ── 辅助：创建测试用 UnitData ─────────────────────────────
 func _make_unit_data(overrides: Dictionary = {}) -> UnitData:
@@ -1240,6 +1247,8 @@ func _test_tile_atlas_coords() -> void:
 
 func _test_visual_style_unification() -> void:
 	var src := FileAccess.get_file_as_string("res://scripts/battle/BattleMap.gd")
+	var deploy_src := FileAccess.get_file_as_string("res://scripts/ui/DeployScreen_Ch4.gd")
+	var chrome_src := FileAccess.get_file_as_string("res://scripts/ui/BattleChromeTheme.gd")
 	_assert(not src.contains("_hide_tilemap_png"), "BattleMap 已移除旧 TileMap 隐藏兼容逻辑")
 	_assert(src.contains("func _draw_terrain_detail"), "BattleMap 存在统一地形细节绘制入口")
 	_assert(src.contains("func _draw_wall_detail"), "BattleMap 存在城墙/建筑细节绘制")
@@ -1253,11 +1262,20 @@ func _test_visual_style_unification() -> void:
 	_assert(src.contains("func _set_phase_badge"), "BattleMap 提供阶段徽标刷新入口")
 	_assert(src.contains("func _terrain_at_or_cliff"), "BattleMap 提供邻接地形查询辅助，用于统一图块语言")
 	_assert(src.contains("func _bridge_runs_vertical"), "BattleMap 根据邻接地形判定桥梁朝向")
+	_assert(src.contains("BattleChromeTheme.apply_dark_chrome_recursive"), "BattleMap 已接入统一战斗界面主题")
+	_assert(deploy_src.contains("const BattleChromeTheme := preload"), "部署界面已接入统一战斗界面主题")
+	_assert(deploy_src.contains("func _apply_dark_ui_theme"), "部署界面存在统一主题刷新入口")
+	_assert(deploy_src.contains("RosterPanel"), "部署界面新增编组总览面板")
+	_assert(chrome_src.contains("class_name BattleChromeTheme"), "统一战斗界面主题脚本存在")
+	_assert(chrome_src.contains("static func apply_dark_chrome_recursive"), "统一战斗界面主题提供递归应用入口")
+	_assert(chrome_src.contains("const PANEL_HIGHLIGHT_BG"), "统一战斗界面主题包含高亮面板底色")
+	_assert(chrome_src.contains("const TEXT_STATUS"), "统一战斗界面主题包含战局提示文字色")
 	var scene_text := FileAccess.get_file_as_string("res://scenes/battle/BattleMap.tscn")
 	_assert(not scene_text.contains("TileMapLayer"), "BattleMap 场景已移除旧 TileMapLayer 节点")
 	_assert(not scene_text.contains("medieval_tileset.png"), "BattleMap 场景已移除旧瓦片贴图依赖")
 	_assert(scene_text.contains("TopInfoPanel"), "BattleMap 场景已加入顶部信息面板")
 	_assert(scene_text.contains("TopInfoMargin"), "BattleMap 场景已加入顶部信息边距容器")
+	_assert(scene_text.contains("parent=\"UI/TopInfoPanel/TopInfoMargin/TopInfoVBox\""), "BattleMap 顶部信息标签已并入统一纵向容器")
 	_assert(scene_text.contains("theme_override_colors/font_color = Color(0.95, 0.76, 0.58, 1)"), "BattleMap 场景已强化战局提示颜色层级")
 	_assert(scene_text.contains("PhaseLabel"), "BattleMap 场景已加入阶段标签")
 	_assert(scene_text.contains("ObjectiveLabel"), "BattleMap 场景已加入长期目标标签")
@@ -1346,17 +1364,17 @@ func _test_map_visual_language_spec() -> void:
 		"Ch1 语义回归：开场提示采用目标前缀")
 	_assert(ch1.recorded_statuses.any(func(msg: String) -> bool: return msg == PrologueChapterBriefsClass.CH1_OBJECTIVE_SUMMARY),
 		"Ch1 语义回归：战斗目标与标题卡摘要完全一致")
-	var ch1_objective := ch1.get_node_or_null("UI/ObjectiveLabel") as Label
+	var ch1_objective := _battle_info_label(ch1, "ObjectiveLabel")
 	_assert(ch1_objective != null, "Ch1 语义回归：存在长期目标标签")
 	if ch1_objective != null:
 		_assert_eq(ch1_objective.text, PrologueChapterBriefsClass.CH1_OBJECTIVE_SUMMARY,
 			"Ch1 语义回归：长期目标标签显示统一后的山道口目标")
-	var ch1_phase_opening := ch1.get_node_or_null("UI/PhaseLabel") as Label
+	var ch1_phase_opening := _battle_info_label(ch1, "PhaseLabel")
 	_assert(ch1_phase_opening != null, "Ch1 语义回归：开场存在阶段标签")
 	if ch1_phase_opening != null:
 		_assert_eq(ch1_phase_opening.text, PrologueChapterBriefsClass.get_progress_stage_badge(1, 1),
 			"Ch1 语义回归：开场阶段标签锁定山道缺口")
-	var ch1_guidance_opening := ch1.get_node_or_null("UI/GuidanceLabel") as Label
+	var ch1_guidance_opening := _battle_info_label(ch1, "GuidanceLabel")
 	_assert(ch1_guidance_opening != null, "Ch1 语义回归：开场存在长期推进标签")
 	if ch1_guidance_opening != null:
 		_assert_eq(ch1_guidance_opening.text, "推进：" + PrologueChapterBriefsClass.CH1_PROGRESS_MIDWAY,
@@ -1402,17 +1420,17 @@ func _test_map_visual_language_spec() -> void:
 		"Ch2 语义回归：开场提示采用目标前缀")
 	_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg == PrologueChapterBriefsClass.CH2_OBJECTIVE_SUMMARY),
 		"Ch2 语义回归：战斗目标与标题卡摘要完全一致")
-	var ch2_objective := ch2.get_node_or_null("UI/ObjectiveLabel") as Label
+	var ch2_objective := _battle_info_label(ch2, "ObjectiveLabel")
 	_assert(ch2_objective != null, "Ch2 语义回归：存在长期目标标签")
 	if ch2_objective != null:
 		_assert("争夺三桥" in ch2_objective.text,
 			"Ch2 语义回归：长期目标标签显示三桥主目标")
-	var ch2_phase_opening := ch2.get_node_or_null("UI/PhaseLabel") as Label
+	var ch2_phase_opening := _battle_info_label(ch2, "PhaseLabel")
 	_assert(ch2_phase_opening != null, "Ch2 语义回归：开场存在阶段标签")
 	if ch2_phase_opening != null:
 		_assert_eq(ch2_phase_opening.text, PrologueChapterBriefsClass.get_progress_stage_badge(2, 1),
 			"Ch2 语义回归：开场阶段标签锁定第一阶段")
-	var ch2_guidance_opening := ch2.get_node_or_null("UI/GuidanceLabel") as Label
+	var ch2_guidance_opening := _battle_info_label(ch2, "GuidanceLabel")
 	_assert(ch2_guidance_opening != null, "Ch2 语义回归：开场存在长期推进标签")
 	if ch2_guidance_opening != null:
 		_assert_eq(ch2_guidance_opening.text, "推进：" + PrologueChapterBriefsClass.CH2_PROGRESS_SOUTH_BANK,
@@ -1471,17 +1489,17 @@ func _test_map_visual_language_spec() -> void:
 		"Ch3 语义回归：开场提示采用目标前缀")
 	_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return msg == PrologueChapterBriefsClass.CH3_OBJECTIVE_SUMMARY),
 		"Ch3 语义回归：战斗目标与标题卡摘要完全一致")
-	var ch3_objective := ch3.get_node_or_null("UI/ObjectiveLabel") as Label
+	var ch3_objective := _battle_info_label(ch3, "ObjectiveLabel")
 	_assert(ch3_objective != null, "Ch3 语义回归：存在长期目标标签")
 	if ch3_objective != null:
 		_assert("欢乐塔" in ch3_objective.text,
 			"Ch3 语义回归：长期目标标签显示塔楼目标")
-	var ch3_phase_opening := ch3.get_node_or_null("UI/PhaseLabel") as Label
+	var ch3_phase_opening := _battle_info_label(ch3, "PhaseLabel")
 	_assert(ch3_phase_opening != null, "Ch3 语义回归：开场存在阶段标签")
 	if ch3_phase_opening != null:
 		_assert_eq(ch3_phase_opening.text, PrologueChapterBriefsClass.get_progress_stage_badge(3, 1),
 			"Ch3 语义回归：开场阶段标签锁定第一阶段")
-	var ch3_guidance_opening := ch3.get_node_or_null("UI/GuidanceLabel") as Label
+	var ch3_guidance_opening := _battle_info_label(ch3, "GuidanceLabel")
 	_assert(ch3_guidance_opening != null, "Ch3 语义回归：开场存在长期推进标签")
 	if ch3_guidance_opening != null:
 		_assert_eq(ch3_guidance_opening.text, "推进：" + PrologueChapterBriefsClass.CH3_PROGRESS_SWAMP,
@@ -1537,17 +1555,17 @@ func _test_map_visual_language_spec() -> void:
 		"Ch4 语义回归：战斗目标与部署简报主目标一致")
 	_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg == "推进：" + Ch4BattleBriefClass.STAGE_1_GUIDANCE),
 		"Ch4 语义回归：开场即显示第一阶段推进提示")
-	var ch4_objective := ch4.get_node_or_null("UI/ObjectiveLabel") as Label
+	var ch4_objective := _battle_info_label(ch4, "ObjectiveLabel")
 	_assert(ch4_objective != null, "Ch4 语义回归：存在长期目标标签")
 	if ch4_objective != null:
 		_assert("王军指挥官" in ch4_objective.text,
 			"Ch4 语义回归：长期目标标签显示红堡主目标")
-	var ch4_phase_opening := ch4.get_node_or_null("UI/PhaseLabel") as Label
+	var ch4_phase_opening := _battle_info_label(ch4, "PhaseLabel")
 	_assert(ch4_phase_opening != null, "Ch4 语义回归：开场存在阶段标签")
 	if ch4_phase_opening != null:
 		_assert_eq(ch4_phase_opening.text, Ch4BattleBriefClass.get_stage_badge(1),
 			"Ch4 语义回归：开场阶段标签锁定第一阶段")
-	var ch4_guidance_opening := ch4.get_node_or_null("UI/GuidanceLabel") as Label
+	var ch4_guidance_opening := _battle_info_label(ch4, "GuidanceLabel")
 	_assert(ch4_guidance_opening != null, "Ch4 语义回归：开场存在长期推进标签")
 	if ch4_guidance_opening != null:
 		_assert_eq(ch4_guidance_opening.text, "推进：" + Ch4BattleBriefClass.STAGE_1_GUIDANCE,
@@ -1578,7 +1596,7 @@ func _test_map_visual_language_spec() -> void:
 		if ch4_phase_opening != null:
 			_assert_eq(ch4_phase_opening.text, Ch4BattleBriefClass.get_stage_badge(4),
 				"Ch4 语义回归：攻入红堡外院后阶段标签更新为第四阶段")
-		var ch4_guidance := ch4.get_node_or_null("UI/GuidanceLabel") as Label
+		var ch4_guidance := _battle_info_label(ch4, "GuidanceLabel")
 		_assert(ch4_guidance != null, "Ch4 语义回归：存在长期推进标签")
 		if ch4_guidance != null:
 			_assert_eq(ch4_guidance.text, "推进：" + Ch4BattleBriefClass.STAGE_4_GUIDANCE,
@@ -1853,7 +1871,7 @@ func _test_chapter_event_flow() -> void:
 		_assert(ch2._rhaegar_death_done, "Ch2 雷加死亡标记已置位")
 		_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg == "战局：" + PrologueChapterBriefsClass.CH2_BATTLE_RESOLUTION),
 			"Ch2 雷加死亡后使用统一战局反馈")
-		var ch2_objective_event := ch2.get_node_or_null("UI/ObjectiveLabel") as Label
+		var ch2_objective_event := _battle_info_label(ch2, "ObjectiveLabel")
 		if ch2_objective_event != null:
 			_assert_eq(ch2_objective_event.text, "战局：" + PrologueChapterBriefsClass.CH2_BATTLE_RESOLUTION,
 				"Ch2 事件回归：长期目标标签会更新为统一战局反馈")
@@ -1883,7 +1901,7 @@ func _test_chapter_event_flow() -> void:
 	await process_frame
 	_assert(ch3.recorded_statuses.any(func(msg: String) -> bool: return msg == "战局：" + PrologueChapterBriefsClass.CH3_BATTLE_RESOLUTION),
 		"Ch3 抵达塔门后使用统一战局反馈")
-	var ch3_objective_event := ch3.get_node_or_null("UI/ObjectiveLabel") as Label
+	var ch3_objective_event := _battle_info_label(ch3, "ObjectiveLabel")
 	if ch3_objective_event != null:
 		_assert_eq(ch3_objective_event.text, "战局：" + PrologueChapterBriefsClass.CH3_BATTLE_RESOLUTION,
 			"Ch3 事件回归：长期目标标签会更新为统一塔门战局")
@@ -1923,11 +1941,11 @@ func _test_chapter_event_flow() -> void:
 		"Ch4 兰军归降反馈采用战局前缀")
 	_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg == "战局：" + Ch4BattleBriefClass.THRONE_SECURED_STATUS),
 		"Ch4 最终结局前会给出铁王座落幕反馈")
-	var ch4_objective_event := ch4.get_node_or_null("UI/ObjectiveLabel") as Label
+	var ch4_objective_event := _battle_info_label(ch4, "ObjectiveLabel")
 	if ch4_objective_event != null:
 		_assert("铁王座" in ch4_objective_event.text,
 			"Ch4 事件回归：长期目标标签最终更新为铁王座落幕反馈")
-	var ch4_phase_event := ch4.get_node_or_null("UI/PhaseLabel") as Label
+	var ch4_phase_event := _battle_info_label(ch4, "PhaseLabel")
 	if ch4_phase_event != null:
 		_assert_eq(ch4_phase_event.text, Ch4BattleBriefClass.get_stage_badge(4),
 			"Ch4 事件回归：归降后阶段标签保持第四阶段")
@@ -2021,27 +2039,33 @@ func _test_ch1_save_and_deploy_flow() -> void:
 	await process_frame
 	var layout_root := deploy.get_node_or_null("LayoutRoot") as ScrollContainer
 	var content_vbox := deploy.get_node_or_null("LayoutRoot/ContentVBox") as VBoxContainer
+	var info_header := deploy.get_node_or_null("LayoutRoot/ContentVBox/InfoPanel/InfoVBox/InfoHeader") as Label
 	var premise_label := deploy.get_node_or_null("LayoutRoot/ContentVBox/InfoPanel/InfoVBox/PremiseLabel") as Label
 	var objective_summary_label := deploy.get_node_or_null("LayoutRoot/ContentVBox/InfoPanel/InfoVBox/ObjectiveSummaryLabel") as Label
 	var phase_badge_label := deploy.get_node_or_null("LayoutRoot/ContentVBox/InfoPanel/InfoVBox/PhaseBadgeLabel") as Label
 	var faction_summary_label := deploy.get_node_or_null("LayoutRoot/ContentVBox/InfoPanel/InfoVBox/FactionSummaryLabel") as Label
 	var deploy_summary_label := deploy.get_node_or_null("LayoutRoot/ContentVBox/InfoPanel/InfoVBox/DeploySummaryLabel") as Label
-	var count_label := deploy.get_node_or_null("LayoutRoot/ContentVBox/CountLabel") as Label
-	var confirm_btn := deploy.get_node_or_null("LayoutRoot/ContentVBox/ButtonRow/ConfirmButton") as Button
-	var unit_grid := deploy.get_node_or_null("LayoutRoot/ContentVBox/UnitGrid") as GridContainer
+	var roster_panel := deploy.get_node_or_null("LayoutRoot/ContentVBox/RosterPanel") as PanelContainer
+	var roster_header := deploy.get_node_or_null("LayoutRoot/ContentVBox/RosterPanel/RosterVBox/RosterHeader") as Label
+	var count_label := deploy.get_node_or_null("LayoutRoot/ContentVBox/RosterPanel/RosterVBox/CountLabel") as Label
+	var confirm_btn := deploy.get_node_or_null("LayoutRoot/ContentVBox/RosterPanel/RosterVBox/ButtonRow/ConfirmButton") as Button
+	var unit_grid := deploy.get_node_or_null("LayoutRoot/ContentVBox/RosterPanel/RosterVBox/UnitGrid") as GridContainer
 	var battle_flow_panel := deploy.get_node_or_null("LayoutRoot/ContentVBox/BattleFlowPanel") as PanelContainer
 	var flow_grid := deploy.get_node_or_null("LayoutRoot/ContentVBox/BattleFlowPanel/BattleFlowVBox/FlowGrid") as GridContainer
 	var flow_title := deploy.get_node_or_null("LayoutRoot/ContentVBox/BattleFlowPanel/BattleFlowVBox/FlowTitle") as Label
 	var deploy_advice_label := deploy.get_node_or_null("LayoutRoot/ContentVBox/BattleFlowPanel/BattleFlowVBox/DeployAdviceLabel") as Label
-	var mandatory_card := deploy.get_node_or_null("LayoutRoot/ContentVBox/UnitGrid/UnitCard_0") as PanelContainer
-	var optional_card := deploy.get_node_or_null("LayoutRoot/ContentVBox/UnitGrid/UnitCard_1") as PanelContainer
+	var mandatory_card := deploy.get_node_or_null("LayoutRoot/ContentVBox/RosterPanel/RosterVBox/UnitGrid/UnitCard_0") as PanelContainer
+	var optional_card := deploy.get_node_or_null("LayoutRoot/ContentVBox/RosterPanel/RosterVBox/UnitGrid/UnitCard_1") as PanelContainer
 	_assert(layout_root != null, "部署界面使用可滚动容器承载长内容")
 	_assert(content_vbox != null, "部署界面滚动容器内存在内容根节点")
+	_assert(info_header != null, "部署界面新增攻城态势标题")
 	_assert(premise_label != null, "部署界面包含战前态势说明")
 	_assert(objective_summary_label != null, "部署界面包含章节目标摘要")
 	_assert(phase_badge_label != null, "部署界面包含开场阶段徽标")
 	_assert(faction_summary_label != null, "部署界面包含兰军中立说明")
 	_assert(deploy_summary_label != null, "部署界面包含编组建议说明")
+	_assert(roster_panel != null, "部署界面包含编组总览面板")
+	_assert(roster_header != null, "部署界面包含突击队编组标题")
 	_assert(battle_flow_panel != null, "部署界面包含作战分段简报面板")
 	_assert(flow_grid != null, "部署界面包含作战分段网格")
 	_assert(flow_title != null, "部署界面包含作战分段标题")
@@ -2056,6 +2080,31 @@ func _test_ch1_save_and_deploy_flow() -> void:
 		_assert_eq(unit_grid.columns, 3, "部署界面单位卡按三列布局")
 	if flow_title != null:
 		_assert_eq(flow_title.text, "作战分段简报", "部署界面作战分段标题正确")
+	if info_header != null:
+		_assert_eq(info_header.text, "目标：红堡攻坚态势", "部署界面态势标题正确")
+		_assert_eq(info_header.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_OBJECTIVE, "部署界面态势标题使用统一目标色")
+	if roster_header != null:
+		_assert_eq(roster_header.text, "推进：突击队编组", "部署界面编组标题正确")
+		_assert_eq(roster_header.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_OBJECTIVE, "部署界面编组标题使用统一目标色")
+	if roster_panel != null:
+		var roster_style := roster_panel.get_theme_stylebox("panel") as StyleBoxFlat
+		_assert(roster_style != null, "部署界面编组总览面板已应用样式")
+		if roster_style != null:
+			_assert_eq(roster_style.bg_color, BattleChromeThemeClass.PANEL_BG, "部署界面编组总览面板使用统一底色")
+			_assert_eq(roster_style.border_color, BattleChromeThemeClass.PANEL_BORDER, "部署界面编组总览面板使用统一边框色")
+	if battle_flow_panel != null:
+		var flow_style := battle_flow_panel.get_theme_stylebox("panel") as StyleBoxFlat
+		_assert(flow_style != null, "部署界面作战分段面板已应用样式")
+		if flow_style != null:
+			_assert_eq(flow_style.bg_color, BattleChromeThemeClass.PANEL_HIGHLIGHT_BG, "部署界面作战分段面板使用高亮底色")
+			_assert_eq(flow_style.border_color, BattleChromeThemeClass.PANEL_HIGHLIGHT_BORDER, "部署界面作战分段面板使用高亮边框")
+	var info_panel := deploy.get_node_or_null("LayoutRoot/ContentVBox/InfoPanel") as PanelContainer
+	if info_panel != null:
+		var info_style := info_panel.get_theme_stylebox("panel") as StyleBoxFlat
+		_assert(info_style != null, "部署界面态势面板已应用样式")
+		if info_style != null:
+			_assert_eq(info_style.bg_color, BattleChromeThemeClass.PANEL_HIGHLIGHT_BG, "部署界面态势面板使用高亮底色")
+			_assert_eq(info_style.border_color, BattleChromeThemeClass.PANEL_HIGHLIGHT_BORDER, "部署界面态势面板使用高亮边框")
 	if flow_grid != null:
 		_assert_eq(flow_grid.columns, 2, "部署界面作战分段按两列布局")
 		_assert_eq(flow_grid.get_child_count(), 4, "部署界面作战分段共4步")
@@ -2071,6 +2120,13 @@ func _test_ch1_save_and_deploy_flow() -> void:
 				if step_desc != null:
 					_assert_eq(step_desc.text, str((Ch4BattleBriefClass.BATTLE_FLOW_STEPS[step_idx] as Dictionary).get("desc", "")),
 						"部署界面作战分段说明与 Ch4 简报常量一致：%d" % (step_idx + 1))
+				var step_style := step_panel.get_theme_stylebox("panel") as StyleBoxFlat
+				_assert(step_style != null, "部署界面作战分段卡已应用样式：%d" % (step_idx + 1))
+				if step_style != null:
+					_assert_eq(step_style.bg_color, BattleChromeThemeClass.PANEL_STEEL_BG,
+						"部署界面作战分段卡使用统一钢灰底色：%d" % (step_idx + 1))
+					_assert_eq(step_style.border_color, BattleChromeThemeClass.PANEL_BORDER,
+						"部署界面作战分段卡使用统一边框色：%d" % (step_idx + 1))
 		var step_1 := flow_grid.get_node_or_null("FlowStep_1") as PanelContainer
 		var step_4 := flow_grid.get_node_or_null("FlowStep_4") as PanelContainer
 		if step_1 != null:
@@ -2155,6 +2211,17 @@ func _test_ch1_save_and_deploy_flow() -> void:
 			_assert_eq(optional_button.text, "选择", "部署界面可选卡默认按钮文案为选择")
 		if optional_portrait != null:
 			_assert(optional_portrait.texture != null, "部署界面可选卡加载立绘")
+		var optional_style := optional_card.get_theme_stylebox("panel") as StyleBoxFlat
+		_assert(optional_style != null, "部署界面可选卡已应用统一样式")
+		if optional_style != null:
+			_assert_eq(optional_style.bg_color, BattleChromeThemeClass.PANEL_BG, "部署界面可选卡默认使用统一底色")
+			_assert_eq(optional_style.border_color, BattleChromeThemeClass.PANEL_BORDER, "部署界面可选卡默认使用统一边框")
+		if optional_button != null:
+			var button_style := optional_button.get_theme_stylebox("normal") as StyleBoxFlat
+			_assert(button_style != null, "部署界面选择按钮已应用统一按钮样式")
+			if button_style != null:
+				_assert_eq(button_style.bg_color, BattleChromeThemeClass.BUTTON_NORMAL_BG, "部署界面选择按钮使用统一按钮底色")
+				_assert_eq(button_style.border_color, BattleChromeThemeClass.BUTTON_NORMAL_BORDER, "部署界面选择按钮使用统一按钮边框")
 
 	if optional_card != null:
 		var optional_button_before := optional_card.get_node_or_null("VBox/SelectBtn") as Button
@@ -2167,13 +2234,17 @@ func _test_ch1_save_and_deploy_flow() -> void:
 				_assert("奈德 + 1" in confirm_btn.text, "部署界面选第1人后确认按钮同步数量")
 			var optional_status_selected := optional_card.get_node_or_null("VBox/StatusLabel") as Label
 			var optional_button_selected := optional_card.get_node_or_null("VBox/SelectBtn") as Button
+			var optional_style_selected := optional_card.get_theme_stylebox("panel") as StyleBoxFlat
 			if optional_status_selected != null:
 				_assert_eq(optional_status_selected.text, "状态：已编入突击队", "部署界面选中卡状态更新为已编入")
 			if optional_button_selected != null:
 				_assert_eq(optional_button_selected.text, "已选中", "部署界面选中卡按钮文案更新")
+			if optional_style_selected != null:
+				_assert_eq(optional_style_selected.bg_color, BattleChromeThemeClass.PANEL_SELECTED_BG, "部署界面选中卡切换为统一高亮底色")
+				_assert_eq(optional_style_selected.border_color, BattleChromeThemeClass.PANEL_SELECTED_BORDER, "部署界面选中卡切换为统一高亮边框")
 
-	var optional_card_3 := deploy.get_node_or_null("LayoutRoot/ContentVBox/UnitGrid/UnitCard_3") as PanelContainer
-	var optional_card_5 := deploy.get_node_or_null("LayoutRoot/ContentVBox/UnitGrid/UnitCard_5") as PanelContainer
+	var optional_card_3 := deploy.get_node_or_null("LayoutRoot/ContentVBox/RosterPanel/RosterVBox/UnitGrid/UnitCard_3") as PanelContainer
+	var optional_card_5 := deploy.get_node_or_null("LayoutRoot/ContentVBox/RosterPanel/RosterVBox/UnitGrid/UnitCard_5") as PanelContainer
 	if optional_card_3 != null:
 		var button3 := optional_card_3.get_node_or_null("VBox/SelectBtn") as Button
 		if button3 != null:

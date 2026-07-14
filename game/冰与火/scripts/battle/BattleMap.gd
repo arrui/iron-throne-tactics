@@ -11,6 +11,7 @@ const CAM_SPEED := 520.0
 const BATTLE_ANIM_SCENE  := preload("res://scenes/battle/BattleAnimation.tscn")
 const GAME_OVER_PATH     := "res://scenes/ui/GameOver.tscn"
 const SUPPORT_POPUP_PATH := "res://scenes/ui/SupportPopup.tscn"
+const BattleChromeTheme := preload("res://scripts/ui/BattleChromeTheme.gd")
 
 # 专用高亮层（在 TileLayer 之上、UnitLayer 之下）
 @onready var _hl: Node2D = $HighlightLayer
@@ -190,37 +191,18 @@ func _apply_battle_font() -> void:
 
 # 深色 UI 主题（GDD色盘：铁灰 + 烛珀高亮）
 func _apply_dark_ui_theme() -> void:
-	# 面板底色
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color          = Color(0.10, 0.09, 0.08, 0.96)
-	panel_style.border_color      = Color(0.55, 0.46, 0.26, 1.00)
-	panel_style.border_width_top    = 1; panel_style.border_width_bottom = 1
-	panel_style.border_width_left   = 1; panel_style.border_width_right  = 1
-	panel_style.corner_radius_top_left     = 4; panel_style.corner_radius_top_right    = 4
-	panel_style.corner_radius_bottom_left  = 4; panel_style.corner_radius_bottom_right = 4
-
-	# 按钮普通态
-	var btn_normal := StyleBoxFlat.new()
-	btn_normal.bg_color     = Color(0.16, 0.14, 0.10, 0.95)
-	btn_normal.border_color = Color(0.50, 0.42, 0.22, 1.00)
-	btn_normal.set_border_width_all(1)
-	btn_normal.set_corner_radius_all(3)
-
-	# 按钮悬停态
-	var btn_hover := StyleBoxFlat.new()
-	btn_hover.bg_color     = Color(0.26, 0.22, 0.12, 0.98)
-	btn_hover.border_color = Color(0.78, 0.66, 0.36, 1.00)
-	btn_hover.set_border_width_all(1)
-	btn_hover.set_corner_radius_all(3)
-
-	# 按钮按下态
-	var btn_press := StyleBoxFlat.new()
-	btn_press.bg_color     = Color(0.36, 0.28, 0.14, 1.00)
-	btn_press.border_color = Color(0.95, 0.80, 0.40, 1.00)
-	btn_press.set_border_width_all(2)
-	btn_press.set_corner_radius_all(3)
-
-	_apply_dark_style_recursive(self, panel_style, btn_normal, btn_hover, btn_press)
+	BattleChromeTheme.apply_dark_chrome_recursive(self)
+	var top_info_panel := get_node_or_null("UI/TopInfoPanel") as PanelContainer
+	if top_info_panel != null:
+		top_info_panel.add_theme_stylebox_override("panel",
+			BattleChromeTheme.make_panel_style(
+				BattleChromeTheme.PANEL_HIGHLIGHT_BG,
+				BattleChromeTheme.PANEL_HIGHLIGHT_BORDER,
+				6,
+				1,
+				10
+			)
+		)
 
 func _apply_dark_style_recursive(
 		node: Node,
@@ -276,12 +258,18 @@ func _tile_to_screen(grid_pos: Vector2i) -> Vector2:
 	return get_viewport().get_canvas_transform() * to_global(_g2p(grid_pos))
 
 # ── UI 绑定 ──────────────────────────────────────────────
+func _find_ui_node(node_name: String) -> Node:
+	var ui := get_node_or_null("UI")
+	if ui == null:
+		return null
+	return ui.find_child(node_name, true, false)
+
 func _bind_ui() -> void:
-	_turn_label    = get_node_or_null("UI/TurnLabel")    as Label
-	_phase_label   = get_node_or_null("UI/PhaseLabel")   as Label
-	_objective_label = get_node_or_null("UI/ObjectiveLabel") as Label
-	_guidance_label = get_node_or_null("UI/GuidanceLabel") as Label
-	_status_label  = get_node_or_null("UI/StatusLabel")  as Label
+	_turn_label    = _find_ui_node("TurnLabel") as Label
+	_phase_label   = _find_ui_node("PhaseLabel") as Label
+	_objective_label = _find_ui_node("ObjectiveLabel") as Label
+	_guidance_label = _find_ui_node("GuidanceLabel") as Label
+	_status_label  = _find_ui_node("StatusLabel") as Label
 	_terrain_label = get_node_or_null("UI/TerrainLabel") as Label
 	_action_menu   = get_node_or_null("UI/ActionMenu")   as PanelContainer
 	_predict_panel = get_node_or_null("UI/PredictPanel") as PanelContainer

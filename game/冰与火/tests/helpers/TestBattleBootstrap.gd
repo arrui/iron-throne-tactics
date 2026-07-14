@@ -22,18 +22,30 @@ func _enter_tree() -> void:
 		var ui := CanvasLayer.new()
 		ui.name = "UI"
 		add_child(ui)
-		var objective := Label.new()
-		objective.name = "ObjectiveLabel"
-		ui.add_child(objective)
+		var top_panel := PanelContainer.new()
+		top_panel.name = "TopInfoPanel"
+		ui.add_child(top_panel)
+		var top_margin := MarginContainer.new()
+		top_margin.name = "TopInfoMargin"
+		top_panel.add_child(top_margin)
+		var top_vbox := VBoxContainer.new()
+		top_vbox.name = "TopInfoVBox"
+		top_margin.add_child(top_vbox)
+		var turn := Label.new()
+		turn.name = "TurnLabel"
+		top_vbox.add_child(turn)
 		var phase := Label.new()
 		phase.name = "PhaseLabel"
-		ui.add_child(phase)
+		top_vbox.add_child(phase)
+		var objective := Label.new()
+		objective.name = "ObjectiveLabel"
+		top_vbox.add_child(objective)
 		var guidance := Label.new()
 		guidance.name = "GuidanceLabel"
-		ui.add_child(guidance)
+		top_vbox.add_child(guidance)
 		var status := Label.new()
 		status.name = "StatusLabel"
-		ui.add_child(status)
+		top_vbox.add_child(status)
 
 func _apply_cam_limits() -> void:
 	pass
@@ -69,12 +81,18 @@ func _advance_to(next_chapter: int) -> void:
 func _set_status(msg: String) -> void:
 	recorded_statuses.append(msg)
 	var objective_label := get_node_or_null("UI/ObjectiveLabel") as Label
+	if objective_label == null:
+		objective_label = get_node_or_null("UI/TopInfoPanel/TopInfoMargin/TopInfoVBox/ObjectiveLabel") as Label
 	if objective_label != null and (msg.begins_with("目标：") or msg.begins_with("战局：")):
 		objective_label.text = msg
 	var guidance_label := get_node_or_null("UI/GuidanceLabel") as Label
+	if guidance_label == null:
+		guidance_label = get_node_or_null("UI/TopInfoPanel/TopInfoMargin/TopInfoVBox/GuidanceLabel") as Label
 	if guidance_label != null and msg.begins_with("推进："):
 		guidance_label.text = msg
 	var phase_label := get_node_or_null("UI/PhaseLabel") as Label
+	if phase_label == null:
+		phase_label = get_node_or_null("UI/TopInfoPanel/TopInfoMargin/TopInfoVBox/PhaseLabel") as Label
 	if phase_label != null and msg.begins_with("阶段："):
 		phase_label.text = msg
 	if _status_label:
