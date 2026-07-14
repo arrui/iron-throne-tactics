@@ -890,6 +890,18 @@ func _draw_forest_detail(rect: Rect2, x: int, y: int) -> void:
 		draw_circle(c, 10.0, tree_col)
 		draw_line(c + Vector2(0, 8), c + Vector2(0, 18), trunk_col, 2.0, true)
 
+func _wall_corner_mask(x: int, y: int) -> Dictionary:
+	var north_open := _terrain_at_or_cliff(x, y - 1) != TERRAIN_WALL
+	var south_open := _terrain_at_or_cliff(x, y + 1) != TERRAIN_WALL
+	var west_open := _terrain_at_or_cliff(x - 1, y) != TERRAIN_WALL
+	var east_open := _terrain_at_or_cliff(x + 1, y) != TERRAIN_WALL
+	return {
+		"nw": north_open and west_open,
+		"ne": north_open and east_open,
+		"sw": south_open and west_open,
+		"se": south_open and east_open,
+	}
+
 func _draw_wall_detail(rect: Rect2, x: int, y: int) -> void:
 	var north_open := _terrain_at_or_cliff(x, y - 1) != TERRAIN_WALL
 	var south_open := _terrain_at_or_cliff(x, y + 1) != TERRAIN_WALL
@@ -897,6 +909,7 @@ func _draw_wall_detail(rect: Rect2, x: int, y: int) -> void:
 	var east_open := _terrain_at_or_cliff(x + 1, y) != TERRAIN_WALL
 	var wall_run_horizontal := not west_open and not east_open
 	var wall_run_vertical := not north_open and not south_open
+	var corner_mask := _wall_corner_mask(x, y)
 	var crenel_offset := float((x + y) % 2) * 4.0
 	var top_band := Rect2(rect.position.x + 4, rect.position.y + 6, rect.size.x - 8, 12)
 	var body := Rect2(rect.position.x + 4, rect.position.y + 18, rect.size.x - 8, rect.size.y - 24)
@@ -920,6 +933,14 @@ func _draw_wall_detail(rect: Rect2, x: int, y: int) -> void:
 	if east_open:
 		draw_rect(Rect2(rect.position.x + rect.size.x - 9, rect.position.y + 20, 5, rect.size.y - 28),
 			Color(0.10, 0.08, 0.06, 0.26))
+	if corner_mask.get("nw", false):
+		draw_rect(Rect2(rect.position.x + 6, rect.position.y + 20, 10, 10), Color(0.72, 0.64, 0.46, 0.20))
+	if corner_mask.get("ne", false):
+		draw_rect(Rect2(rect.position.x + rect.size.x - 16, rect.position.y + 20, 10, 10), Color(0.70, 0.62, 0.44, 0.18))
+	if corner_mask.get("sw", false):
+		draw_rect(Rect2(rect.position.x + 6, rect.position.y + rect.size.y - 18, 10, 10), Color(0.18, 0.14, 0.10, 0.18))
+	if corner_mask.get("se", false):
+		draw_rect(Rect2(rect.position.x + rect.size.x - 16, rect.position.y + rect.size.y - 18, 10, 10), Color(0.10, 0.08, 0.06, 0.22))
 	for i: int in 4:
 		var bx := rect.position.x + 8 + i * 15
 		draw_rect(Rect2(bx, rect.position.y + 8, 8, 8), Color(0.62, 0.56, 0.40, 0.75))

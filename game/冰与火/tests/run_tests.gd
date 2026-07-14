@@ -1331,6 +1331,16 @@ func _test_visual_style_unification() -> void:
 		"BattleMap 会识别横向连续墙段，支撑连续防线打散")
 	_assert(src.contains("var wall_run_vertical := not north_open and not south_open"),
 		"BattleMap 会识别纵向连续墙段，支撑连续建筑打散")
+	_assert(src.contains("func _wall_corner_mask"),
+		"BattleMap 提供墙体角部暴露检测，支撑角部体量强化")
+	_assert(src.contains("var corner_mask := _wall_corner_mask(x, y)"),
+		"BattleMap 会按墙角暴露信息补角部石体")
+	_assert(src.contains("if corner_mask.get(\"nw\", false):"),
+		"BattleMap 会为左上暴露墙角补角石高光")
+	_assert(src.contains("if corner_mask.get(\"se\", false):"),
+		"BattleMap 会为右下暴露墙角补角石压暗")
+	_assert(src.contains("draw_rect(Rect2(rect.position.x + 6, rect.position.y + 20, 10, 10)"),
+		"BattleMap 会为墙角补局部方石体块")
 	_assert(src.contains("var crenel_offset := float((x + y) % 2) * 4.0"),
 		"BattleMap 会为连续墙顶缘引入交替段差，避免整排重复")
 	_assert(src.contains("var brick_tint := 0.12 + float((x + row_i + col_i) % 3) * 0.03"),
@@ -1701,6 +1711,10 @@ func _test_map_visual_language_spec() -> void:
 	_assert_eq(ch1._terrain_at_or_cliff(5, 1), 0, "Ch1 语义回归：北侧主缺口前一格保持为通路")
 	_assert(ch1._terrain_at_or_cliff(3, 1) == 2 and ch1._terrain_at_or_cliff(7, 1) == 2,
 		"Ch1 语义回归：缺口两侧仍保留封锁墙体")
+	_assert(ch1.has_method("_wall_corner_mask"), "Ch1 语义回归：墙体角部暴露检测辅助可用")
+	if ch1.has_method("_wall_corner_mask"):
+		var ch1_gap_left_wall: Dictionary = ch1._wall_corner_mask(3, 1)
+		_assert(ch1_gap_left_wall.get("nw", false), "Ch1 语义回归：北侧缺口左墙保留左上角体量")
 	_assert(ch1._terrain_at_or_cliff(0, 4) == 3 and ch1._terrain_at_or_cliff(1, 4) == 0,
 		"Ch1 语义回归：西侧世界边界紧贴前沿可行军通路")
 	_assert(ch1.recorded_statuses.any(func(msg: String) -> bool: return msg == PrologueChapterBriefsClass.CH1_OBJECTIVE_SUMMARY),
@@ -1763,6 +1777,10 @@ func _test_map_visual_language_spec() -> void:
 	_assert(ch2_axis.has(Vector2i(14, 7)), "Ch2 语义回归：主推进轴线弱引导接上北岸桥头")
 	_assert(ch2._terrain_at_or_cliff(12, 7) == 2 and ch2._terrain_at_or_cliff(15, 7) == 2,
 		"Ch2 语义回归：中桥北桥头两侧营垒仍在，形成主决战桥头")
+	_assert(ch2.has_method("_wall_corner_mask"), "Ch2 语义回归：墙体角部暴露检测辅助可用")
+	if ch2.has_method("_wall_corner_mask"):
+		var ch2_bridge_bastion: Dictionary = ch2._wall_corner_mask(12, 7)
+		_assert(ch2_bridge_bastion.get("se", false), "Ch2 语义回归：中桥左营垒保留右下角体量")
 	_assert_eq(ch2._terrain_at_or_cliff(13, 7), 6, "Ch2 语义回归：中桥北桥头桥面保持完整")
 	_assert(ch2.has_method("_plain_wall_contact_mask"), "Ch2 语义回归：平地贴墙接触检测辅助可用")
 	if ch2.has_method("_plain_wall_contact_mask"):
@@ -1975,6 +1993,10 @@ func _test_map_visual_language_spec() -> void:
 	_assert_eq(ch4._terrain_at_or_cliff(18, 11), 0, "Ch4 语义回归：红堡外墙主门保持通路")
 	_assert_eq(ch4._terrain_at_or_cliff(18, 13), 0, "Ch4 语义回归：内城墙主门保持通路")
 	_assert_eq(ch4._terrain_at_or_cliff(18, 18), 0, "Ch4 语义回归：南城墙主门保持通路")
+	_assert(ch4.has_method("_wall_corner_mask"), "Ch4 语义回归：墙体角部暴露检测辅助可用")
+	if ch4.has_method("_wall_corner_mask"):
+		var ch4_red_keep_gate_corner: Dictionary = ch4._wall_corner_mask(21, 11)
+		_assert(ch4_red_keep_gate_corner.get("nw", false), "Ch4 语义回归：红堡外墙主门右侧保留左上角体量")
 	_assert(ch4.has_method("_plain_wall_contact_mask"), "Ch4 语义回归：平地贴墙接触检测辅助可用")
 	if ch4.has_method("_plain_wall_contact_mask"):
 		var ch4_south_gate_contact: Dictionary = ch4._plain_wall_contact_mask(16, 16)
