@@ -1267,6 +1267,16 @@ func _test_visual_style_unification() -> void:
 	_assert(src.contains("func _draw_wall_detail"), "BattleMap 存在城墙/建筑细节绘制")
 	_assert(src.contains("func _draw_river_detail"), "BattleMap 存在河流细节绘制")
 	_assert(src.contains("func _draw_bridge_detail"), "BattleMap 存在桥梁细节绘制")
+	_assert(src.contains("func _terrain_edge_mask"),
+		"BattleMap 提供地形边缘暴露检测，支撑森林/沼泽过渡")
+	_assert(src.contains("var edges := _terrain_edge_mask(x, y, TERRAIN_FOREST)"),
+		"BattleMap 会按森林边缘暴露信息绘制过渡")
+	_assert(src.contains("var edges := _terrain_edge_mask(x, y, TERRAIN_SWAMP)"),
+		"BattleMap 会按沼泽边缘暴露信息绘制过渡")
+	_assert(src.contains("draw_rect(Rect2(rect.position.x + 6, rect.position.y + 6, rect.size.x - 12, 12)"),
+		"BattleMap 森林会为暴露边增加树冠压暗过渡")
+	_assert(src.contains("draw_rect(Rect2(rect.position.x + 6, rect.position.y + rect.size.y - 18, rect.size.x - 12, 12)"),
+		"BattleMap 沼泽会为暴露边增加泥水压暗过渡")
 	_assert(src.contains("bridge_neighbors > 0 and wall_neighbors == 0"), "BattleMap 会为桥邻接平地提供接驳石带逻辑")
 	_assert(src.contains("if vertical_bridge:"), "BattleMap 桥梁细节按朝向分离绘制")
 	_assert(src.contains("var center_x := rect.position.x + rect.size.x * 0.5") or src.contains("var center_y := rect.position.y + rect.size.y * 0.5"),
@@ -1609,6 +1619,11 @@ func _test_map_visual_language_spec() -> void:
 		_assert(not ch1_axis.is_empty(), "Ch1 语义回归：主推进轴线弱引导存在")
 		_assert(ch1_axis.has(ch1.victory_pos), "Ch1 语义回归：主推进轴线弱引导抵达目标格")
 		_assert(ch1_axis.has(Vector2i(5, 1)), "Ch1 语义回归：主推进轴线弱引导穿过山道缺口前沿")
+	_assert(ch1.has_method("_terrain_edge_mask"), "Ch1 语义回归：地形边缘暴露检测辅助可用")
+	if ch1.has_method("_terrain_edge_mask"):
+		var ch1_forest_edges: Dictionary = ch1._terrain_edge_mask(2, 5, 1)
+		_assert(ch1_forest_edges.get("north", false), "Ch1 语义回归：山道林地朝主通路暴露北侧边缘")
+		_assert(ch1_forest_edges.get("west", false), "Ch1 语义回归：山道林地保留西侧边缘过渡")
 		_assert_eq(ch1._terrain_at_or_cliff(ch1.victory_pos.x, ch1.victory_pos.y), 0,
 			"Ch1 语义回归：胜利格保持为可通行主地面")
 	_assert_eq(ch1._terrain_at_or_cliff(5, 1), 0, "Ch1 语义回归：北侧主缺口前一格保持为通路")
@@ -1746,6 +1761,11 @@ func _test_map_visual_language_spec() -> void:
 		_assert(not ch3_axis.is_empty(), "Ch3 语义回归：主推进轴线弱引导存在")
 		_assert(ch3_axis.has(ch3.victory_pos), "Ch3 语义回归：主推进轴线弱引导抵达目标格")
 		_assert(ch3_axis.has(Vector2i(12, 8)), "Ch3 语义回归：主推进轴线弱引导穿过塔前中轴接敌格")
+	_assert(ch3.has_method("_terrain_edge_mask"), "Ch3 语义回归：地形边缘暴露检测辅助可用")
+	if ch3.has_method("_terrain_edge_mask"):
+		var ch3_swamp_edges: Dictionary = ch3._terrain_edge_mask(3, 8, 5)
+		_assert(ch3_swamp_edges.get("south", false), "Ch3 语义回归：湿地南侧保留泥地边缘过渡")
+		_assert(ch3_swamp_edges.get("west", false), "Ch3 语义回归：湿地西侧保留泥地边缘过渡")
 	_assert_eq(ch3._terrain_at_or_cliff(12, 8), 0, "Ch3 语义回归：塔前中轴接敌格保持通路")
 	_assert(ch3._terrain_at_or_cliff(10, 8) == 0 or ch3._terrain_at_or_cliff(14, 8) == 0,
 		"Ch3 语义回归：塔前至少保留一侧绕行空间")

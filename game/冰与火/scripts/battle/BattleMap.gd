@@ -651,6 +651,14 @@ func _gate_runs_horizontal(x: int, y: int) -> bool:
 	var south_wall_dist := _nearest_wall_distance(x, y, Vector2i(0, 1))
 	return north_wall_dist > 0 and south_wall_dist > 0 and north_wall_dist + south_wall_dist <= 5
 
+func _terrain_edge_mask(x: int, y: int, terrain: int) -> Dictionary:
+	return {
+		"north": _terrain_at_or_cliff(x, y - 1) != terrain,
+		"south": _terrain_at_or_cliff(x, y + 1) != terrain,
+		"west": _terrain_at_or_cliff(x - 1, y) != terrain,
+		"east": _terrain_at_or_cliff(x + 1, y) != terrain,
+	}
+
 func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 	var wall_neighbors := _adjacent_terrain_count(x, y, TERRAIN_WALL)
 	var river_neighbors := _adjacent_terrain_count(x, y, TERRAIN_RIVER)
@@ -751,8 +759,21 @@ func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 func _draw_forest_detail(rect: Rect2, x: int, y: int) -> void:
 	var tree_col := Color(0.16, 0.28, 0.14, 0.50)
 	var trunk_col := Color(0.20, 0.14, 0.08, 0.35)
+	var edges := _terrain_edge_mask(x, y, TERRAIN_FOREST)
 	draw_rect(Rect2(rect.position.x + 6, rect.position.y + 8, rect.size.x - 12, rect.size.y - 16),
 		Color(0.06, 0.10, 0.05, 0.20))
+	if edges.get("north", false):
+		draw_rect(Rect2(rect.position.x + 6, rect.position.y + 6, rect.size.x - 12, 12),
+			Color(0.04, 0.08, 0.04, 0.22))
+	if edges.get("south", false):
+		draw_rect(Rect2(rect.position.x + 6, rect.position.y + rect.size.y - 18, rect.size.x - 12, 12),
+			Color(0.05, 0.09, 0.04, 0.20))
+	if edges.get("west", false):
+		draw_rect(Rect2(rect.position.x + 6, rect.position.y + 8, 12, rect.size.y - 16),
+			Color(0.05, 0.09, 0.04, 0.18))
+	if edges.get("east", false):
+		draw_rect(Rect2(rect.position.x + rect.size.x - 18, rect.position.y + 8, 12, rect.size.y - 16),
+			Color(0.05, 0.09, 0.04, 0.18))
 	var centers := [
 		Vector2(rect.position.x + 20, rect.position.y + 22),
 		Vector2(rect.position.x + 38 + float((x + y) % 6), rect.position.y + 30),
@@ -853,6 +874,19 @@ func _draw_river_detail(rect: Rect2, x: int, y: int) -> void:
 
 func _draw_swamp_detail(rect: Rect2, x: int, y: int) -> void:
 	var puddle := Color(0.24, 0.30, 0.16, 0.35)
+	var edges := _terrain_edge_mask(x, y, TERRAIN_SWAMP)
+	if edges.get("north", false):
+		draw_rect(Rect2(rect.position.x + 6, rect.position.y + 6, rect.size.x - 12, 12),
+			Color(0.16, 0.18, 0.10, 0.20))
+	if edges.get("south", false):
+		draw_rect(Rect2(rect.position.x + 6, rect.position.y + rect.size.y - 18, rect.size.x - 12, 12),
+			Color(0.12, 0.10, 0.06, 0.26))
+	if edges.get("west", false):
+		draw_rect(Rect2(rect.position.x + 6, rect.position.y + 8, 12, rect.size.y - 16),
+			Color(0.14, 0.12, 0.08, 0.18))
+	if edges.get("east", false):
+		draw_rect(Rect2(rect.position.x + rect.size.x - 18, rect.position.y + 8, 12, rect.size.y - 16),
+			Color(0.14, 0.12, 0.08, 0.18))
 	_draw_ellipse(Rect2(rect.position.x + 10, rect.position.y + 16, 24, 16), puddle)
 	_draw_ellipse(Rect2(rect.position.x + 30, rect.position.y + 34, 26, 14), puddle.darkened(0.1))
 	for i: int in 3:
