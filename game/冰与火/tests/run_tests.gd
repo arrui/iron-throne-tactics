@@ -1319,6 +1319,12 @@ func _test_visual_style_unification() -> void:
 		"BattleMap 会为桥端补纵向桥台石帽")
 	_assert(src.contains("draw_rect(Rect2(rect.position.x + 4, rect.position.y + 14, 8, rect.size.y - 28)"),
 		"BattleMap 会为桥端补横向桥台石帽")
+	_assert(src.contains("if bridge_neighbors > 0 and river_neighbors == 0:"),
+		"BattleMap 会为桥头前的陆地补桥面接驳石带")
+	_assert(src.contains("draw_rect(Rect2(rect.position.x + 18, rect.position.y + 4, rect.size.x - 36, 10)"),
+		"BattleMap 会为南北桥头前地补纵向接桥石带")
+	_assert(src.contains("draw_rect(Rect2(rect.position.x + 4, rect.position.y + 18, 10, rect.size.y - 36)"),
+		"BattleMap 会为东西桥头前地补横向接桥石带")
 	_assert(src.contains("func _river_bank_mask"),
 		"BattleMap 提供河岸暴露检测，支撑非桥接岸线强化")
 	_assert(src.contains("var banks := _river_bank_mask(x, y)"),
@@ -1797,6 +1803,10 @@ func _test_map_visual_language_spec() -> void:
 	_assert(ch2_axis.has(Vector2i(14, 7)), "Ch2 语义回归：主推进轴线弱引导接上北岸桥头")
 	_assert(ch2._terrain_at_or_cliff(12, 7) == 2 and ch2._terrain_at_or_cliff(15, 7) == 2,
 		"Ch2 语义回归：中桥北桥头两侧营垒仍在，形成主决战桥头")
+	_assert(ch2._terrain_at_or_cliff(14, 6) == 0 and ch2._adjacent_terrain_count(14, 6, 6) > 0,
+		"Ch2 语义回归：中桥北桥头前地仍与桥面直接接驳")
+	_assert(ch2._terrain_at_or_cliff(14, 11) == 0 and ch2._adjacent_terrain_count(14, 11, 6) > 0,
+		"Ch2 语义回归：中桥南桥头前地仍与桥面直接接驳")
 	_assert(ch2.has_method("_wall_corner_mask"), "Ch2 语义回归：墙体角部暴露检测辅助可用")
 	if ch2.has_method("_wall_corner_mask"):
 		var ch2_bridge_bastion: Dictionary = ch2._wall_corner_mask(12, 7)
@@ -2029,6 +2039,10 @@ func _test_map_visual_language_spec() -> void:
 	_assert(ch4._gate_runs_vertical(18, 18), "Ch4 语义回归：南城墙主门保持纵向门洞识别")
 	_assert(ch4._terrain_at_or_cliff(16, 11) == 2 and ch4._terrain_at_or_cliff(21, 11) == 2,
 		"Ch4 语义回归：红堡外墙主门两侧仍保留门框边墙")
+	_assert(ch4._terrain_at_or_cliff(18, 7) == 0 and ch4._adjacent_terrain_count(18, 7, 6) > 0,
+		"Ch4 语义回归：红堡内护城河主桥北桥头前地仍与桥面直接接驳")
+	_assert(ch4._terrain_at_or_cliff(18, 9) == 0 and ch4._adjacent_terrain_count(18, 9, 6) > 0,
+		"Ch4 语义回归：红堡内护城河主桥南桥头前地仍与桥面直接接驳")
 	_assert_eq(ch4._terrain_at_or_cliff(18, 7), 0, "Ch4 语义回归：中轴主桥北桥头与陆地直接接驳")
 	_assert_eq(ch4._terrain_at_or_cliff(18, 9), 0, "Ch4 语义回归：中轴主桥南桥头与陆地直接接驳")
 	_assert(ch4._terrain_at_or_cliff(12, 11) == 2 and ch4._terrain_at_or_cliff(13, 11) == 2 and ch4._terrain_at_or_cliff(14, 11) == 2,
