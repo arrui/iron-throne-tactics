@@ -506,6 +506,14 @@ func _bridge_runs_vertical(x: int, y: int) -> bool:
 		vertical_river += 1
 	return side_river >= vertical_river
 
+func _bridge_end_mask(x: int, y: int) -> Dictionary:
+	return {
+		"north": _terrain_at_or_cliff(x, y - 1) != TERRAIN_RIVER and _terrain_at_or_cliff(x, y - 1) != TERRAIN_BRIDGE,
+		"south": _terrain_at_or_cliff(x, y + 1) != TERRAIN_RIVER and _terrain_at_or_cliff(x, y + 1) != TERRAIN_BRIDGE,
+		"west": _terrain_at_or_cliff(x - 1, y) != TERRAIN_RIVER and _terrain_at_or_cliff(x - 1, y) != TERRAIN_BRIDGE,
+		"east": _terrain_at_or_cliff(x + 1, y) != TERRAIN_RIVER and _terrain_at_or_cliff(x + 1, y) != TERRAIN_BRIDGE,
+	}
+
 func _find_guidance_anchor_start() -> Vector2i:
 	if map_width <= 0 or map_height <= 0:
 		return victory_pos
@@ -1012,7 +1020,10 @@ func _draw_bridge_detail(rect: Rect2, x: int, y: int) -> void:
 	var board_col := Color(0.56, 0.46, 0.30, 0.42)
 	var rail_col := Color(0.74, 0.64, 0.42, 0.34)
 	var center_col := Color(0.88, 0.78, 0.56, 0.22)
+	var cap_col := Color(0.64, 0.58, 0.44, 0.28)
+	var cap_shadow := Color(0.12, 0.08, 0.06, 0.18)
 	var vertical_bridge := _bridge_runs_vertical(x, y)
+	var bridge_ends := _bridge_end_mask(x, y)
 	draw_rect(Rect2(rect.position.x + 6, rect.position.y + 6, rect.size.x - 12, rect.size.y - 12),
 		Color(0.16, 0.10, 0.06, 0.12))
 	if vertical_bridge:
@@ -1023,6 +1034,13 @@ func _draw_bridge_detail(rect: Rect2, x: int, y: int) -> void:
 		draw_line(Vector2(rect.position.x + 10, rect.position.y + 8), Vector2(rect.position.x + 10, rect.position.y + rect.size.y - 8), rail_col, 2.0, true)
 		draw_line(Vector2(rect.position.x + rect.size.x - 10, rect.position.y + 8), Vector2(rect.position.x + rect.size.x - 10, rect.position.y + rect.size.y - 8), rail_col, 2.0, true)
 		draw_line(Vector2(center_x, rect.position.y + 10), Vector2(center_x, rect.position.y + rect.size.y - 10), center_col, 2.0, true)
+		if vertical_bridge and bridge_ends.get("north", false):
+			draw_rect(Rect2(rect.position.x + 14, rect.position.y + 4, rect.size.x - 28, 8), cap_col)
+			draw_line(Vector2(rect.position.x + 16, rect.position.y + 10),
+				Vector2(rect.position.x + rect.size.x - 16, rect.position.y + 10),
+				Color(0.82, 0.76, 0.62, 0.22), 2.0, true)
+		if vertical_bridge and bridge_ends.get("south", false):
+			draw_rect(Rect2(rect.position.x + 14, rect.position.y + rect.size.y - 12, rect.size.x - 28, 8), cap_shadow)
 	else:
 		var center_y := rect.position.y + rect.size.y * 0.5
 		for i: int in 4:
@@ -1031,6 +1049,13 @@ func _draw_bridge_detail(rect: Rect2, x: int, y: int) -> void:
 		draw_line(Vector2(rect.position.x + 8, rect.position.y + 10), Vector2(rect.position.x + rect.size.x - 8, rect.position.y + 10), rail_col, 2.0, true)
 		draw_line(Vector2(rect.position.x + 8, rect.position.y + rect.size.y - 10), Vector2(rect.position.x + rect.size.x - 8, rect.position.y + rect.size.y - 10), rail_col, 2.0, true)
 		draw_line(Vector2(rect.position.x + 10, center_y), Vector2(rect.position.x + rect.size.x - 10, center_y), center_col, 2.0, true)
+		if not vertical_bridge and bridge_ends.get("west", false):
+			draw_rect(Rect2(rect.position.x + 4, rect.position.y + 14, 8, rect.size.y - 28), cap_col)
+			draw_line(Vector2(rect.position.x + 10, rect.position.y + 16),
+				Vector2(rect.position.x + 10, rect.position.y + rect.size.y - 16),
+				Color(0.82, 0.76, 0.62, 0.22), 2.0, true)
+		if not vertical_bridge and bridge_ends.get("east", false):
+			draw_rect(Rect2(rect.position.x + rect.size.x - 12, rect.position.y + 14, 8, rect.size.y - 28), cap_shadow)
 
 func _draw_ellipse(rect: Rect2, color: Color) -> void:
 	var points := PackedVector2Array()
