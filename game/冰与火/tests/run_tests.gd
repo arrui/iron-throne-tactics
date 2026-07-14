@@ -1365,6 +1365,14 @@ func _test_visual_style_unification() -> void:
 		"BattleMap 会为墙体缺口中的主通路绘制纵向门洞阈值")
 	_assert(src.contains("var gate_horizontal := bridge_neighbors == 0 and river_neighbors == 0 and _gate_runs_horizontal(x, y)"),
 		"BattleMap 会为墙体缺口中的主通路绘制横向门洞阈值")
+	_assert(src.contains("if gate_vertical and wall_contact.get(\"west\", false):"),
+		"BattleMap 会为纵向门洞补左侧门框边墙")
+	_assert(src.contains("if gate_vertical and wall_contact.get(\"east\", false):"),
+		"BattleMap 会为纵向门洞补右侧门框边墙")
+	_assert(src.contains("if gate_horizontal and wall_contact.get(\"north\", false):"),
+		"BattleMap 会为横向门洞补上侧门框边墙")
+	_assert(src.contains("draw_rect(Rect2(rect.position.x + 8, rect.position.y + 10, 8, rect.size.y - 20)"),
+		"BattleMap 会为门洞侧缘补局部门框石体")
 	_assert(src.contains("if _terrain_at_or_cliff(x, y - 1) != TERRAIN_CLIFF:"),
 		"BattleMap 会识别峭壁暴露顶缘，强化世界边界断面")
 	_assert(src.contains("if _terrain_at_or_cliff(x - 1, y) != TERRAIN_CLIFF:"),
@@ -2016,6 +2024,11 @@ func _test_map_visual_language_spec() -> void:
 		var ch4_inner_gate_contact: Dictionary = ch4._plain_wall_contact_mask(16, 12)
 		_assert(ch4_inner_gate_contact.get("north", false) and ch4_inner_gate_contact.get("south", false),
 			"Ch4 语义回归：内城墙主门侧前平地同时保留门线前后接触")
+	_assert(ch4._gate_runs_vertical(18, 11), "Ch4 语义回归：红堡外墙主门保持纵向门洞识别")
+	_assert(ch4._gate_runs_vertical(18, 13), "Ch4 语义回归：内城墙主门保持纵向门洞识别")
+	_assert(ch4._gate_runs_vertical(18, 18), "Ch4 语义回归：南城墙主门保持纵向门洞识别")
+	_assert(ch4._terrain_at_or_cliff(16, 11) == 2 and ch4._terrain_at_or_cliff(21, 11) == 2,
+		"Ch4 语义回归：红堡外墙主门两侧仍保留门框边墙")
 	_assert_eq(ch4._terrain_at_or_cliff(18, 7), 0, "Ch4 语义回归：中轴主桥北桥头与陆地直接接驳")
 	_assert_eq(ch4._terrain_at_or_cliff(18, 9), 0, "Ch4 语义回归：中轴主桥南桥头与陆地直接接驳")
 	_assert(ch4._terrain_at_or_cliff(12, 11) == 2 and ch4._terrain_at_or_cliff(13, 11) == 2 and ch4._terrain_at_or_cliff(14, 11) == 2,
