@@ -1297,6 +1297,14 @@ func _test_visual_style_unification() -> void:
 		"BattleMap 河流会在南北桥两侧补桥基水影")
 	_assert(src.contains("if bridge_neighbors > 0 and not horizontal_flow:"),
 		"BattleMap 河流会在东西桥两侧补桥基水影")
+	_assert(src.contains("func _river_bank_mask"),
+		"BattleMap 提供河岸暴露检测，支撑非桥接岸线强化")
+	_assert(src.contains("var banks := _river_bank_mask(x, y)"),
+		"BattleMap 会按河岸暴露信息绘制非桥接岸线")
+	_assert(src.contains("if banks.get(\"north\", false) and bridge_neighbors == 0:"),
+		"BattleMap 会为非桥接北岸补岸线高光")
+	_assert(src.contains("if banks.get(\"south\", false) and bridge_neighbors == 0:"),
+		"BattleMap 会为非桥接南岸补岸线压暗")
 	_assert(src.contains("func _gate_runs_vertical"),
 		"BattleMap 提供门洞朝向识别，避免墙体缺口读成普通地面")
 	_assert(src.contains("func _gate_runs_horizontal"),
@@ -1710,6 +1718,14 @@ func _test_map_visual_language_spec() -> void:
 	for south_bridgehead: Vector2i in [Vector2i(7, 10), Vector2i(14, 10), Vector2i(21, 10)]:
 		_assert_eq(ch2._terrain_at_or_cliff(south_bridgehead.x, south_bridgehead.y + 1), 0,
 			"Ch2 语义回归：桥南桥头 %s 与陆地主通路直接接驳" % str(south_bridgehead))
+	_assert(ch2.has_method("_river_bank_mask"), "Ch2 语义回归：河岸暴露检测辅助可用")
+	if ch2.has_method("_river_bank_mask"):
+		var ch2_north_bank: Dictionary = ch2._river_bank_mask(11, 8)
+		_assert(ch2_north_bank.get("north", false), "Ch2 语义回归：中桥左侧北岸河段保留北岸强化")
+		_assert(not ch2_north_bank.get("south", false), "Ch2 语义回归：中桥左侧北岸河段不会误判成南岸")
+		var ch2_south_bank: Dictionary = ch2._river_bank_mask(11, 9)
+		_assert(ch2_south_bank.get("south", false), "Ch2 语义回归：中桥左侧南岸河段保留南岸强化")
+		_assert(not ch2_south_bank.get("north", false), "Ch2 语义回归：中桥左侧南岸河段不会误判成北岸")
 	_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return "争夺三桥" in msg and "雷加" in msg),
 		"Ch2 语义回归：开场状态提示明确三桥与雷加目标")
 	_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("目标：") and "争夺三桥" in msg),
@@ -1851,6 +1867,14 @@ func _test_map_visual_language_spec() -> void:
 	for bridge_pos: Vector2i in [Vector2i(18, 8), Vector2i(18, 19)]:
 		_assert(_bridge_span_has_river_flanks(ch4, bridge_pos.y, 17, 20),
 			"Ch4 语义回归：主桥 %s 两侧与河流衔接" % str(bridge_pos))
+	_assert(ch4.has_method("_river_bank_mask"), "Ch4 语义回归：河岸暴露检测辅助可用")
+	if ch4.has_method("_river_bank_mask"):
+		var ch4_inner_moat_bank: Dictionary = ch4._river_bank_mask(13, 8)
+		_assert(ch4_inner_moat_bank.get("north", false) and ch4_inner_moat_bank.get("south", false),
+			"Ch4 语义回归：内护城河非桥接河段同时保留南北两侧岸线")
+		var ch4_blackwater_bank: Dictionary = ch4._river_bank_mask(13, 19)
+		_assert(ch4_blackwater_bank.get("north", false) and ch4_blackwater_bank.get("south", false),
+			"Ch4 语义回归：黑水河非桥接河段同时保留南北两侧岸线")
 	_assert(_path_exists_on_passable_grid(ch4, Vector2i(18, 22), ch4.victory_pos),
 		"Ch4 语义回归：中轴部署区到铁王座存在连续可达路径")
 	var ch4_axis: Array[Vector2i] = ch4._find_objective_guidance_path()

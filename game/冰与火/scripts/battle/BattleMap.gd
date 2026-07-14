@@ -668,6 +668,14 @@ func _terrain_corner_mask(x: int, y: int, terrain: int) -> Dictionary:
 		"se": bool(edges.get("south", false)) and bool(edges.get("east", false)),
 	}
 
+func _river_bank_mask(x: int, y: int) -> Dictionary:
+	return {
+		"north": _terrain_at_or_cliff(x, y - 1) != TERRAIN_RIVER and _terrain_at_or_cliff(x, y - 1) != TERRAIN_BRIDGE,
+		"south": _terrain_at_or_cliff(x, y + 1) != TERRAIN_RIVER and _terrain_at_or_cliff(x, y + 1) != TERRAIN_BRIDGE,
+		"west": _terrain_at_or_cliff(x - 1, y) != TERRAIN_RIVER and _terrain_at_or_cliff(x - 1, y) != TERRAIN_BRIDGE,
+		"east": _terrain_at_or_cliff(x + 1, y) != TERRAIN_RIVER and _terrain_at_or_cliff(x + 1, y) != TERRAIN_BRIDGE,
+	}
+
 func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 	var wall_neighbors := _adjacent_terrain_count(x, y, TERRAIN_WALL)
 	var river_neighbors := _adjacent_terrain_count(x, y, TERRAIN_RIVER)
@@ -839,6 +847,7 @@ func _draw_cliff_detail(rect: Rect2, x: int, y: int) -> void:
 func _draw_river_detail(rect: Rect2, x: int, y: int) -> void:
 	var horizontal_flow := _adjacent_terrain_count(x, y, TERRAIN_RIVER) >= 1 and _bridge_runs_vertical(x, y)
 	var bridge_neighbors := _adjacent_terrain_count(x, y, TERRAIN_BRIDGE)
+	var banks := _river_bank_mask(x, y)
 	if horizontal_flow:
 		for i: int in 3:
 			var yy := rect.position.y + 18 + i * 14 + float((x + i * 2) % 6)
@@ -849,16 +858,36 @@ func _draw_river_detail(rect: Rect2, x: int, y: int) -> void:
 			var xx := rect.position.x + 18 + i * 14 + float((y + i * 2) % 6)
 			draw_line(Vector2(xx, rect.position.y + 8), Vector2(xx, rect.position.y + rect.size.y - 8),
 				Color(0.34, 0.52, 0.86, 0.26), 2.0, true)
-	if _terrain_at_or_cliff(x, y - 1) != TERRAIN_RIVER and _terrain_at_or_cliff(x, y - 1) != TERRAIN_BRIDGE:
+	if banks.get("north", false) and bridge_neighbors == 0:
+		draw_rect(Rect2(rect.position.x + 4, rect.position.y + 4, rect.size.x - 8, 8),
+			Color(0.22, 0.18, 0.10, 0.16))
+		draw_line(Vector2(rect.position.x + 4, rect.position.y + 6), Vector2(rect.position.x + rect.size.x - 4, rect.position.y + 6),
+			Color(0.46, 0.36, 0.20, 0.28), 2.0, true)
+	elif banks.get("north", false):
 		draw_line(Vector2(rect.position.x + 4, rect.position.y + 6), Vector2(rect.position.x + rect.size.x - 4, rect.position.y + 6),
 			Color(0.46, 0.36, 0.20, 0.24), 2.0, true)
-	if _terrain_at_or_cliff(x, y + 1) != TERRAIN_RIVER and _terrain_at_or_cliff(x, y + 1) != TERRAIN_BRIDGE:
+	if banks.get("south", false) and bridge_neighbors == 0:
+		draw_rect(Rect2(rect.position.x + 4, rect.position.y + rect.size.y - 12, rect.size.x - 8, 8),
+			Color(0.10, 0.08, 0.06, 0.20))
+		draw_line(Vector2(rect.position.x + 4, rect.position.y + rect.size.y - 6), Vector2(rect.position.x + rect.size.x - 4, rect.position.y + rect.size.y - 6),
+			Color(0.18, 0.14, 0.08, 0.28), 2.0, true)
+	elif banks.get("south", false):
 		draw_line(Vector2(rect.position.x + 4, rect.position.y + rect.size.y - 6), Vector2(rect.position.x + rect.size.x - 4, rect.position.y + rect.size.y - 6),
 			Color(0.18, 0.14, 0.08, 0.24), 2.0, true)
-	if _terrain_at_or_cliff(x - 1, y) != TERRAIN_RIVER and _terrain_at_or_cliff(x - 1, y) != TERRAIN_BRIDGE:
+	if banks.get("west", false) and bridge_neighbors == 0:
+		draw_rect(Rect2(rect.position.x + 4, rect.position.y + 4, 8, rect.size.y - 8),
+			Color(0.18, 0.14, 0.08, 0.14))
+		draw_line(Vector2(rect.position.x + 6, rect.position.y + 4), Vector2(rect.position.x + 6, rect.position.y + rect.size.y - 4),
+			Color(0.38, 0.30, 0.16, 0.22), 2.0, true)
+	elif banks.get("west", false):
 		draw_line(Vector2(rect.position.x + 6, rect.position.y + 4), Vector2(rect.position.x + 6, rect.position.y + rect.size.y - 4),
 			Color(0.38, 0.30, 0.16, 0.18), 2.0, true)
-	if _terrain_at_or_cliff(x + 1, y) != TERRAIN_RIVER and _terrain_at_or_cliff(x + 1, y) != TERRAIN_BRIDGE:
+	if banks.get("east", false) and bridge_neighbors == 0:
+		draw_rect(Rect2(rect.position.x + rect.size.x - 12, rect.position.y + 4, 8, rect.size.y - 8),
+			Color(0.10, 0.08, 0.06, 0.14))
+		draw_line(Vector2(rect.position.x + rect.size.x - 6, rect.position.y + 4), Vector2(rect.position.x + rect.size.x - 6, rect.position.y + rect.size.y - 4),
+			Color(0.16, 0.12, 0.08, 0.22), 2.0, true)
+	elif banks.get("east", false):
 		draw_line(Vector2(rect.position.x + rect.size.x - 6, rect.position.y + 4), Vector2(rect.position.x + rect.size.x - 6, rect.position.y + rect.size.y - 4),
 			Color(0.16, 0.12, 0.08, 0.18), 2.0, true)
 	if bridge_neighbors > 0 and horizontal_flow:
