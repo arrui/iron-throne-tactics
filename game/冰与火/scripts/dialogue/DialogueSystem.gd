@@ -104,6 +104,9 @@ func _show_line(idx: int) -> void:
 func _start_type_text(text: String, token: int) -> void:
 	if token != _typing_token or not _active:
 		return
+	await get_tree().process_frame
+	if token != _typing_token or not _active:
+		return
 	_type_text(text)
 
 func _type_text(text: String) -> void:

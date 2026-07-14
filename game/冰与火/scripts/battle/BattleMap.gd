@@ -814,10 +814,19 @@ func _draw_wall_detail(rect: Rect2, x: int, y: int) -> void:
 	var south_open := _terrain_at_or_cliff(x, y + 1) != TERRAIN_WALL
 	var west_open := _terrain_at_or_cliff(x - 1, y) != TERRAIN_WALL
 	var east_open := _terrain_at_or_cliff(x + 1, y) != TERRAIN_WALL
+	var wall_run_horizontal := not west_open and not east_open
+	var wall_run_vertical := not north_open and not south_open
+	var crenel_offset := float((x + y) % 2) * 4.0
 	var top_band := Rect2(rect.position.x + 4, rect.position.y + 6, rect.size.x - 8, 12)
 	var body := Rect2(rect.position.x + 4, rect.position.y + 18, rect.size.x - 8, rect.size.y - 24)
 	draw_rect(body, Color(0.38, 0.31, 0.19, 0.35))
 	draw_rect(top_band, Color(0.52, 0.44, 0.28, 0.45))
+	if wall_run_horizontal:
+		draw_rect(Rect2(rect.position.x + 6, rect.position.y + 6 + crenel_offset, rect.size.x - 12, 4),
+			Color(0.72, 0.64, 0.46, 0.18))
+	if wall_run_vertical:
+		draw_rect(Rect2(rect.position.x + 6 + crenel_offset, rect.position.y + 22, 4, rect.size.y - 30),
+			Color(0.22, 0.18, 0.12, 0.12))
 	if north_open:
 		draw_line(Vector2(rect.position.x + 6, rect.position.y + 18), Vector2(rect.position.x + rect.size.x - 6, rect.position.y + 18),
 			Color(0.82, 0.76, 0.60, 0.22), 2.0, true)
@@ -836,7 +845,8 @@ func _draw_wall_detail(rect: Rect2, x: int, y: int) -> void:
 	for row_i: int in 2:
 		for col_i: int in 3:
 			var brick := Rect2(rect.position.x + 10 + col_i * 18 + float((row_i % 2) * 6), rect.position.y + 26 + row_i * 16, 14, 8)
-			draw_rect(brick, Color(0.62, 0.54, 0.38, 0.14))
+			var brick_tint := 0.12 + float((x + row_i + col_i) % 3) * 0.03
+			draw_rect(brick, Color(0.62, 0.54, 0.38, brick_tint))
 
 func _draw_cliff_detail(rect: Rect2, x: int, y: int) -> void:
 	var shade := Color(0.18, 0.18, 0.18, 0.35)

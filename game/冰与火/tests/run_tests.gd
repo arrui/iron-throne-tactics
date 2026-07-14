@@ -1305,6 +1305,14 @@ func _test_visual_style_unification() -> void:
 		"BattleMap 会为非桥接北岸补岸线高光")
 	_assert(src.contains("if banks.get(\"south\", false) and bridge_neighbors == 0:"),
 		"BattleMap 会为非桥接南岸补岸线压暗")
+	_assert(src.contains("var wall_run_horizontal := not west_open and not east_open"),
+		"BattleMap 会识别横向连续墙段，支撑连续防线打散")
+	_assert(src.contains("var wall_run_vertical := not north_open and not south_open"),
+		"BattleMap 会识别纵向连续墙段，支撑连续建筑打散")
+	_assert(src.contains("var crenel_offset := float((x + y) % 2) * 4.0"),
+		"BattleMap 会为连续墙顶缘引入交替段差，避免整排重复")
+	_assert(src.contains("var brick_tint := 0.12 + float((x + row_i + col_i) % 3) * 0.03"),
+		"BattleMap 会为连续墙砖缝引入轻微分段明度变化")
 	_assert(src.contains("func _gate_runs_vertical"),
 		"BattleMap 提供门洞朝向识别，避免墙体缺口读成普通地面")
 	_assert(src.contains("func _gate_runs_horizontal"),
@@ -1889,6 +1897,12 @@ func _test_map_visual_language_spec() -> void:
 	_assert_eq(ch4._terrain_at_or_cliff(18, 18), 0, "Ch4 语义回归：南城墙主门保持通路")
 	_assert_eq(ch4._terrain_at_or_cliff(18, 7), 0, "Ch4 语义回归：中轴主桥北桥头与陆地直接接驳")
 	_assert_eq(ch4._terrain_at_or_cliff(18, 9), 0, "Ch4 语义回归：中轴主桥南桥头与陆地直接接驳")
+	_assert(ch4._terrain_at_or_cliff(12, 11) == 2 and ch4._terrain_at_or_cliff(13, 11) == 2 and ch4._terrain_at_or_cliff(14, 11) == 2,
+		"Ch4 语义回归：红堡外墙主门左侧仍保留连续墙线")
+	_assert(ch4._terrain_at_or_cliff(21, 13) == 2 and ch4._terrain_at_or_cliff(22, 13) == 2 and ch4._terrain_at_or_cliff(23, 13) == 2,
+		"Ch4 语义回归：君临内城墙主门右侧仍保留连续墙线")
+	_assert(ch4._terrain_at_or_cliff(1, 18) == 2 and ch4._terrain_at_or_cliff(2, 18) == 2,
+		"Ch4 语义回归：南城墙边段仍保留连续防线")
 	_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return "中轴" in msg and "王军指挥官" in msg),
 		"Ch4 语义回归：开场状态提示明确中轴推进与指挥官目标")
 	_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("目标：") and "王军指挥官" in msg),
