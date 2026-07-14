@@ -4,6 +4,8 @@ extends CanvasLayer
 
 signal dialogue_finished
 
+const BattleChromeTheme := preload("res://scripts/ui/BattleChromeTheme.gd")
+
 const CHAR_DELAY := 0.05
 const PORTRAIT_DIR := "res://assets/units/"
 const SPEAKER_PORTRAIT_MAP := {
@@ -24,7 +26,9 @@ const SPEAKER_PORTRAIT_MAP := {
 @onready var _speaker_label: Label = $SpeakerLabel
 @onready var _text_label:    Label = $TextLabel
 @onready var _prompt_icon:   Label = $PromptIcon
+@onready var _background:    ColorRect = $Background
 @onready var _portrait_panel: Control = $PortraitPanel
+@onready var _portrait_frame: ColorRect = $PortraitPanel/PortraitFrame
 @onready var _portrait_rect: TextureRect = $PortraitPanel/Portrait
 
 var _lines:       Array  = []
@@ -33,6 +37,7 @@ var _full_text:   String = ""
 var _is_typing:   bool   = false
 var _tween:       Tween  = null
 var _active:      bool   = false
+var _typing_token: int   = 0
 
 func _ready() -> void:
 	# 为对话系统标签应用中文字体
@@ -48,6 +53,7 @@ func _ready() -> void:
 		for child in get_children():
 			if child is Label:
 				(child as Label).add_theme_font_override("font", font)
+	_apply_dark_ui_theme()
 
 func play(dialogue_path: String) -> void:
 	var data := _load_json(dialogue_path)
@@ -90,7 +96,15 @@ func _show_line(idx: int) -> void:
 	_text_label.text     = ""
 	_prompt_icon.visible = false
 	_update_portrait(_speaker_label.text)
-	_type_text(_full_text)
+	_typing_token += 1
+	var token := _typing_token
+	_is_typing = true
+	call_deferred("_start_type_text", _full_text, token)
+
+func _start_type_text(text: String, token: int) -> void:
+	if token != _typing_token or not _active:
+		return
+	_type_text(text)
 
 func _type_text(text: String) -> void:
 	_is_typing = true
@@ -113,6 +127,7 @@ func _on_typing_finished() -> void:
 	blink.tween_property(_prompt_icon, "modulate:a", 1.0, 0.5)
 
 func _skip_typing() -> void:
+	_typing_token += 1
 	if _tween != null and _tween.is_valid():
 		_tween.kill()
 	_text_label.text     = _full_text
@@ -133,6 +148,7 @@ func _advance() -> void:
 
 func _finish() -> void:
 	_active = false
+	_typing_token += 1
 	if _tween != null and _tween.is_valid():
 		_tween.kill()
 	visible = false
@@ -179,3 +195,25 @@ func _input(event: InputEvent) -> void:
 	if triggered:
 		get_viewport().set_input_as_handled()
 		_advance()
+
+func _apply_dark_ui_theme() -> void:
+	if _background != null:
+		_background.color = BattleChromeTheme.BACKGROUND_COLOR
+	if _portrait_panel is Panel:
+		(_portrait_panel as Panel).add_theme_stylebox_override("panel",
+			BattleChromeTheme.make_panel_style(
+				BattleChromeTheme.PANEL_HIGHLIGHT_BG,
+				BattleChromeTheme.PANEL_HIGHLIGHT_BORDER,
+				8,
+				2,
+				8
+			)
+		)
+	if _portrait_frame != null:
+		_portrait_frame.color = BattleChromeTheme.PANEL_STEEL_BG
+	if _speaker_label != null:
+		_speaker_label.add_theme_color_override("font_color", BattleChromeTheme.TEXT_OBJECTIVE)
+	if _text_label != null:
+		_text_label.add_theme_color_override("font_color", BattleChromeTheme.TEXT_PRIMARY)
+	if _prompt_icon != null:
+		_prompt_icon.add_theme_color_override("font_color", BattleChromeTheme.TEXT_ACCENT)

@@ -3,6 +3,8 @@ extends CanvasLayer
 
 signal popup_closed
 
+const BattleChromeTheme := preload("res://scripts/ui/BattleChromeTheme.gd")
+
 const AUTO_CLOSE_SEC := 4.0   # 无操作4秒自动关闭
 
 @onready var _content_label: Label  = $Background/VBox/ContentLabel
@@ -20,6 +22,7 @@ func _ready() -> void:
 		font = sf
 	for child in get_children():
 		_apply_font_recursive(child, font)
+	_apply_dark_ui_theme()
 
 func _apply_font_recursive(node: Node, font: Font) -> void:
 	if node is Label:  (node as Label).add_theme_font_override("font", font)
@@ -51,3 +54,25 @@ func _on_close_pressed() -> void:
 	if not visible: return   # 防止重复触发
 	visible = false
 	popup_closed.emit()
+
+func _apply_dark_ui_theme() -> void:
+	var background := get_node_or_null("Background") as PanelContainer
+	if background != null:
+		background.add_theme_stylebox_override("panel",
+			BattleChromeTheme.make_panel_style(
+				BattleChromeTheme.PANEL_HIGHLIGHT_BG,
+				BattleChromeTheme.PANEL_HIGHLIGHT_BORDER,
+				8,
+				2,
+				12
+			)
+		)
+	var title := get_node_or_null("Background/VBox/TitleLabel") as Label
+	if title != null:
+		title.add_theme_color_override("font_color", BattleChromeTheme.TEXT_OBJECTIVE)
+	if _content_label != null:
+		_content_label.add_theme_color_override("font_color", BattleChromeTheme.TEXT_PRIMARY)
+	if _rank_label != null:
+		_rank_label.add_theme_color_override("font_color", BattleChromeTheme.TEXT_GOOD)
+	if _close_btn != null:
+		BattleChromeTheme.apply_button_theme(_close_btn)

@@ -29,6 +29,7 @@ const TestDeployScreenClass  := preload("res://tests/helpers/TestDeployScreen.gd
 var _pass_count: int = 0
 var _fail_count: int = 0
 var _current_suite: String = ""
+var _completed_suite_count: int = 0
 
 
 # ── 入口 ─────────────────────────────────────────────────
@@ -39,44 +40,55 @@ func _run_all_tests() -> void:
 	print("\n╔══════════════════════════════════════╗")
 	print("║  铁王座战记 — 自动化测试套件           ║")
 	print("╚══════════════════════════════════════╝\n")
-
-	await _run_suite("UnitData 数据加载", _test_unit_data)
-	await _run_suite("BattleCalculator 战斗公式", _test_battle_calculator)
-	await _run_suite("BattleCalculator 边界值", _test_calculator_edge_cases)
-	await _run_suite("地形系统加成", _test_terrain_bonus)
-	await _run_suite("地形移动消耗", _test_terrain_move_cost)
-	await _run_suite("地图完整性（按章节配置）", _test_map_integrity)
-	await _run_suite("Ch4 君临城地图重设计回归", _test_ch4_map_redesign)
-	await _run_suite("EnemyAI 距离计算", _test_enemy_ai_distance)
-	await _run_suite("对话 JSON 文件加载", _test_dialogue_json)
-	await _run_suite("Ch1 叙事基线一致性", _test_ch1_narrative_baseline)
-	await _run_suite("过场动画 JSON 加载", _test_cutscene_json)
-	await _run_suite("战斗预测全流程", _test_battle_predict_full)
-	await _run_suite("Unit 状态机（含 undo_move）", _test_unit_state_machine)
-	await _run_suite("路径查找 Dijkstra 逻辑", _test_pathfinding_logic)
-	await _run_suite("武器耐久系统", _test_weapon_durability)
-	await _run_suite("道具系统", _test_item_system)
-	await _run_suite("武器三角加成", _test_weapon_triangle)
-	await _run_suite("Boss 无敌底板（min_hp）", _test_boss_min_hp)
-	await _run_suite("SaveSystem 存档读档", _test_save_system)
-	await _run_suite("守卫型Boss数据字段", _test_guard_boss_fields)
-	await _run_suite("战斗动画freed节点防护", _test_animation_freed_guard)
-	await _run_suite("回合结束防重入", _test_turn_ending_guard)
-	await _run_suite("地形图块坐标合法性", _test_tile_atlas_coords)
-	await _run_suite("地图视觉风格统一回归", _test_visual_style_unification)
-	await _run_suite("地图语义规范回归", _test_map_visual_language_spec)
-	await _run_suite("人物立绘资源完整性", _test_portrait_assets)
-	await _run_suite("对话立绘映射完整性", _test_dialogue_portrait_mapping)
-	await _run_suite("字体初始化方法存在", _test_font_setup)
-	await _run_suite("关键场景与脚本冒烟加载", _test_scene_and_script_smoke)
-	await _run_suite("章节标题卡信息回归", _test_chapter_transition_metadata)
-	await _run_suite("章节事件流程回归", _test_chapter_event_flow)
-	await _run_suite("Ch1 / 存档 / 部署行为回归", _test_ch1_save_and_deploy_flow)
+	var suites := [
+		["UnitData 数据加载", _test_unit_data],
+		["BattleCalculator 战斗公式", _test_battle_calculator],
+		["BattleCalculator 边界值", _test_calculator_edge_cases],
+		["地形系统加成", _test_terrain_bonus],
+		["地形移动消耗", _test_terrain_move_cost],
+		["地图完整性（按章节配置）", _test_map_integrity],
+		["Ch4 君临城地图重设计回归", _test_ch4_map_redesign],
+		["EnemyAI 距离计算", _test_enemy_ai_distance],
+		["对话 JSON 文件加载", _test_dialogue_json],
+		["Ch1 叙事基线一致性", _test_ch1_narrative_baseline],
+		["过场动画 JSON 加载", _test_cutscene_json],
+		["战斗预测全流程", _test_battle_predict_full],
+		["Unit 状态机（含 undo_move）", _test_unit_state_machine],
+		["路径查找 Dijkstra 逻辑", _test_pathfinding_logic],
+		["武器耐久系统", _test_weapon_durability],
+		["道具系统", _test_item_system],
+		["武器三角加成", _test_weapon_triangle],
+		["Boss 无敌底板（min_hp）", _test_boss_min_hp],
+		["SaveSystem 存档读档", _test_save_system],
+		["守卫型Boss数据字段", _test_guard_boss_fields],
+		["战斗动画freed节点防护", _test_animation_freed_guard],
+		["回合结束防重入", _test_turn_ending_guard],
+		["地形图块坐标合法性", _test_tile_atlas_coords],
+		["地图视觉风格统一回归", _test_visual_style_unification],
+		["地图语义规范回归", _test_map_visual_language_spec],
+		["人物立绘资源完整性", _test_portrait_assets],
+		["对话立绘映射完整性", _test_dialogue_portrait_mapping],
+		["字体初始化方法存在", _test_font_setup],
+		["关键场景与脚本冒烟加载", _test_scene_and_script_smoke],
+		["章节标题卡信息回归", _test_chapter_transition_metadata],
+		["章节 Opening 配置回归", _test_chapter_opening_configuration],
+		["章节事件流程回归", _test_chapter_event_flow],
+		["Ch1 / 存档 / 部署行为回归", _test_ch1_save_and_deploy_flow],
+		["关键浮层真实调用链", _test_overlay_runtime_flow],
+		["测试脚本可靠性", _test_test_script_reliability],
+	]
+	for suite: Array in suites:
+		await _run_suite(suite[0] as String, suite[1] as Callable)
+	if _completed_suite_count != suites.size():
+		_fail_count += 1
+		print("  ✗ FAIL: 测试套件未全部完成，期望=%d 实际=%d" % [
+			suites.size(), _completed_suite_count])
 
 	print("\n╔══════════════════════════════════════╗")
 	var status: String = "全部通过 ✓" if _fail_count == 0 else ("失败 %d 项 ✗" % _fail_count)
 	print("║  %d 通过  %d 失败  — %s" % [_pass_count, _fail_count, status])
 	print("╚══════════════════════════════════════╝\n")
+	print("TEST_RUN_COMPLETE suites=%d" % _completed_suite_count)
 	quit(_fail_count)
 
 # ── 测试框架 ─────────────────────────────────────────────
@@ -84,6 +96,7 @@ func _run_suite(name: String, fn: Callable) -> void:
 	_current_suite = name
 	print("▶ %s" % name)
 	await fn.call()
+	_completed_suite_count += 1
 	print("")
 
 func _assert(condition: bool, msg: String) -> void:
@@ -1254,6 +1267,34 @@ func _test_visual_style_unification() -> void:
 	_assert(src.contains("func _draw_wall_detail"), "BattleMap 存在城墙/建筑细节绘制")
 	_assert(src.contains("func _draw_river_detail"), "BattleMap 存在河流细节绘制")
 	_assert(src.contains("func _draw_bridge_detail"), "BattleMap 存在桥梁细节绘制")
+	_assert(src.contains("bridge_neighbors > 0 and wall_neighbors == 0"), "BattleMap 会为桥邻接平地提供接驳石带逻辑")
+	_assert(src.contains("if vertical_bridge:"), "BattleMap 桥梁细节按朝向分离绘制")
+	_assert(src.contains("var center_x := rect.position.x + rect.size.x * 0.5") or src.contains("var center_y := rect.position.y + rect.size.y * 0.5"),
+		"BattleMap 桥梁细节包含桥面中轴高亮")
+	_assert(src.contains("bridge_neighbors > 0 and wall_neighbors == 0 and river_neighbors == 0"),
+		"BattleMap 仅在桥头陆地强化主通路接驳")
+	_assert(src.contains("if bridge_neighbors > 0 and horizontal_flow:"),
+		"BattleMap 河流会在南北桥两侧补桥基水影")
+	_assert(src.contains("if bridge_neighbors > 0 and not horizontal_flow:"),
+		"BattleMap 河流会在东西桥两侧补桥基水影")
+	_assert(src.contains("func _gate_runs_vertical"),
+		"BattleMap 提供门洞朝向识别，避免墙体缺口读成普通地面")
+	_assert(src.contains("func _gate_runs_horizontal"),
+		"BattleMap 提供横向门洞识别，支持塔门与侧向缺口")
+	_assert(src.contains("var gate_vertical := bridge_neighbors == 0 and river_neighbors == 0 and _gate_runs_vertical(x, y)"),
+		"BattleMap 会为墙体缺口中的主通路绘制纵向门洞阈值")
+	_assert(src.contains("var gate_horizontal := bridge_neighbors == 0 and river_neighbors == 0 and _gate_runs_horizontal(x, y)"),
+		"BattleMap 会为墙体缺口中的主通路绘制横向门洞阈值")
+	_assert(src.contains("func _find_objective_guidance_path"),
+		"BattleMap 提供主推进轴线寻路辅助，支撑弱引导")
+	_assert(src.contains("func _draw_main_axis_guidance"),
+		"BattleMap 提供主推进轴线弱引导绘制")
+	_assert(src.contains("func _draw_objective_guidance"),
+		"BattleMap 提供目标格弱引导绘制")
+	_assert(src.contains("_draw_main_axis_guidance(rect, pos, guidance_path)"),
+		"BattleMap 会为主推进轴线追加弱引导覆盖")
+	_assert(src.contains("_draw_objective_guidance(rect, pos)"),
+		"BattleMap 会为目标格追加弱引导覆盖")
 	_assert(src.contains("var _objective_label"), "BattleMap 存在长期目标标签引用")
 	_assert(src.contains("var _phase_label"), "BattleMap 存在阶段标签引用")
 	_assert(src.contains("var _guidance_label"), "BattleMap 存在长期推进标签引用")
@@ -1280,6 +1321,217 @@ func _test_visual_style_unification() -> void:
 	_assert(scene_text.contains("PhaseLabel"), "BattleMap 场景已加入阶段标签")
 	_assert(scene_text.contains("ObjectiveLabel"), "BattleMap 场景已加入长期目标标签")
 	_assert(scene_text.contains("GuidanceLabel"), "BattleMap 场景已加入长期推进标签")
+
+	var battle_scene := load("res://scenes/battle/BattleMap.tscn") as PackedScene
+	var themed_battle := battle_scene.instantiate()
+	themed_battle._apply_dark_ui_theme()
+	var action_menu := themed_battle.get_node("UI/ActionMenu") as PanelContainer
+	var attack_btn := action_menu.get_node("VBox/AttackBtn") as Button
+	var wait_btn := action_menu.get_node("VBox/WaitBtn") as Button
+	var cancel_move_btn := action_menu.get_node("VBox/CancelMoveBtn") as Button
+	var items_btn := action_menu.get_node("VBox/ItemsBtn") as Button
+	var action_panel_style := action_menu.get_theme_stylebox("panel") as StyleBoxFlat
+	var attack_style := attack_btn.get_theme_stylebox("normal") as StyleBoxFlat
+	var wait_style := wait_btn.get_theme_stylebox("normal") as StyleBoxFlat
+	var cancel_move_style := cancel_move_btn.get_theme_stylebox("normal") as StyleBoxFlat
+	var items_style := items_btn.get_theme_stylebox("normal") as StyleBoxFlat
+	_assert_eq(action_panel_style.bg_color, BattleChromeThemeClass.PANEL_HIGHLIGHT_BG,
+		"行动菜单使用高亮面板底色")
+	_assert_eq(action_panel_style.border_color, BattleChromeThemeClass.PANEL_HIGHLIGHT_BORDER,
+		"行动菜单使用高亮面板边框")
+	_assert(attack_style.bg_color != wait_style.bg_color, "攻击按钮使用区别于等待的进攻语义底色")
+	_assert(items_style.bg_color != wait_style.bg_color, "道具按钮使用区别于等待的辅助语义底色")
+	_assert(cancel_move_style.bg_color != wait_style.bg_color, "取消移动按钮使用区别于等待的弱化底色")
+	_assert_eq(attack_btn.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_STATUS,
+		"攻击按钮使用进攻语义文字色")
+	_assert_eq(items_btn.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_GOOD,
+		"道具按钮使用辅助语义文字色")
+	_assert_eq(cancel_move_btn.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_MUTED,
+		"取消移动按钮使用弱化文字色")
+	_assert_eq(attack_btn.get_theme_color("font_disabled_color"), BattleChromeThemeClass.TEXT_MUTED,
+		"攻击按钮禁用态保持清晰且弱化")
+
+	var predict_panel := themed_battle.get_node("UI/PredictPanel") as PanelContainer
+	var predict_title := predict_panel.get_node("VBox/Title") as Label
+	var predict_atk_line := predict_panel.get_node("VBox/AtkLine") as Label
+	var predict_def_line := predict_panel.get_node("VBox/DefLine") as Label
+	var predict_double_line := predict_panel.get_node("VBox/DoubleLine") as Label
+	var predict_confirm_btn := predict_panel.get_node("VBox/Buttons/ConfirmBtn") as Button
+	var predict_cancel_btn := predict_panel.get_node("VBox/Buttons/CancelBtn") as Button
+	var predict_panel_style := predict_panel.get_theme_stylebox("panel") as StyleBoxFlat
+	var predict_confirm_style := predict_confirm_btn.get_theme_stylebox("normal") as StyleBoxFlat
+	var predict_cancel_style := predict_cancel_btn.get_theme_stylebox("normal") as StyleBoxFlat
+	_assert_eq(predict_panel_style.bg_color, BattleChromeThemeClass.PANEL_STEEL_BG,
+		"战斗预测使用钢铁面板底色")
+	_assert_eq(predict_panel_style.border_color, BattleChromeThemeClass.PANEL_STEEL_BORDER,
+		"战斗预测使用钢铁面板边框")
+	_assert_eq(predict_title.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_ACCENT,
+		"战斗预测标题使用强调色")
+	_assert_eq(predict_atk_line.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_STATUS,
+		"战斗预测攻击方使用进攻色")
+	_assert_eq(predict_def_line.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_GUIDANCE,
+		"战斗预测防守方使用冷色")
+	_assert_eq(predict_double_line.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_ACCENT,
+		"战斗预测追击提示使用强调色")
+	_assert(predict_confirm_style.bg_color != predict_cancel_style.bg_color,
+		"确认攻击按钮区别于取消按钮")
+	_assert_eq(predict_confirm_btn.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_STATUS,
+		"确认攻击按钮使用进攻语义文字色")
+
+	var result_panel := themed_battle.get_node("UI/ResultPanel") as PanelContainer
+	var result_title := result_panel.get_node("VBox/ResultTitle") as Label
+	var result_msg := result_panel.get_node("VBox/ResultMsg") as Label
+	var restart_btn := result_panel.get_node("VBox/RestartBtn") as Button
+	var victory_panel_style := result_panel.get_theme_stylebox("panel") as StyleBoxFlat
+	_assert_eq(victory_panel_style.bg_color, BattleChromeThemeClass.PANEL_HIGHLIGHT_BG,
+		"战斗结果默认使用胜利高亮底色")
+	_assert_eq(victory_panel_style.border_color, BattleChromeThemeClass.PANEL_HIGHLIGHT_BORDER,
+		"战斗结果默认使用胜利高亮边框")
+	_assert_eq(result_title.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_ACCENT,
+		"胜利结果标题使用暗金强调色")
+	_assert_eq(result_msg.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_PRIMARY,
+		"战斗结果说明保持正文可读性")
+	_assert_eq(restart_btn.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_PRIMARY,
+		"重新开始按钮保持中性文字色")
+	_assert(themed_battle.has_method("_apply_result_state_theme"), "战斗结果提供胜败状态主题切换入口")
+	if themed_battle.has_method("_apply_result_state_theme"):
+		themed_battle._apply_result_state_theme(false)
+		var defeat_panel_style := result_panel.get_theme_stylebox("panel") as StyleBoxFlat
+		_assert(defeat_panel_style.bg_color != victory_panel_style.bg_color,
+			"败北结果切换为区别于胜利的危险底色")
+		_assert_eq(result_title.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_STATUS,
+			"败北结果标题切换为危险提示色")
+	themed_battle.free()
+
+	var runtime_battle := battle_scene.instantiate()
+	root.add_child(runtime_battle)
+	await process_frame
+	runtime_battle._end_battle(false)
+	await process_frame
+	var runtime_result_panel := runtime_battle.get_node("UI/ResultPanel") as PanelContainer
+	var runtime_result_title := runtime_result_panel.get_node("VBox/ResultTitle") as Label
+	var runtime_result_style := runtime_result_panel.get_theme_stylebox("panel") as StyleBoxFlat
+	_assert(runtime_result_panel.visible, "败北时战斗结果面板可见")
+	_assert_eq(runtime_result_title.text, "败北", "战斗结束入口会设置败北标题")
+	_assert_eq(runtime_result_title.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_STATUS,
+		"战斗结束入口会切换败北标题危险色")
+	_assert_eq(runtime_result_style.bg_color, BattleChromeThemeClass.PANEL_DANGER_BG,
+		"战斗结束入口会切换败北面板危险底色")
+	runtime_battle._apply_dark_ui_theme()
+	var refreshed_result_style := runtime_result_panel.get_theme_stylebox("panel") as StyleBoxFlat
+	_assert_eq(refreshed_result_style.bg_color, BattleChromeThemeClass.PANEL_DANGER_BG,
+		"战斗结束后重新应用主题仍保持败北危险底色")
+	runtime_battle.queue_free()
+	await process_frame
+
+	var transition_scene := load("res://scenes/ui/ChapterTransition.tscn") as PackedScene
+	var themed_transition := transition_scene.instantiate()
+	root.add_child(themed_transition)
+	await process_frame
+	var transition_bg := themed_transition.get_node("Background") as ColorRect
+	var transition_ch_num := themed_transition.get_node("ChapterNumber") as Label
+	var transition_title := themed_transition.get_node("ChapterTitle") as Label
+	var transition_time := themed_transition.get_node("TimeLabel") as Label
+	var transition_sub := themed_transition.get_node("SubLabel") as Label
+	var transition_objective := themed_transition.get_node("ObjectiveLabel") as Label
+	_assert_eq(transition_bg.color, BattleChromeThemeClass.BACKGROUND_COLOR,
+		"章节标题卡使用统一背景色")
+	_assert_eq(transition_ch_num.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_OBJECTIVE,
+		"章节标题卡章节编号使用目标色")
+	_assert_eq(transition_title.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_PRIMARY,
+		"章节标题卡标题使用正文主色")
+	_assert_eq(transition_time.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_MUTED,
+		"章节标题卡时间使用弱化色")
+	_assert_eq(transition_sub.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_GUIDANCE,
+		"章节标题卡副标题使用引导色")
+	_assert_eq(transition_objective.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_OBJECTIVE,
+		"章节标题卡目标摘要使用目标色")
+	themed_transition.queue_free()
+	await process_frame
+
+	var dialogue_scene := load("res://scenes/dialogue/DialogueBox.tscn") as PackedScene
+	var themed_dialogue := dialogue_scene.instantiate()
+	root.add_child(themed_dialogue)
+	await process_frame
+	var dialogue_bg := themed_dialogue.get_node("Background") as ColorRect
+	var portrait_panel := themed_dialogue.get_node("PortraitPanel") as Panel
+	var portrait_style := portrait_panel.get_theme_stylebox("panel") as StyleBoxFlat
+	var portrait_frame := themed_dialogue.get_node("PortraitPanel/PortraitFrame") as ColorRect
+	var speaker_label := themed_dialogue.get_node("SpeakerLabel") as Label
+	var text_label := themed_dialogue.get_node("TextLabel") as Label
+	var prompt_icon := themed_dialogue.get_node("PromptIcon") as Label
+	_assert_eq(dialogue_bg.color, BattleChromeThemeClass.BACKGROUND_COLOR,
+		"对话框使用统一背景色")
+	_assert_eq(portrait_style.bg_color, BattleChromeThemeClass.PANEL_HIGHLIGHT_BG,
+		"对话立绘面板使用高亮底色")
+	_assert_eq(portrait_style.border_color, BattleChromeThemeClass.PANEL_HIGHLIGHT_BORDER,
+		"对话立绘面板使用高亮边框")
+	_assert_eq(portrait_frame.color, BattleChromeThemeClass.PANEL_STEEL_BG,
+		"对话立绘内框使用钢铁底色")
+	_assert_eq(speaker_label.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_OBJECTIVE,
+		"对话角色名使用目标色")
+	_assert_eq(text_label.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_PRIMARY,
+		"对话正文使用主文字色")
+	_assert_eq(prompt_icon.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_ACCENT,
+		"对话继续提示使用强调色")
+	themed_dialogue.queue_free()
+	await process_frame
+
+	var support_scene := load("res://scenes/ui/SupportPopup.tscn") as PackedScene
+	var themed_support := support_scene.instantiate()
+	root.add_child(themed_support)
+	await process_frame
+	var support_bg := themed_support.get_node("Background") as PanelContainer
+	var support_style := support_bg.get_theme_stylebox("panel") as StyleBoxFlat
+	var support_title := themed_support.get_node("Background/VBox/TitleLabel") as Label
+	var support_content := themed_support.get_node("Background/VBox/ContentLabel") as Label
+	var support_rank := themed_support.get_node("Background/VBox/RankLabel") as Label
+	var support_close := themed_support.get_node("Background/VBox/CloseBtn") as Button
+	var support_close_style := support_close.get_theme_stylebox("normal") as StyleBoxFlat
+	_assert_eq(support_style.bg_color, BattleChromeThemeClass.PANEL_HIGHLIGHT_BG,
+		"支援弹窗使用高亮面板底色")
+	_assert_eq(support_style.border_color, BattleChromeThemeClass.PANEL_HIGHLIGHT_BORDER,
+		"支援弹窗使用高亮面板边框")
+	_assert_eq(support_title.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_OBJECTIVE,
+		"支援弹窗标题使用目标色")
+	_assert_eq(support_content.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_PRIMARY,
+		"支援弹窗正文使用主文字色")
+	_assert_eq(support_rank.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_GOOD,
+		"支援弹窗等级加成使用增益色")
+	_assert_eq(support_close.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_PRIMARY,
+		"支援弹窗关闭按钮保持中性文字色")
+	_assert_eq(support_close_style.bg_color, BattleChromeThemeClass.BUTTON_NORMAL_BG,
+		"支援弹窗关闭按钮使用中性按钮底色")
+	themed_support.queue_free()
+	await process_frame
+
+	var game_over_scene := load("res://scenes/ui/GameOver.tscn") as PackedScene
+	var themed_game_over := game_over_scene.instantiate()
+	root.add_child(themed_game_over)
+	await process_frame
+	var game_over_bg := themed_game_over.get_node("Background") as ColorRect
+	var game_over_title := themed_game_over.get_node("Background/VBox/TitleLabel") as Label
+	var game_over_message := themed_game_over.get_node("Background/VBox/MessageLabel") as Label
+	var game_over_restart := themed_game_over.get_node("Background/VBox/RestartBtn") as Button
+	var game_over_quit := themed_game_over.get_node("Background/VBox/QuitBtn") as Button
+	var game_over_restart_style := game_over_restart.get_theme_stylebox("normal") as StyleBoxFlat
+	var game_over_quit_style := game_over_quit.get_theme_stylebox("normal") as StyleBoxFlat
+	_assert_eq(game_over_bg.color, BattleChromeThemeClass.BACKGROUND_COLOR,
+		"GameOver 使用统一背景色")
+	_assert_eq(game_over_title.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_STATUS,
+		"GameOver 标题使用危险提示色")
+	_assert_eq(game_over_message.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_PRIMARY,
+		"GameOver 文案使用主文字色")
+	_assert_eq(game_over_restart.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_PRIMARY,
+		"GameOver 重新开始按钮保持中性文字色")
+	_assert_eq(game_over_quit.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_MUTED,
+		"GameOver 返回主菜单按钮使用弱化文字色")
+	_assert_eq(game_over_restart_style.bg_color, BattleChromeThemeClass.BUTTON_NORMAL_BG,
+		"GameOver 重新开始按钮使用中性按钮底色")
+	_assert(game_over_quit_style.bg_color != game_over_restart_style.bg_color,
+		"GameOver 返回主菜单按钮区别于重新开始按钮")
+	themed_game_over.queue_free()
+	await process_frame
 
 	for chapter: int in [1, 2, 3, 4]:
 		GameState.current_chapter = chapter
@@ -1353,6 +1605,10 @@ func _test_map_visual_language_spec() -> void:
 	if ch1._ned_unit != null:
 		_assert(_path_exists_on_passable_grid(ch1, ch1._ned_unit.grid_pos, ch1.victory_pos),
 			"Ch1 语义回归：奈德到北侧目标存在可达路径")
+		var ch1_axis: Array[Vector2i] = ch1._find_objective_guidance_path()
+		_assert(not ch1_axis.is_empty(), "Ch1 语义回归：主推进轴线弱引导存在")
+		_assert(ch1_axis.has(ch1.victory_pos), "Ch1 语义回归：主推进轴线弱引导抵达目标格")
+		_assert(ch1_axis.has(Vector2i(5, 1)), "Ch1 语义回归：主推进轴线弱引导穿过山道缺口前沿")
 		_assert_eq(ch1._terrain_at_or_cliff(ch1.victory_pos.x, ch1.victory_pos.y), 0,
 			"Ch1 语义回归：胜利格保持为可通行主地面")
 	_assert_eq(ch1._terrain_at_or_cliff(5, 1), 0, "Ch1 语义回归：北侧主缺口前一格保持为通路")
@@ -1411,9 +1667,20 @@ func _test_map_visual_language_spec() -> void:
 	_assert_eq(ch2._terrain_at_or_cliff(14, 17), 0, "Ch2 语义回归：玩家主将出生点位于南岸陆地")
 	_assert(_path_exists_on_passable_grid(ch2, Vector2i(14, 17), Vector2i(14, 3)),
 		"Ch2 语义回归：中轴主将到雷加主阵地存在连续推进路径")
+	var ch2_axis: Array[Vector2i] = ch2._find_objective_guidance_path()
+	_assert(not ch2_axis.is_empty(), "Ch2 语义回归：主推进轴线弱引导存在")
+	_assert(ch2_axis.has(ch2.victory_pos), "Ch2 语义回归：主推进轴线弱引导抵达目标格")
+	_assert(ch2_axis.has(Vector2i(14, 9)), "Ch2 语义回归：主推进轴线弱引导穿过中桥桥面")
+	_assert(ch2_axis.has(Vector2i(14, 7)), "Ch2 语义回归：主推进轴线弱引导接上北岸桥头")
 	_assert(ch2._terrain_at_or_cliff(12, 7) == 2 and ch2._terrain_at_or_cliff(15, 7) == 2,
 		"Ch2 语义回归：中桥北桥头两侧营垒仍在，形成主决战桥头")
 	_assert_eq(ch2._terrain_at_or_cliff(13, 7), 6, "Ch2 语义回归：中桥北桥头桥面保持完整")
+	for north_bridgehead: Vector2i in [Vector2i(7, 7), Vector2i(14, 7), Vector2i(21, 7)]:
+		_assert_eq(ch2._terrain_at_or_cliff(north_bridgehead.x, north_bridgehead.y - 1), 0,
+			"Ch2 语义回归：桥北桥头 %s 与陆地主通路直接接驳" % str(north_bridgehead))
+	for south_bridgehead: Vector2i in [Vector2i(7, 10), Vector2i(14, 10), Vector2i(21, 10)]:
+		_assert_eq(ch2._terrain_at_or_cliff(south_bridgehead.x, south_bridgehead.y + 1), 0,
+			"Ch2 语义回归：桥南桥头 %s 与陆地主通路直接接驳" % str(south_bridgehead))
 	_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return "争夺三桥" in msg and "雷加" in msg),
 		"Ch2 语义回归：开场状态提示明确三桥与雷加目标")
 	_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("目标：") and "争夺三桥" in msg),
@@ -1475,6 +1742,10 @@ func _test_map_visual_language_spec() -> void:
 	if ch3._ned_unit != null:
 		_assert(_path_exists_on_passable_grid(ch3, ch3._ned_unit.grid_pos, ch3.victory_pos),
 			"Ch3 语义回归：奈德到塔楼目标存在可达路径")
+		var ch3_axis: Array[Vector2i] = ch3._find_objective_guidance_path()
+		_assert(not ch3_axis.is_empty(), "Ch3 语义回归：主推进轴线弱引导存在")
+		_assert(ch3_axis.has(ch3.victory_pos), "Ch3 语义回归：主推进轴线弱引导抵达目标格")
+		_assert(ch3_axis.has(Vector2i(12, 8)), "Ch3 语义回归：主推进轴线弱引导穿过塔前中轴接敌格")
 	_assert_eq(ch3._terrain_at_or_cliff(12, 8), 0, "Ch3 语义回归：塔前中轴接敌格保持通路")
 	_assert(ch3._terrain_at_or_cliff(10, 8) == 0 or ch3._terrain_at_or_cliff(14, 8) == 0,
 		"Ch3 语义回归：塔前至少保留一侧绕行空间")
@@ -1544,9 +1815,18 @@ func _test_map_visual_language_spec() -> void:
 			"Ch4 语义回归：主桥 %s 两侧与河流衔接" % str(bridge_pos))
 	_assert(_path_exists_on_passable_grid(ch4, Vector2i(18, 22), ch4.victory_pos),
 		"Ch4 语义回归：中轴部署区到铁王座存在连续可达路径")
+	var ch4_axis: Array[Vector2i] = ch4._find_objective_guidance_path()
+	_assert(not ch4_axis.is_empty(), "Ch4 语义回归：主推进轴线弱引导存在")
+	_assert(ch4_axis.has(ch4.victory_pos), "Ch4 语义回归：主推进轴线弱引导抵达目标格")
+	_assert(ch4_axis.has(Vector2i(18, 19)), "Ch4 语义回归：主推进轴线弱引导穿过黑水桥")
+	_assert(ch4_axis.has(Vector2i(18, 18)), "Ch4 语义回归：主推进轴线弱引导穿过南城墙主门")
+	_assert(ch4_axis.has(Vector2i(18, 13)), "Ch4 语义回归：主推进轴线弱引导穿过内城墙主门")
+	_assert(ch4_axis.has(Vector2i(18, 11)), "Ch4 语义回归：主推进轴线弱引导穿过红堡外墙主门")
 	_assert_eq(ch4._terrain_at_or_cliff(18, 11), 0, "Ch4 语义回归：红堡外墙主门保持通路")
 	_assert_eq(ch4._terrain_at_or_cliff(18, 13), 0, "Ch4 语义回归：内城墙主门保持通路")
 	_assert_eq(ch4._terrain_at_or_cliff(18, 18), 0, "Ch4 语义回归：南城墙主门保持通路")
+	_assert_eq(ch4._terrain_at_or_cliff(18, 7), 0, "Ch4 语义回归：中轴主桥北桥头与陆地直接接驳")
+	_assert_eq(ch4._terrain_at_or_cliff(18, 9), 0, "Ch4 语义回归：中轴主桥南桥头与陆地直接接驳")
 	_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return "中轴" in msg and "王军指挥官" in msg),
 		"Ch4 语义回归：开场状态提示明确中轴推进与指挥官目标")
 	_assert(ch4.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("目标：") and "王军指挥官" in msg),
@@ -1807,6 +2087,47 @@ func _test_chapter_transition_metadata() -> void:
 	_assert("_chapter_objective" in chapter_opening_src, "ChapterOpening 基类包含章节目标字段")
 	_assert("_chapter_sub_label, _chapter_objective" in chapter_opening_src,
 		"ChapterOpening 会把副标题与目标传给标题卡")
+
+func _test_chapter_opening_configuration() -> void:
+	var ch2_script := load("res://scripts/chapter/Opening_Ch2.gd")
+	var ch3_script := load("res://scripts/chapter/Opening_Ch3.gd")
+	var ch4_script := load("res://scripts/chapter/Opening_Ch4.gd")
+	_assert(ch2_script != null, "Opening_Ch2 脚本可加载")
+	_assert(ch3_script != null, "Opening_Ch3 脚本可加载")
+	_assert(ch4_script != null, "Opening_Ch4 脚本可加载")
+	if ch2_script == null or ch3_script == null or ch4_script == null:
+		return
+
+	var ch2_opening = ch2_script.new()
+	var ch3_opening = ch3_script.new()
+	var ch4_opening = ch4_script.new()
+	ch2_opening._setup()
+	ch3_opening._setup()
+	ch4_opening._setup()
+
+	_assert_eq(ch2_opening._chapter_num, "序章·二", "Ch2 Opening 配置正确章节编号")
+	_assert_eq(ch2_opening._chapter_sub_label, "决战章节 / 三桥争夺", "Ch2 Opening 配置正确副标题")
+	_assert_eq(ch2_opening._chapter_objective, PrologueChapterBriefsClass.CH2_OBJECTIVE_SUMMARY,
+		"Ch2 Opening 配置统一章节目标摘要")
+	_assert_eq(ch2_opening._cutscene_files.size(), 1, "Ch2 Opening 仅配置一段开场过场")
+	_assert_eq(ch2_opening._cutscene_files[0], "res://data/cutscenes/ch2_opening.json",
+		"Ch2 Opening 使用正确过场文件")
+
+	_assert_eq(ch3_opening._chapter_num, "序章·三", "Ch3 Opening 配置正确章节编号")
+	_assert_eq(ch3_opening._chapter_sub_label, "追索真相 / 突破守门者", "Ch3 Opening 配置正确副标题")
+	_assert_eq(ch3_opening._chapter_objective, PrologueChapterBriefsClass.CH3_OBJECTIVE_SUMMARY,
+		"Ch3 Opening 配置统一章节目标摘要")
+	_assert_eq(ch3_opening._cutscene_files.size(), 1, "Ch3 Opening 仅配置一段开场过场")
+	_assert_eq(ch3_opening._cutscene_files[0], "res://data/cutscenes/ch3_opening.json",
+		"Ch3 Opening 使用正确过场文件")
+
+	_assert_eq(ch4_opening._chapter_num, "序章·四", "Ch4 Opening 配置正确章节编号")
+	_assert_eq(ch4_opening._chapter_sub_label, "攻城终章 / 红堡突破", "Ch4 Opening 配置正确副标题")
+	_assert_eq(ch4_opening._chapter_objective, PrologueChapterBriefsClass.CH4_OBJECTIVE_SUMMARY,
+		"Ch4 Opening 配置统一章节目标摘要")
+	_assert_eq(ch4_opening._cutscene_files.size(), 1, "Ch4 Opening 仅配置一段开场过场")
+	_assert_eq(ch4_opening._cutscene_files[0], "res://data/cutscenes/ch4_opening.json",
+		"Ch4 Opening 使用正确过场文件")
 
 	var opening_specs := [
 		{
@@ -2273,3 +2594,118 @@ func _test_ch1_save_and_deploy_flow() -> void:
 	if is_instance_valid(deploy):
 		deploy.queue_free()
 	await process_frame
+
+func _test_overlay_runtime_flow() -> void:
+	GameState.current_chapter = 1
+	var support_battle := TestBootstrapClass.new()
+	root.add_child(support_battle)
+	await process_frame
+	var ned := Unit.new()
+	ned.setup(_make_unit_data({"name": "奈德"}), 0, Vector2i(3, 3))
+	var robert := Unit.new()
+	robert.setup(_make_unit_data({"name": "劳勃"}), 0, Vector2i(4, 3))
+	support_battle.add_child(ned)
+	support_battle.add_child(robert)
+	support_battle.player_units.append(ned)
+	support_battle.player_units.append(robert)
+	for _idx in range(5):
+		support_battle._update_support_adjacency()
+	var support_popup := support_battle.get_node_or_null("UI/SupportPopup") as CanvasLayer
+	_assert(support_popup != null, "支援阈值达成后真实挂载 SupportPopup")
+	if support_popup != null:
+		_assert(support_popup.visible, "SupportPopup 触发后可见")
+		var support_content := support_popup.get_node_or_null("Background/VBox/ContentLabel") as Label
+		var support_rank := support_popup.get_node_or_null("Background/VBox/RankLabel") as Label
+		if support_content != null:
+			_assert("默契转化为战场加成" in support_content.text, "SupportPopup 显示支援说明文案")
+		if support_rank != null:
+			_assert("奈德 ↔ 劳勃" in support_rank.text, "SupportPopup 显示真实角色名")
+			_assert("[C级 +5%命中/5%回避]" in support_rank.text, "SupportPopup 显示真实加成数值")
+		support_popup.call("_on_close_pressed")
+		await process_frame
+		await process_frame
+		_assert(support_battle.get_node_or_null("UI/SupportPopup") == null,
+			"SupportPopup 关闭信号会释放真实弹窗实例")
+	if is_instance_valid(support_battle):
+		support_battle.queue_free()
+	await process_frame
+
+	var game_over_battle := TestBootstrapClass.new()
+	root.add_child(game_over_battle)
+	await process_frame
+	var fallen := Unit.new()
+	fallen.setup(_make_unit_data({"name": "奈德", "is_protagonist": true}), 0, Vector2i(2, 2))
+	game_over_battle.add_child(fallen)
+	game_over_battle._on_unit_died(fallen)
+	await process_frame
+	var game_over := game_over_battle.get_node_or_null("UI/GameOver") as CanvasLayer
+	_assert(game_over_battle._battle_over, "主角死亡时真实战斗流程进入战斗结束态")
+	_assert(game_over != null, "主角死亡时真实挂载 GameOver")
+	if game_over != null:
+		_assert(game_over.visible, "GameOver 挂载后可见")
+		var game_over_message := game_over.get_node_or_null("Background/VBox/MessageLabel") as Label
+		if game_over_message != null:
+			_assert_eq(game_over_message.text, "奈德 阵亡于战场", "GameOver 显示真实死亡单位名")
+		var restart_connections := game_over.get_signal_connection_list("restart_chapter")
+		var quit_connections := game_over.get_signal_connection_list("quit_to_menu")
+		_assert_eq(restart_connections.size(), 1, "GameOver 重开信号仅连接一个目标")
+		_assert_eq(quit_connections.size(), 1, "GameOver 返回主菜单信号仅连接一个目标")
+		if restart_connections.size() == 1:
+			var restart_callable: Callable = restart_connections[0].get("callable", Callable())
+			_assert_eq(restart_callable.get_method(), "_restart", "GameOver 重开信号连接到重开方法")
+		if quit_connections.size() == 1:
+			var quit_callable: Callable = quit_connections[0].get("callable", Callable())
+			_assert_eq(quit_callable.get_method(), "_return_to_opening", "GameOver 返回主菜单信号连接到主入口返回方法")
+	if is_instance_valid(game_over_battle):
+		game_over_battle.queue_free()
+	await process_frame
+
+	var dialogue_scene := load("res://scenes/dialogue/DialogueBox.tscn") as PackedScene
+	var dialogue := dialogue_scene.instantiate() as DialogueSystem
+	root.add_child(dialogue)
+	await process_frame
+	var dialogue_finished_state := {"done": false}
+	dialogue.dialogue_finished.connect(func() -> void:
+		dialogue_finished_state["done"] = true
+	)
+	dialogue.play("res://data/dialogues/prologue_1_pre.json")
+	await process_frame
+	_assert(dialogue.visible, "DialogueSystem 播放后真实对话框可见")
+	_assert_eq(dialogue._speaker_label.text, "旁白", "DialogueSystem 首句说话人正确")
+	_assert(not dialogue._portrait_panel.visible, "旁白首句默认隐藏立绘")
+	_assert_eq(dialogue._text_label.text, "", "DialogueSystem 打字开始时正文先清空")
+	dialogue._skip_typing()
+	_assert("风暴地边境" in dialogue._text_label.text, "DialogueSystem 跳字后显示首句完整正文")
+	_assert(dialogue._prompt_icon.visible, "DialogueSystem 跳字后显示继续提示")
+	dialogue._advance()
+	_assert_eq(dialogue._speaker_label.text, "奈德", "DialogueSystem 推进到第二句后切换说话人")
+	dialogue._skip_typing()
+	_assert(dialogue._portrait_panel.visible, "DialogueSystem 进入角色发言后显示立绘")
+	_assert(dialogue._portrait_rect.texture != null, "DialogueSystem 角色发言时加载立绘纹理")
+	for _idx in range(8):
+		dialogue._skip_typing()
+		dialogue._advance()
+	await process_frame
+	_assert(dialogue_finished_state["done"], "DialogueSystem 最后一行后发出完成信号")
+	_assert(not dialogue.visible, "DialogueSystem 完成后隐藏对话框")
+	_assert(dialogue._portrait_rect.texture == null, "DialogueSystem 完成后清理立绘纹理")
+	dialogue.queue_free()
+	await process_frame
+
+func _test_test_script_reliability() -> void:
+	var test_script := _read_repo_root_text("scripts/test.sh")
+	_assert(test_script.contains("godot --headless --path . --import"),
+		"测试脚本会先导入项目以刷新全局类缓存")
+	_assert(test_script.contains("TEST_RUN_COMPLETE suites="),
+		"测试脚本校验测试完成标记")
+	_assert(not test_script.contains("TEST_RUN_COMPLETE suites=32"),
+		"测试脚本不写死套件总数")
+
+	var runner_src := FileAccess.get_file_as_string("res://tests/run_tests.gd")
+	var legacy_suite_constant := "EXPECTED_" + "SUITE_COUNT"
+	_assert(not runner_src.contains(legacy_suite_constant),
+		"测试运行器不再写死套件总数常量")
+	_assert(runner_src.contains("var suites := ["),
+		"测试运行器通过套件列表驱动执行")
+	_assert(runner_src.contains("_completed_suite_count != suites.size()"),
+		"测试运行器按套件列表动态校验完成数")

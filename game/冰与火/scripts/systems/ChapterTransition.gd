@@ -3,6 +3,8 @@ extends CanvasLayer
 
 signal transition_finished
 
+const BattleChromeTheme := preload("res://scripts/ui/BattleChromeTheme.gd")
+
 @onready var _background:      ColorRect = $Background
 @onready var _chapter_number:  Label     = $ChapterNumber
 @onready var _chapter_title:   Label     = $ChapterTitle
@@ -17,6 +19,7 @@ func _ready() -> void:
 		for child in get_children():
 			if child is Label:
 				(child as Label).add_theme_font_override("font", font)
+	_apply_dark_ui_theme()
 
 func _get_cjk_font() -> Font:
 	const BUNDLED := "res://assets/fonts/ArialUnicode.ttf"
@@ -66,3 +69,17 @@ func _get_canvas_items() -> Array[CanvasItem]:
 		if child is CanvasItem:
 			result.append(child as CanvasItem)
 	return result
+
+func _apply_dark_ui_theme() -> void:
+	if _background != null:
+		_background.color = BattleChromeTheme.BACKGROUND_COLOR
+	if _chapter_number != null:
+		_chapter_number.add_theme_color_override("font_color", BattleChromeTheme.TEXT_OBJECTIVE)
+	if _chapter_title != null:
+		_chapter_title.add_theme_color_override("font_color", BattleChromeTheme.TEXT_PRIMARY)
+	if _time_label != null:
+		_time_label.add_theme_color_override("font_color", BattleChromeTheme.TEXT_MUTED)
+	if _sub_label != null:
+		_sub_label.add_theme_color_override("font_color", BattleChromeTheme.TEXT_GUIDANCE)
+	if _objective_label != null:
+		_objective_label.add_theme_color_override("font_color", BattleChromeTheme.TEXT_OBJECTIVE)

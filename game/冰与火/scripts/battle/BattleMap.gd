@@ -192,6 +192,77 @@ func _apply_battle_font() -> void:
 # 深色 UI 主题（GDD色盘：铁灰 + 烛珀高亮）
 func _apply_dark_ui_theme() -> void:
 	BattleChromeTheme.apply_dark_chrome_recursive(self)
+	var action_menu := get_node_or_null("UI/ActionMenu") as PanelContainer
+	if action_menu != null:
+		action_menu.add_theme_stylebox_override("panel",
+			BattleChromeTheme.make_panel_style(
+				BattleChromeTheme.PANEL_HIGHLIGHT_BG,
+				BattleChromeTheme.PANEL_HIGHLIGHT_BORDER,
+				6,
+				1,
+				8
+			)
+		)
+		var attack_btn := action_menu.get_node_or_null("VBox/AttackBtn") as Button
+		var items_btn := action_menu.get_node_or_null("VBox/ItemsBtn") as Button
+		var cancel_move_btn := action_menu.get_node_or_null("VBox/CancelMoveBtn") as Button
+		if attack_btn != null:
+			BattleChromeTheme.apply_button_palette(
+				attack_btn,
+				BattleChromeTheme.BUTTON_DANGER_BG,
+				BattleChromeTheme.BUTTON_DANGER_BORDER,
+				BattleChromeTheme.TEXT_STATUS
+			)
+		if items_btn != null:
+			BattleChromeTheme.apply_button_palette(
+				items_btn,
+				BattleChromeTheme.BUTTON_SUPPORT_BG,
+				BattleChromeTheme.BUTTON_SUPPORT_BORDER,
+				BattleChromeTheme.TEXT_GOOD
+			)
+		if cancel_move_btn != null:
+			BattleChromeTheme.apply_button_palette(
+				cancel_move_btn,
+				BattleChromeTheme.BUTTON_MUTED_BG,
+				BattleChromeTheme.BUTTON_MUTED_BORDER,
+				BattleChromeTheme.TEXT_MUTED
+			)
+	var predict_panel := get_node_or_null("UI/PredictPanel") as PanelContainer
+	if predict_panel != null:
+		predict_panel.add_theme_stylebox_override("panel",
+			BattleChromeTheme.make_panel_style(
+				BattleChromeTheme.PANEL_STEEL_BG,
+				BattleChromeTheme.PANEL_STEEL_BORDER,
+				6,
+				2,
+				12
+			)
+		)
+		var predict_title := predict_panel.get_node_or_null("VBox/Title") as Label
+		var predict_atk_line := predict_panel.get_node_or_null("VBox/AtkLine") as Label
+		var predict_def_line := predict_panel.get_node_or_null("VBox/DefLine") as Label
+		var predict_double_line := predict_panel.get_node_or_null("VBox/DoubleLine") as Label
+		var predict_confirm_btn := predict_panel.get_node_or_null("VBox/Buttons/ConfirmBtn") as Button
+		if predict_title != null:
+			predict_title.add_theme_color_override("font_color", BattleChromeTheme.TEXT_ACCENT)
+		if predict_atk_line != null:
+			predict_atk_line.add_theme_color_override("font_color", BattleChromeTheme.TEXT_STATUS)
+		if predict_def_line != null:
+			predict_def_line.add_theme_color_override("font_color", BattleChromeTheme.TEXT_GUIDANCE)
+		if predict_double_line != null:
+			predict_double_line.add_theme_color_override("font_color", BattleChromeTheme.TEXT_ACCENT)
+		if predict_confirm_btn != null:
+			BattleChromeTheme.apply_button_palette(
+				predict_confirm_btn,
+				BattleChromeTheme.BUTTON_DANGER_BG,
+				BattleChromeTheme.BUTTON_DANGER_BORDER,
+				BattleChromeTheme.TEXT_STATUS
+			)
+	var result_state_won := true
+	var result_title := get_node_or_null("UI/ResultPanel/VBox/ResultTitle") as Label
+	if result_title != null and result_title.text == "败北":
+		result_state_won = false
+	_apply_result_state_theme(result_state_won)
 	var top_info_panel := get_node_or_null("UI/TopInfoPanel") as PanelContainer
 	if top_info_panel != null:
 		top_info_panel.add_theme_stylebox_override("panel",
@@ -203,6 +274,23 @@ func _apply_dark_ui_theme() -> void:
 				10
 			)
 		)
+
+func _apply_result_state_theme(won: bool) -> void:
+	var result_panel := get_node_or_null("UI/ResultPanel") as PanelContainer
+	if result_panel == null:
+		return
+	var panel_bg := BattleChromeTheme.PANEL_HIGHLIGHT_BG if won else BattleChromeTheme.PANEL_DANGER_BG
+	var panel_border := BattleChromeTheme.PANEL_HIGHLIGHT_BORDER if won else BattleChromeTheme.PANEL_DANGER_BORDER
+	result_panel.add_theme_stylebox_override("panel",
+		BattleChromeTheme.make_panel_style(panel_bg, panel_border, 8, 2, 14)
+	)
+	var result_title := result_panel.get_node_or_null("VBox/ResultTitle") as Label
+	var result_msg := result_panel.get_node_or_null("VBox/ResultMsg") as Label
+	if result_title != null:
+		result_title.add_theme_color_override("font_color",
+			BattleChromeTheme.TEXT_ACCENT if won else BattleChromeTheme.TEXT_STATUS)
+	if result_msg != null:
+		result_msg.add_theme_color_override("font_color", BattleChromeTheme.TEXT_PRIMARY)
 
 func _apply_dark_style_recursive(
 		node: Node,
@@ -341,6 +429,7 @@ func _draw() -> void:
 
 func _draw_terrain_bg() -> void:
 	if map_width <= 0 or map_height <= 0: return
+	var guidance_path: Array[Vector2i] = _find_objective_guidance_path()
 	# 全图深色底（覆盖摄像机滚动区域边缘）
 	draw_rect(Rect2(-TILE_SIZE * 2, -TILE_SIZE * 2,
 		(map_width + 4) * TILE_SIZE, (map_height + 4) * TILE_SIZE),
@@ -357,6 +446,8 @@ func _draw_terrain_bg() -> void:
 				col = col.darkened(0.07)
 			draw_rect(rect, col)
 			_draw_terrain_detail(rect, terrain, x, y)
+			_draw_main_axis_guidance(rect, pos, guidance_path)
+			_draw_objective_guidance(rect, pos)
 			draw_rect(rect, Color(0.0, 0.0, 0.0, 0.25), false, 1.0)  # 格线
 	# 地图边框（烛珀色）
 	draw_rect(Rect2(0, 0, map_width * TILE_SIZE, map_height * TILE_SIZE),
@@ -415,11 +506,158 @@ func _bridge_runs_vertical(x: int, y: int) -> bool:
 		vertical_river += 1
 	return side_river >= vertical_river
 
+func _find_guidance_anchor_start() -> Vector2i:
+	if map_width <= 0 or map_height <= 0:
+		return victory_pos
+	var clamped_goal_x := clampi(victory_pos.x, 0, map_width - 1)
+	for y: int in range(map_height - 2, -1, -1):
+		for offset: int in range(0, map_width):
+			var left_x := clamped_goal_x - offset
+			if left_x >= 0:
+				var left := Vector2i(left_x, y)
+				if is_passable(left):
+					return left
+			if offset == 0:
+				continue
+			var right_x := clamped_goal_x + offset
+			if right_x < map_width:
+				var right := Vector2i(right_x, y)
+				if is_passable(right):
+					return right
+	return victory_pos
+
+func _guidance_step_cost(pos: Vector2i) -> int:
+	match _get_terrain_type(pos):
+		TERRAIN_BRIDGE:
+			return 1
+		TERRAIN_PLAIN:
+			return 1
+		TERRAIN_FOREST:
+			return 2
+		TERRAIN_SWAMP:
+			return 4
+		TERRAIN_WALL:
+			return 8
+		_:
+			return 1
+
+func _find_objective_guidance_path() -> Array[Vector2i]:
+	if map_width <= 0 or map_height <= 0:
+		return []
+	if not is_passable(victory_pos):
+		return []
+	var start := _find_guidance_anchor_start()
+	if start == victory_pos:
+		return [victory_pos]
+	var came_from: Dictionary = {}
+	var cost_map: Dictionary = {}
+	var open: Array = [{"pos": start, "c": 0}]
+	cost_map[start] = 0
+	while not open.is_empty():
+		open.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["c"] < b["c"])
+		var curr: Dictionary = open.pop_front()
+		var pos: Vector2i = curr["pos"]
+		if pos == victory_pos:
+			break
+		for d: Vector2i in [Vector2i(0,-1), Vector2i(-1,0), Vector2i(1,0), Vector2i(0,1)]:
+			var npos: Vector2i = pos + d
+			if not is_passable(npos):
+				continue
+			var step_cost := _guidance_step_cost(npos) * 10 + absi(npos.x - victory_pos.x) * 40
+			var nc: int = int(cost_map[pos]) + step_cost
+			if not cost_map.has(npos) or nc < int(cost_map[npos]):
+				cost_map[npos] = nc
+				came_from[npos] = pos
+				open.append({"pos": npos, "c": nc})
+	if not came_from.has(victory_pos):
+		return []
+	var path: Array[Vector2i] = []
+	var cur: Vector2i = victory_pos
+	path.push_front(cur)
+	while cur != start:
+		if not came_from.has(cur):
+			return []
+		cur = came_from[cur]
+		path.push_front(cur)
+	if not path.is_empty() and path[0] == start:
+		path.remove_at(0)
+	return path
+
+func _draw_main_axis_guidance(rect: Rect2, pos: Vector2i, guidance_path: Array[Vector2i]) -> void:
+	var idx := guidance_path.find(pos)
+	if idx == -1:
+		return
+	var center := rect.get_center()
+	var path_glow := Color(0.90, 0.76, 0.46, 0.08)
+	var path_line := Color(0.94, 0.82, 0.56, 0.18)
+	draw_circle(center, 10.0, path_glow)
+	var inner := rect.grow(-18)
+	draw_rect(inner, Color(0.88, 0.74, 0.48, 0.04))
+	for neighbor_idx: int in [idx - 1, idx + 1]:
+		if neighbor_idx < 0 or neighbor_idx >= guidance_path.size():
+			continue
+		var neighbor: Vector2i = guidance_path[neighbor_idx]
+		var dir := neighbor - pos
+		var end := center + Vector2(dir.x, dir.y) * (TILE_SIZE * 0.36)
+		draw_line(center, end, path_line, 6.0, true)
+
+func _draw_objective_guidance(rect: Rect2, pos: Vector2i) -> void:
+	if pos != victory_pos:
+		return
+	var center := rect.get_center()
+	var fill := Color(0.96, 0.86, 0.52, 0.08)
+	var border := Color(0.98, 0.88, 0.60, 0.34)
+	var inner := rect.grow(-10)
+	draw_rect(inner, fill)
+	draw_rect(inner, border, false, 2.0)
+	draw_circle(center, 10.0, Color(0.98, 0.88, 0.60, 0.10))
+	draw_line(Vector2(center.x, rect.position.y + 14), Vector2(center.x, rect.position.y + rect.size.y - 14), border, 2.0, true)
+	draw_line(Vector2(rect.position.x + 14, center.y), Vector2(rect.position.x + rect.size.x - 14, center.y), border, 2.0, true)
+
+func _nearest_wall_distance(x: int, y: int, dir: Vector2i, max_steps: int = 4) -> int:
+	for step: int in range(1, max_steps + 1):
+		var terrain := _terrain_at_or_cliff(x + dir.x * step, y + dir.y * step)
+		if terrain == TERRAIN_WALL:
+			return step
+		if terrain == TERRAIN_CLIFF or terrain == TERRAIN_RIVER or terrain == TERRAIN_BRIDGE:
+			return -1
+	return -1
+
+func _gate_runs_vertical(x: int, y: int) -> bool:
+	var terrain := _terrain_at_or_cliff(x, y)
+	if terrain == TERRAIN_WALL or terrain == TERRAIN_CLIFF or terrain == TERRAIN_RIVER or terrain == TERRAIN_BRIDGE:
+		return false
+	var north_terrain := _terrain_at_or_cliff(x, y - 1)
+	var south_terrain := _terrain_at_or_cliff(x, y + 1)
+	if north_terrain == TERRAIN_WALL or north_terrain == TERRAIN_CLIFF or north_terrain == TERRAIN_RIVER:
+		return false
+	if south_terrain == TERRAIN_WALL or south_terrain == TERRAIN_CLIFF or south_terrain == TERRAIN_RIVER:
+		return false
+	var left_wall_dist := _nearest_wall_distance(x, y, Vector2i(-1, 0))
+	var right_wall_dist := _nearest_wall_distance(x, y, Vector2i(1, 0))
+	return left_wall_dist > 0 and right_wall_dist > 0 and left_wall_dist + right_wall_dist <= 5
+
+func _gate_runs_horizontal(x: int, y: int) -> bool:
+	var terrain := _terrain_at_or_cliff(x, y)
+	if terrain == TERRAIN_WALL or terrain == TERRAIN_CLIFF or terrain == TERRAIN_RIVER or terrain == TERRAIN_BRIDGE:
+		return false
+	var west_terrain := _terrain_at_or_cliff(x - 1, y)
+	var east_terrain := _terrain_at_or_cliff(x + 1, y)
+	if west_terrain == TERRAIN_WALL or west_terrain == TERRAIN_CLIFF or west_terrain == TERRAIN_RIVER:
+		return false
+	if east_terrain == TERRAIN_WALL or east_terrain == TERRAIN_CLIFF or east_terrain == TERRAIN_RIVER:
+		return false
+	var north_wall_dist := _nearest_wall_distance(x, y, Vector2i(0, -1))
+	var south_wall_dist := _nearest_wall_distance(x, y, Vector2i(0, 1))
+	return north_wall_dist > 0 and south_wall_dist > 0 and north_wall_dist + south_wall_dist <= 5
+
 func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 	var wall_neighbors := _adjacent_terrain_count(x, y, TERRAIN_WALL)
 	var river_neighbors := _adjacent_terrain_count(x, y, TERRAIN_RIVER)
 	var swamp_neighbors := _adjacent_terrain_count(x, y, TERRAIN_SWAMP)
 	var bridge_neighbors := _adjacent_terrain_count(x, y, TERRAIN_BRIDGE)
+	var gate_vertical := bridge_neighbors == 0 and river_neighbors == 0 and _gate_runs_vertical(x, y)
+	var gate_horizontal := bridge_neighbors == 0 and river_neighbors == 0 and _gate_runs_horizontal(x, y)
 	var inset := 8.0
 	var inner := rect.grow(-inset)
 	var shade := 0.04 if (x + y) % 3 == 0 else 0.02
@@ -455,6 +693,60 @@ func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 		draw_line(Vector2(rect.position.x + 12, rect.position.y + rect.size.y * 0.5),
 			Vector2(rect.position.x + rect.size.x - 12, rect.position.y + rect.size.y * 0.5),
 			Color(0.70, 0.60, 0.40, 0.10), 4.0, true)
+	if bridge_neighbors > 0 and wall_neighbors == 0 and river_neighbors == 0:
+		var bridge_vertical := false
+		for d: Vector2i in [Vector2i(1,0), Vector2i(-1,0), Vector2i(0,1), Vector2i(0,-1)]:
+			if _terrain_at_or_cliff(x + d.x, y + d.y) == TERRAIN_BRIDGE:
+				bridge_vertical = _bridge_runs_vertical(x + d.x, y + d.y)
+				break
+		if bridge_vertical:
+			var center_x := rect.position.x + rect.size.x * 0.5
+			draw_line(Vector2(center_x, rect.position.y + 10),
+				Vector2(center_x, rect.position.y + rect.size.y - 10),
+				Color(0.84, 0.74, 0.54, 0.22), 3.0, true)
+			draw_line(Vector2(center_x - 10, rect.position.y + 16),
+				Vector2(center_x - 10, rect.position.y + rect.size.y - 16),
+				Color(0.54, 0.46, 0.30, 0.12), 2.0, true)
+			draw_line(Vector2(center_x + 10, rect.position.y + 16),
+				Vector2(center_x + 10, rect.position.y + rect.size.y - 16),
+				Color(0.54, 0.46, 0.30, 0.12), 2.0, true)
+		else:
+			var center_y := rect.position.y + rect.size.y * 0.5
+			draw_line(Vector2(rect.position.x + 10, center_y),
+				Vector2(rect.position.x + rect.size.x - 10, center_y),
+				Color(0.84, 0.74, 0.54, 0.22), 3.0, true)
+			draw_line(Vector2(rect.position.x + 16, center_y - 10),
+				Vector2(rect.position.x + rect.size.x - 16, center_y - 10),
+				Color(0.54, 0.46, 0.30, 0.12), 2.0, true)
+			draw_line(Vector2(rect.position.x + 16, center_y + 10),
+				Vector2(rect.position.x + rect.size.x - 16, center_y + 10),
+				Color(0.54, 0.46, 0.30, 0.12), 2.0, true)
+	if gate_vertical:
+		var threshold_y := rect.position.y + rect.size.y * 0.5
+		draw_rect(Rect2(rect.position.x + 8, threshold_y - 5, rect.size.x - 16, 10),
+			Color(0.12, 0.09, 0.06, 0.24))
+		draw_line(Vector2(rect.position.x + 10, threshold_y - 2),
+			Vector2(rect.position.x + rect.size.x - 10, threshold_y - 2),
+			Color(0.74, 0.64, 0.44, 0.24), 2.0, true)
+		draw_line(Vector2(rect.position.x + 12, rect.position.y + 14),
+			Vector2(rect.position.x + 12, rect.position.y + rect.size.y - 14),
+			Color(0.16, 0.12, 0.08, 0.18), 2.0, true)
+		draw_line(Vector2(rect.position.x + rect.size.x - 12, rect.position.y + 14),
+			Vector2(rect.position.x + rect.size.x - 12, rect.position.y + rect.size.y - 14),
+			Color(0.16, 0.12, 0.08, 0.18), 2.0, true)
+	if gate_horizontal:
+		var threshold_x := rect.position.x + rect.size.x * 0.5
+		draw_rect(Rect2(threshold_x - 5, rect.position.y + 8, 10, rect.size.y - 16),
+			Color(0.12, 0.09, 0.06, 0.24))
+		draw_line(Vector2(threshold_x - 2, rect.position.y + 10),
+			Vector2(threshold_x - 2, rect.position.y + rect.size.y - 10),
+			Color(0.74, 0.64, 0.44, 0.24), 2.0, true)
+		draw_line(Vector2(rect.position.x + 14, rect.position.y + 12),
+			Vector2(rect.position.x + rect.size.x - 14, rect.position.y + 12),
+			Color(0.16, 0.12, 0.08, 0.18), 2.0, true)
+		draw_line(Vector2(rect.position.x + 14, rect.position.y + rect.size.y - 12),
+			Vector2(rect.position.x + rect.size.x - 14, rect.position.y + rect.size.y - 12),
+			Color(0.16, 0.12, 0.08, 0.18), 2.0, true)
 
 func _draw_forest_detail(rect: Rect2, x: int, y: int) -> void:
 	var tree_col := Color(0.16, 0.28, 0.14, 0.50)
@@ -507,6 +799,7 @@ func _draw_cliff_detail(rect: Rect2, x: int, y: int) -> void:
 
 func _draw_river_detail(rect: Rect2, x: int, y: int) -> void:
 	var horizontal_flow := _adjacent_terrain_count(x, y, TERRAIN_RIVER) >= 1 and _bridge_runs_vertical(x, y)
+	var bridge_neighbors := _adjacent_terrain_count(x, y, TERRAIN_BRIDGE)
 	if horizontal_flow:
 		for i: int in 3:
 			var yy := rect.position.y + 18 + i * 14 + float((x + i * 2) % 6)
@@ -529,6 +822,32 @@ func _draw_river_detail(rect: Rect2, x: int, y: int) -> void:
 	if _terrain_at_or_cliff(x + 1, y) != TERRAIN_RIVER and _terrain_at_or_cliff(x + 1, y) != TERRAIN_BRIDGE:
 		draw_line(Vector2(rect.position.x + rect.size.x - 6, rect.position.y + 4), Vector2(rect.position.x + rect.size.x - 6, rect.position.y + rect.size.y - 4),
 			Color(0.16, 0.12, 0.08, 0.18), 2.0, true)
+	if bridge_neighbors > 0 and horizontal_flow:
+		if _terrain_at_or_cliff(x - 1, y) == TERRAIN_BRIDGE:
+			draw_rect(Rect2(rect.position.x + 2, rect.position.y + 8, 8, rect.size.y - 16),
+				Color(0.04, 0.08, 0.16, 0.26))
+			draw_line(Vector2(rect.position.x + 10, rect.position.y + 10),
+				Vector2(rect.position.x + 10, rect.position.y + rect.size.y - 10),
+				Color(0.64, 0.76, 0.96, 0.20), 2.0, true)
+		if _terrain_at_or_cliff(x + 1, y) == TERRAIN_BRIDGE:
+			draw_rect(Rect2(rect.position.x + rect.size.x - 10, rect.position.y + 8, 8, rect.size.y - 16),
+				Color(0.04, 0.08, 0.16, 0.26))
+			draw_line(Vector2(rect.position.x + rect.size.x - 10, rect.position.y + 10),
+				Vector2(rect.position.x + rect.size.x - 10, rect.position.y + rect.size.y - 10),
+				Color(0.64, 0.76, 0.96, 0.20), 2.0, true)
+	if bridge_neighbors > 0 and not horizontal_flow:
+		if _terrain_at_or_cliff(x, y - 1) == TERRAIN_BRIDGE:
+			draw_rect(Rect2(rect.position.x + 8, rect.position.y + 2, rect.size.x - 16, 8),
+				Color(0.04, 0.08, 0.16, 0.26))
+			draw_line(Vector2(rect.position.x + 10, rect.position.y + 10),
+				Vector2(rect.position.x + rect.size.x - 10, rect.position.y + 10),
+				Color(0.64, 0.76, 0.96, 0.20), 2.0, true)
+		if _terrain_at_or_cliff(x, y + 1) == TERRAIN_BRIDGE:
+			draw_rect(Rect2(rect.position.x + 8, rect.position.y + rect.size.y - 10, rect.size.x - 16, 8),
+				Color(0.04, 0.08, 0.16, 0.26))
+			draw_line(Vector2(rect.position.x + 10, rect.position.y + rect.size.y - 10),
+				Vector2(rect.position.x + rect.size.x - 10, rect.position.y + rect.size.y - 10),
+				Color(0.64, 0.76, 0.96, 0.20), 2.0, true)
 	if (x + y) % 2 == 0:
 		draw_arc(rect.get_center(), 18.0, 0.2, 1.7, 10, Color(0.62, 0.74, 0.96, 0.14), 2.0, true)
 
@@ -544,21 +863,26 @@ func _draw_swamp_detail(rect: Rect2, x: int, y: int) -> void:
 func _draw_bridge_detail(rect: Rect2, x: int, y: int) -> void:
 	var board_col := Color(0.56, 0.46, 0.30, 0.42)
 	var rail_col := Color(0.74, 0.64, 0.42, 0.34)
+	var center_col := Color(0.88, 0.78, 0.56, 0.22)
 	var vertical_bridge := _bridge_runs_vertical(x, y)
 	draw_rect(Rect2(rect.position.x + 6, rect.position.y + 6, rect.size.x - 12, rect.size.y - 12),
 		Color(0.16, 0.10, 0.06, 0.12))
 	if vertical_bridge:
+		var center_x := rect.position.x + rect.size.x * 0.5
 		for i: int in 4:
 			var yy := rect.position.y + 10 + i * 14
 			draw_line(Vector2(rect.position.x + 8, yy), Vector2(rect.position.x + rect.size.x - 8, yy), board_col, 3.0, true)
 		draw_line(Vector2(rect.position.x + 10, rect.position.y + 8), Vector2(rect.position.x + 10, rect.position.y + rect.size.y - 8), rail_col, 2.0, true)
 		draw_line(Vector2(rect.position.x + rect.size.x - 10, rect.position.y + 8), Vector2(rect.position.x + rect.size.x - 10, rect.position.y + rect.size.y - 8), rail_col, 2.0, true)
+		draw_line(Vector2(center_x, rect.position.y + 10), Vector2(center_x, rect.position.y + rect.size.y - 10), center_col, 2.0, true)
 	else:
+		var center_y := rect.position.y + rect.size.y * 0.5
 		for i: int in 4:
 			var xx := rect.position.x + 10 + i * 14
 			draw_line(Vector2(xx, rect.position.y + 8), Vector2(xx, rect.position.y + rect.size.y - 8), board_col, 3.0, true)
 		draw_line(Vector2(rect.position.x + 8, rect.position.y + 10), Vector2(rect.position.x + rect.size.x - 8, rect.position.y + 10), rail_col, 2.0, true)
 		draw_line(Vector2(rect.position.x + 8, rect.position.y + rect.size.y - 10), Vector2(rect.position.x + rect.size.x - 8, rect.position.y + rect.size.y - 10), rail_col, 2.0, true)
+		draw_line(Vector2(rect.position.x + 10, center_y), Vector2(rect.position.x + rect.size.x - 10, center_y), center_col, 2.0, true)
 
 func _draw_ellipse(rect: Rect2, color: Color) -> void:
 	var points := PackedVector2Array()
@@ -1263,6 +1587,7 @@ func _end_battle(won: bool) -> void:
 	if _result_title: _result_title.text = "胜利！" if won else "败北"
 	if _result_msg:
 		_result_msg.text = "攻占敌营，风暴地已落入义军之手。" if won else "全军覆没，战斗失败。"
+	_apply_result_state_theme(won)
 
 	var vs := get_viewport().get_visible_rect().size
 	_result_panel.position = Vector2(vs.x * 0.5 - 160.0, vs.y * 0.5 - 80.0)
@@ -1573,12 +1898,16 @@ func _trigger_game_over(unit: Unit) -> void:
 		if go.has_signal("restart_chapter"):
 			go.connect("restart_chapter", _restart)
 		if go.has_signal("quit_to_menu"):
-			go.connect("quit_to_menu", _restart)
+			go.connect("quit_to_menu", _return_to_opening)
 	else:
 		_set_status("⚠ 主角 %s 阵亡——游戏结束" % unit.data.name)
 		await get_tree().create_timer(2.0).timeout
 		if not _battle_over:  # 避免重复触发
 			_restart()
+
+func _return_to_opening() -> void:
+	GameState.current_chapter = 1
+	get_tree().change_scene_to_file("res://scenes/Opening.tscn")
 
 # ── 道具系统 ─────────────────────────────────────────────
 func _on_items_pressed() -> void:
