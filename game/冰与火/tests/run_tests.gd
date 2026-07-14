@@ -1333,6 +1333,14 @@ func _test_visual_style_unification() -> void:
 		"BattleMap 会为墙体缺口中的主通路绘制纵向门洞阈值")
 	_assert(src.contains("var gate_horizontal := bridge_neighbors == 0 and river_neighbors == 0 and _gate_runs_horizontal(x, y)"),
 		"BattleMap 会为墙体缺口中的主通路绘制横向门洞阈值")
+	_assert(src.contains("if _terrain_at_or_cliff(x, y - 1) != TERRAIN_CLIFF:"),
+		"BattleMap 会识别峭壁暴露顶缘，强化世界边界断面")
+	_assert(src.contains("if _terrain_at_or_cliff(x - 1, y) != TERRAIN_CLIFF:"),
+		"BattleMap 会识别峭壁暴露侧缘，避免边界读成平面黑块")
+	_assert(src.contains("draw_rect(Rect2(rect.position.x + 4, rect.position.y + 4, rect.size.x - 8, 10)"),
+		"BattleMap 会为暴露峭壁顶缘补高光台沿")
+	_assert(src.contains("draw_rect(Rect2(rect.position.x + 4, rect.position.y + 16, 8, rect.size.y - 20)"),
+		"BattleMap 会为暴露峭壁左缘补侧壁压暗")
 	_assert(src.contains("func _find_objective_guidance_path"),
 		"BattleMap 提供主推进轴线寻路辅助，支撑弱引导")
 	_assert(src.contains("func _draw_main_axis_guidance"),
@@ -1671,6 +1679,8 @@ func _test_map_visual_language_spec() -> void:
 	_assert_eq(ch1._terrain_at_or_cliff(5, 1), 0, "Ch1 语义回归：北侧主缺口前一格保持为通路")
 	_assert(ch1._terrain_at_or_cliff(3, 1) == 2 and ch1._terrain_at_or_cliff(7, 1) == 2,
 		"Ch1 语义回归：缺口两侧仍保留封锁墙体")
+	_assert(ch1._terrain_at_or_cliff(0, 4) == 3 and ch1._terrain_at_or_cliff(1, 4) == 0,
+		"Ch1 语义回归：西侧世界边界紧贴前沿可行军通路")
 	_assert(ch1.recorded_statuses.any(func(msg: String) -> bool: return msg == PrologueChapterBriefsClass.CH1_OBJECTIVE_SUMMARY),
 		"Ch1 语义回归：开场状态提示明确山道口目标")
 	_assert(ch1.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("目标：")),
@@ -1827,6 +1837,8 @@ func _test_map_visual_language_spec() -> void:
 	_assert_eq(ch3._terrain_at_or_cliff(12, 8), 0, "Ch3 语义回归：塔前中轴接敌格保持通路")
 	_assert(ch3._terrain_at_or_cliff(10, 8) == 0 or ch3._terrain_at_or_cliff(14, 8) == 0,
 		"Ch3 语义回归：塔前至少保留一侧绕行空间")
+	_assert(ch3._terrain_at_or_cliff(0, 8) == 3 and ch3._terrain_at_or_cliff(1, 8) == 0,
+		"Ch3 语义回归：西侧世界边界紧贴湿地外缘推进带")
 	if ch3._dayne_unit != null:
 		_assert(ch3._dayne_unit.grid_pos.y > ch3.victory_pos.y,
 			"Ch3 语义回归：亚瑟·戴恩位于塔目标南侧门神位")

@@ -883,6 +883,21 @@ func _draw_wall_detail(rect: Rect2, x: int, y: int) -> void:
 
 func _draw_cliff_detail(rect: Rect2, x: int, y: int) -> void:
 	var shade := Color(0.18, 0.18, 0.18, 0.35)
+	if _terrain_at_or_cliff(x, y - 1) != TERRAIN_CLIFF:
+		draw_rect(Rect2(rect.position.x + 4, rect.position.y + 4, rect.size.x - 8, 10),
+			Color(0.42, 0.42, 0.38, 0.18))
+		draw_line(Vector2(rect.position.x + 6, rect.position.y + 10),
+			Vector2(rect.position.x + rect.size.x - 6, rect.position.y + 10),
+			Color(0.72, 0.72, 0.66, 0.22), 2.0, true)
+	if _terrain_at_or_cliff(x, y + 1) != TERRAIN_CLIFF:
+		draw_rect(Rect2(rect.position.x + 4, rect.position.y + rect.size.y - 12, rect.size.x - 8, 8),
+			Color(0.06, 0.06, 0.06, 0.26))
+	if _terrain_at_or_cliff(x - 1, y) != TERRAIN_CLIFF:
+		draw_rect(Rect2(rect.position.x + 4, rect.position.y + 16, 8, rect.size.y - 20),
+			Color(0.12, 0.12, 0.12, 0.24))
+	if _terrain_at_or_cliff(x + 1, y) != TERRAIN_CLIFF:
+		draw_rect(Rect2(rect.position.x + rect.size.x - 12, rect.position.y + 16, 8, rect.size.y - 20),
+			Color(0.08, 0.08, 0.08, 0.24))
 	for i: int in 4:
 		var sx := rect.position.x + 10 + i * 14 + float((y + i) % 4)
 		draw_line(Vector2(sx, rect.position.y + 8), Vector2(sx - 6, rect.position.y + rect.size.y - 8), shade, 2.0, true)
