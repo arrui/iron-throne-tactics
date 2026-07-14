@@ -676,6 +676,14 @@ func _river_bank_mask(x: int, y: int) -> Dictionary:
 		"east": _terrain_at_or_cliff(x + 1, y) != TERRAIN_RIVER and _terrain_at_or_cliff(x + 1, y) != TERRAIN_BRIDGE,
 	}
 
+func _plain_wall_contact_mask(x: int, y: int) -> Dictionary:
+	return {
+		"north": _terrain_at_or_cliff(x, y - 1) == TERRAIN_WALL,
+		"south": _terrain_at_or_cliff(x, y + 1) == TERRAIN_WALL,
+		"west": _terrain_at_or_cliff(x - 1, y) == TERRAIN_WALL,
+		"east": _terrain_at_or_cliff(x + 1, y) == TERRAIN_WALL,
+	}
+
 func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 	var wall_neighbors := _adjacent_terrain_count(x, y, TERRAIN_WALL)
 	var river_neighbors := _adjacent_terrain_count(x, y, TERRAIN_RIVER)
@@ -683,10 +691,23 @@ func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 	var bridge_neighbors := _adjacent_terrain_count(x, y, TERRAIN_BRIDGE)
 	var gate_vertical := bridge_neighbors == 0 and river_neighbors == 0 and _gate_runs_vertical(x, y)
 	var gate_horizontal := bridge_neighbors == 0 and river_neighbors == 0 and _gate_runs_horizontal(x, y)
+	var wall_contact := _plain_wall_contact_mask(x, y)
 	var inset := 8.0
 	var inner := rect.grow(-inset)
 	var shade := 0.04 if (x + y) % 3 == 0 else 0.02
 	draw_rect(inner, Color(0.28, 0.25, 0.20, shade))
+	if wall_contact.get("north", false) and not gate_vertical:
+		draw_rect(Rect2(rect.position.x + 8, rect.position.y + 8, rect.size.x - 16, 8),
+			Color(0.12, 0.10, 0.08, 0.18))
+	if wall_contact.get("south", false) and not gate_vertical:
+		draw_rect(Rect2(rect.position.x + 8, rect.position.y + rect.size.y - 16, rect.size.x - 16, 8),
+			Color(0.10, 0.08, 0.06, 0.20))
+	if wall_contact.get("west", false) and not gate_horizontal:
+		draw_rect(Rect2(rect.position.x + 8, rect.position.y + 8, 8, rect.size.y - 16),
+			Color(0.12, 0.10, 0.08, 0.14))
+	if wall_contact.get("east", false) and not gate_horizontal:
+		draw_rect(Rect2(rect.position.x + rect.size.x - 16, rect.position.y + 8, 8, rect.size.y - 16),
+			Color(0.10, 0.08, 0.06, 0.14))
 	if wall_neighbors >= 2:
 		draw_rect(Rect2(rect.position.x + 6, rect.position.y + 6,
 			rect.size.x - 12, rect.size.y - 12), Color(0.42, 0.38, 0.32, 0.12))
@@ -748,6 +769,12 @@ func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 				Color(0.54, 0.46, 0.30, 0.12), 2.0, true)
 	if gate_vertical:
 		var threshold_y := rect.position.y + rect.size.y * 0.5
+		if wall_contact.get("north", false):
+			draw_rect(Rect2(rect.position.x + 12, rect.position.y + 8, rect.size.x - 24, 6),
+				Color(0.18, 0.14, 0.10, 0.18))
+		if wall_contact.get("south", false):
+			draw_rect(Rect2(rect.position.x + 12, rect.position.y + rect.size.y - 14, rect.size.x - 24, 6),
+				Color(0.14, 0.10, 0.06, 0.16))
 		draw_rect(Rect2(rect.position.x + 8, threshold_y - 5, rect.size.x - 16, 10),
 			Color(0.12, 0.09, 0.06, 0.24))
 		draw_line(Vector2(rect.position.x + 10, threshold_y - 2),
@@ -761,6 +788,12 @@ func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 			Color(0.16, 0.12, 0.08, 0.18), 2.0, true)
 	if gate_horizontal:
 		var threshold_x := rect.position.x + rect.size.x * 0.5
+		if wall_contact.get("west", false):
+			draw_rect(Rect2(rect.position.x + 8, rect.position.y + 12, 6, rect.size.y - 24),
+				Color(0.18, 0.14, 0.10, 0.16))
+		if wall_contact.get("east", false):
+			draw_rect(Rect2(rect.position.x + rect.size.x - 14, rect.position.y + 12, 6, rect.size.y - 24),
+				Color(0.14, 0.10, 0.06, 0.16))
 		draw_rect(Rect2(threshold_x - 5, rect.position.y + 8, 10, rect.size.y - 16),
 			Color(0.12, 0.09, 0.06, 0.24))
 		draw_line(Vector2(threshold_x - 2, rect.position.y + 10),

@@ -1313,6 +1313,18 @@ func _test_visual_style_unification() -> void:
 		"BattleMap 会为连续墙顶缘引入交替段差，避免整排重复")
 	_assert(src.contains("var brick_tint := 0.12 + float((x + row_i + col_i) % 3) * 0.03"),
 		"BattleMap 会为连续墙砖缝引入轻微分段明度变化")
+	_assert(src.contains("func _plain_wall_contact_mask"),
+		"BattleMap 提供平地贴墙接触检测，支撑墙脚阴影与门前阈值强化")
+	_assert(src.contains("var wall_contact := _plain_wall_contact_mask(x, y)"),
+		"BattleMap 会按平地贴墙信息绘制墙脚阴影")
+	_assert(src.contains("if wall_contact.get(\"north\", false) and not gate_vertical:"),
+		"BattleMap 会为贴北墙平地补墙脚阴影")
+	_assert(src.contains("if wall_contact.get(\"west\", false) and not gate_horizontal:"),
+		"BattleMap 会为贴西墙平地补墙脚阴影")
+	_assert(src.contains("if gate_vertical and wall_contact.get(\"north\", false):"),
+		"BattleMap 会为纵向门前平地强化门槛压痕")
+	_assert(src.contains("if gate_horizontal and wall_contact.get(\"west\", false):"),
+		"BattleMap 会为横向门前平地强化门槛压痕")
 	_assert(src.contains("func _gate_runs_vertical"),
 		"BattleMap 提供门洞朝向识别，避免墙体缺口读成普通地面")
 	_assert(src.contains("func _gate_runs_horizontal"),
@@ -1720,6 +1732,10 @@ func _test_map_visual_language_spec() -> void:
 	_assert(ch2._terrain_at_or_cliff(12, 7) == 2 and ch2._terrain_at_or_cliff(15, 7) == 2,
 		"Ch2 语义回归：中桥北桥头两侧营垒仍在，形成主决战桥头")
 	_assert_eq(ch2._terrain_at_or_cliff(13, 7), 6, "Ch2 语义回归：中桥北桥头桥面保持完整")
+	_assert(ch2.has_method("_plain_wall_contact_mask"), "Ch2 语义回归：平地贴墙接触检测辅助可用")
+	if ch2.has_method("_plain_wall_contact_mask"):
+		var ch2_bridgehead_contact: Dictionary = ch2._plain_wall_contact_mask(14, 6)
+		_assert(ch2_bridgehead_contact.get("south", false), "Ch2 语义回归：中桥北桥头前一格保留南侧墙脚接触")
 	for north_bridgehead: Vector2i in [Vector2i(7, 7), Vector2i(14, 7), Vector2i(21, 7)]:
 		_assert_eq(ch2._terrain_at_or_cliff(north_bridgehead.x, north_bridgehead.y - 1), 0,
 			"Ch2 语义回归：桥北桥头 %s 与陆地主通路直接接驳" % str(north_bridgehead))
@@ -1895,6 +1911,13 @@ func _test_map_visual_language_spec() -> void:
 	_assert_eq(ch4._terrain_at_or_cliff(18, 11), 0, "Ch4 语义回归：红堡外墙主门保持通路")
 	_assert_eq(ch4._terrain_at_or_cliff(18, 13), 0, "Ch4 语义回归：内城墙主门保持通路")
 	_assert_eq(ch4._terrain_at_or_cliff(18, 18), 0, "Ch4 语义回归：南城墙主门保持通路")
+	_assert(ch4.has_method("_plain_wall_contact_mask"), "Ch4 语义回归：平地贴墙接触检测辅助可用")
+	if ch4.has_method("_plain_wall_contact_mask"):
+		var ch4_south_gate_contact: Dictionary = ch4._plain_wall_contact_mask(18, 17)
+		_assert(ch4_south_gate_contact.get("south", false), "Ch4 语义回归：南城墙主门前平地保留南侧墙脚接触")
+		var ch4_inner_gate_contact: Dictionary = ch4._plain_wall_contact_mask(18, 12)
+		_assert(ch4_inner_gate_contact.get("south", false) || ch4_inner_gate_contact.get("north", false),
+			"Ch4 语义回归：内城墙主门前平地保留至少一侧门墙接触")
 	_assert_eq(ch4._terrain_at_or_cliff(18, 7), 0, "Ch4 语义回归：中轴主桥北桥头与陆地直接接驳")
 	_assert_eq(ch4._terrain_at_or_cliff(18, 9), 0, "Ch4 语义回归：中轴主桥南桥头与陆地直接接驳")
 	_assert(ch4._terrain_at_or_cliff(12, 11) == 2 and ch4._terrain_at_or_cliff(13, 11) == 2 and ch4._terrain_at_or_cliff(14, 11) == 2,
