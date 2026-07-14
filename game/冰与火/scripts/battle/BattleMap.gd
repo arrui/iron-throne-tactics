@@ -692,6 +692,21 @@ func _plain_wall_contact_mask(x: int, y: int) -> Dictionary:
 		"east": _terrain_at_or_cliff(x + 1, y) == TERRAIN_WALL,
 	}
 
+func _plain_wet_edge_mask(x: int, y: int) -> Dictionary:
+	var mask := {}
+	for spec: Array in [
+		["north", Vector2i(0, -1)],
+		["south", Vector2i(0, 1)],
+		["west", Vector2i(-1, 0)],
+		["east", Vector2i(1, 0)],
+	]:
+		var dir_name: String = spec[0]
+		var delta: Vector2i = spec[1]
+		var terrain := _terrain_at_or_cliff(x + delta.x, y + delta.y)
+		if terrain == TERRAIN_RIVER or terrain == TERRAIN_SWAMP:
+			mask[dir_name] = terrain
+	return mask
+
 func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 	var wall_neighbors := _adjacent_terrain_count(x, y, TERRAIN_WALL)
 	var river_neighbors := _adjacent_terrain_count(x, y, TERRAIN_RIVER)
@@ -700,6 +715,7 @@ func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 	var gate_vertical := bridge_neighbors == 0 and river_neighbors == 0 and _gate_runs_vertical(x, y)
 	var gate_horizontal := bridge_neighbors == 0 and river_neighbors == 0 and _gate_runs_horizontal(x, y)
 	var wall_contact := _plain_wall_contact_mask(x, y)
+	var wet_edges := _plain_wet_edge_mask(x, y)
 	var inset := 8.0
 	var inner := rect.grow(-inset)
 	var shade := 0.04 if (x + y) % 3 == 0 else 0.02
@@ -716,6 +732,30 @@ func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 	if wall_contact.get("east", false) and not gate_horizontal:
 		draw_rect(Rect2(rect.position.x + rect.size.x - 16, rect.position.y + 8, 8, rect.size.y - 16),
 			Color(0.10, 0.08, 0.06, 0.14))
+	if wet_edges.get("north", -1) == TERRAIN_RIVER:
+		draw_rect(Rect2(rect.position.x + 8, rect.position.y + 8, rect.size.x - 16, 10),
+			Color(0.10, 0.14, 0.20, 0.18))
+	if wet_edges.get("south", -1) == TERRAIN_RIVER:
+		draw_rect(Rect2(rect.position.x + 8, rect.position.y + rect.size.y - 18, rect.size.x - 16, 10),
+			Color(0.08, 0.12, 0.18, 0.18))
+	if wet_edges.get("north", -1) == TERRAIN_SWAMP:
+		draw_rect(Rect2(rect.position.x + 8, rect.position.y + 8, rect.size.x - 16, 10),
+			Color(0.16, 0.18, 0.10, 0.18))
+	if wet_edges.get("south", -1) == TERRAIN_SWAMP:
+		draw_rect(Rect2(rect.position.x + 8, rect.position.y + rect.size.y - 18, rect.size.x - 16, 10),
+			Color(0.14, 0.12, 0.08, 0.20))
+	if wet_edges.get("west", -1) == TERRAIN_RIVER:
+		draw_rect(Rect2(rect.position.x + 8, rect.position.y + 8, 10, rect.size.y - 16),
+			Color(0.10, 0.14, 0.20, 0.16))
+	if wet_edges.get("east", -1) == TERRAIN_RIVER:
+		draw_rect(Rect2(rect.position.x + rect.size.x - 18, rect.position.y + 8, 10, rect.size.y - 16),
+			Color(0.08, 0.12, 0.18, 0.16))
+	if wet_edges.get("west", -1) == TERRAIN_SWAMP:
+		draw_rect(Rect2(rect.position.x + 8, rect.position.y + 8, 10, rect.size.y - 16),
+			Color(0.16, 0.18, 0.10, 0.16))
+	if wet_edges.get("east", -1) == TERRAIN_SWAMP:
+		draw_rect(Rect2(rect.position.x + rect.size.x - 18, rect.position.y + 8, 10, rect.size.y - 16),
+			Color(0.14, 0.12, 0.08, 0.16))
 	if wall_neighbors >= 2:
 		draw_rect(Rect2(rect.position.x + 6, rect.position.y + 6,
 			rect.size.x - 12, rect.size.y - 12), Color(0.42, 0.38, 0.32, 0.12))

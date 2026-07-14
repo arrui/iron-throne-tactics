@@ -1293,6 +1293,16 @@ func _test_visual_style_unification() -> void:
 		"BattleMap 桥梁细节包含桥面中轴高亮")
 	_assert(src.contains("bridge_neighbors > 0 and wall_neighbors == 0 and river_neighbors == 0"),
 		"BattleMap 仅在桥头陆地强化主通路接驳")
+	_assert(src.contains("func _plain_wet_edge_mask"),
+		"BattleMap 提供平地湿边接触检测，支撑贴河/贴沼方向提示")
+	_assert(src.contains("var wet_edges := _plain_wet_edge_mask(x, y)"),
+		"BattleMap 会按平地湿边信息绘制定向湿边")
+	_assert(src.contains("if wet_edges.get(\"north\", -1) == TERRAIN_RIVER:"),
+		"BattleMap 会为贴北侧河流的平地补湿边压暗")
+	_assert(src.contains("if wet_edges.get(\"south\", -1) == TERRAIN_SWAMP:"),
+		"BattleMap 会为贴南侧沼泽的平地补泥边提示")
+	_assert(src.contains("draw_rect(Rect2(rect.position.x + 8, rect.position.y + 8, rect.size.x - 16, 10)"),
+		"BattleMap 会为贴边平地补窄条湿边层")
 	_assert(src.contains("if bridge_neighbors > 0 and horizontal_flow:"),
 		"BattleMap 河流会在南北桥两侧补桥基水影")
 	_assert(src.contains("if bridge_neighbors > 0 and not horizontal_flow:"),
@@ -1758,6 +1768,12 @@ func _test_map_visual_language_spec() -> void:
 	if ch2.has_method("_plain_wall_contact_mask"):
 		var ch2_bridgehead_contact: Dictionary = ch2._plain_wall_contact_mask(11, 6)
 		_assert(ch2_bridgehead_contact.get("south", false), "Ch2 语义回归：中桥北桥头左侧平地保留南侧墙脚接触")
+	_assert(ch2.has_method("_plain_wet_edge_mask"), "Ch2 语义回归：平地湿边接触检测辅助可用")
+	if ch2.has_method("_plain_wet_edge_mask"):
+		var ch2_north_bank_plain: Dictionary = ch2._plain_wet_edge_mask(9, 7)
+		_assert_eq(ch2_north_bank_plain.get("south", -1), 4, "Ch2 语义回归：中桥北岸平地保留朝河湿边")
+		var ch2_south_mud_plain: Dictionary = ch2._plain_wet_edge_mask(11, 15)
+		_assert_eq(ch2_south_mud_plain.get("south", -1), 5, "Ch2 语义回归：南岸泥地前平地保留朝沼泥边")
 	_assert(ch2.has_method("_bridge_end_mask"), "Ch2 语义回归：桥端暴露检测辅助可用")
 	if ch2.has_method("_bridge_end_mask"):
 		var ch2_north_bridge_end: Dictionary = ch2._bridge_end_mask(14, 7)
@@ -1852,6 +1868,10 @@ func _test_map_visual_language_spec() -> void:
 	if ch3.has_method("_terrain_corner_mask"):
 		var ch3_swamp_corners: Dictionary = ch3._terrain_corner_mask(3, 8, 5)
 		_assert(ch3_swamp_corners.get("sw", false), "Ch3 语义回归：湿地左下角保留泥地角落过渡")
+	_assert(ch3.has_method("_plain_wet_edge_mask"), "Ch3 语义回归：平地湿边接触检测辅助可用")
+	if ch3.has_method("_plain_wet_edge_mask"):
+		var ch3_swamp_plain: Dictionary = ch3._plain_wet_edge_mask(5, 6)
+		_assert_eq(ch3_swamp_plain.get("south", -1), 5, "Ch3 语义回归：塔前湿地上缘平地保留朝沼泥边")
 	_assert_eq(ch3._terrain_at_or_cliff(12, 8), 0, "Ch3 语义回归：塔前中轴接敌格保持通路")
 	_assert(ch3._terrain_at_or_cliff(10, 8) == 0 or ch3._terrain_at_or_cliff(14, 8) == 0,
 		"Ch3 语义回归：塔前至少保留一侧绕行空间")
@@ -1922,6 +1942,12 @@ func _test_map_visual_language_spec() -> void:
 		_assert(_bridge_span_has_river_flanks(ch4, bridge_pos.y, 17, 20),
 			"Ch4 语义回归：主桥 %s 两侧与河流衔接" % str(bridge_pos))
 	_assert(ch4.has_method("_river_bank_mask"), "Ch4 语义回归：河岸暴露检测辅助可用")
+	_assert(ch4.has_method("_plain_wet_edge_mask"), "Ch4 语义回归：平地湿边接触检测辅助可用")
+	if ch4.has_method("_plain_wet_edge_mask"):
+		var ch4_moat_plain: Dictionary = ch4._plain_wet_edge_mask(13, 7)
+		_assert_eq(ch4_moat_plain.get("south", -1), 4, "Ch4 语义回归：内护城河北岸平地保留朝河湿边")
+		var ch4_blackwater_plain: Dictionary = ch4._plain_wet_edge_mask(13, 20)
+		_assert_eq(ch4_blackwater_plain.get("north", -1), 4, "Ch4 语义回归：黑水河南岸平地保留朝河湿边")
 	_assert(ch4.has_method("_bridge_end_mask"), "Ch4 语义回归：桥端暴露检测辅助可用")
 	if ch4.has_method("_bridge_end_mask"):
 		var ch4_inner_bridge_end: Dictionary = ch4._bridge_end_mask(18, 8)
