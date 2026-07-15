@@ -1,0 +1,11 @@
+{
+  "source": "market",
+  "id": 43716,
+  "alias": "美境AI生成",
+  "intro": "调用美境 AI 平台生成图片、视频或数字人。支持即梦5.0/4.5、Longcat-image、GPT-image-1.5、Qwen-Image、Nano Banana、Kling 2.5、LongCat-Video、数字人(LipSync) 等模型，覆盖文生图、图生图、图生视频、数字人场景。当用户提到生成图片、生成视频、数字人、LipSync、让照片说话、对口型、AI出图、文生图、图生图、图生视频、帮我画、出几张图、用某模型画图时使用此 skill。即使用户只说\"帮我生成一张图\"而未指定模型，也应触发。",
+  "creator": "chenshengtao",
+  "visibility": "partial",
+  "updateTime": "1779177101000",
+  "downloadTime": 1784113572328,
+  "location": "project"
+}

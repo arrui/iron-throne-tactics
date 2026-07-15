@@ -1,0 +1,13 @@
+skill-manifest-version: 1
+skill-id: 90d1089bd79d711211656e234e3dde2e396ce9a4b5ade4f50bb6fc5e6e0f86b6
+
+files:
+  d625056661ae898a6df8ab3bb31e9995f8ad83583612351e3d8b3188e94c9ecb  SKILL.md
+  ce1feb4a5307475a0cf4e15df06e316577a598d61fafb6314117ca7db862748d  scripts/__pycache__/common.cpython-312.pyc
+  4ec5a1d30ed3a5b85a619049c2721fcc502b67c027b198c08d62d5de7dc3877d  scripts/__pycache__/generate.cpython-312.pyc
+  bdd40c19b582bb6ce7b1971c37ed4afae06f8f602850acbb45cea18bf707b31e  scripts/__pycache__/poll.cpython-312.pyc
+  08f5817c4b1c9e0cdd11a78b7109f1418eea2260de723a091d6f496ac7c7c1e3  scripts/__pycache__/resolution.cpython-312.pyc
+  0170159ac725cd4482ce15a19fdeec5dbbd4da9e6ed7fc53ef235eaee0f33bac  scripts/common.py
+  9e732d01140fe7d11a8ab968d7b5fa2108fe07250c0721bdd60e4ce45c335754  scripts/generate.py
+  884641c1cb63120ff60e517ddc481bd99ade1207f356756ac3b886becd144e11  scripts/poll.py
+  3a818ed48809ea8bc59cc406e915f971017d58239c209c1d6aea0f0edbb272a8  scripts/resolution.py

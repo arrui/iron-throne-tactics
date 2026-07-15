@@ -38,6 +38,8 @@ Character addendum: Ned Stark, middle-aged northern lord, dark brown hair, trimm
 Expected master path: `design/portraits/core-batch-2026-07-15/masters/ned_stark_master_v1.png`
 Expected runtime export: `game/冰与火/assets/units/ned_stark_portrait.png`
 
+- Selected master: `ned_stark_master_v1.png` — chosen as the approved northern-austerity style anchor; crop note: centered 896×896 crop from `(384, 0)` keeps the face and shoulders readable at 96×96.
+
 ### Rhaegar Targaryen {#rhaegar_targaryen}
 
 ```text
@@ -46,6 +48,8 @@ Character addendum: Rhaegar Targaryen, noble tragic prince, pale skin, silver-bl
 
 Expected master path: `design/portraits/core-batch-2026-07-15/masters/rhaegar_targaryen_master_v1.png`
 Expected runtime export: `game/冰与火/assets/units/rhaegar_targaryen_portrait.png`
+
+- Selected master: `rhaegar_targaryen_master_v1.png` — chosen as the approved tragic-prince style anchor; crop note: centered 896×896 crop from `(384, 0)` preserves the face, armor, and restrained background at 96×96.
 
 ### Robert Baratheon {#robert_baratheon}
 
@@ -56,6 +60,8 @@ Character addendum: Robert Baratheon in his warrior-king prime leaning toward ea
 Expected master path: `design/portraits/core-batch-2026-07-15/masters/robert_baratheon_master_v1.png`
 Expected runtime export: `game/冰与火/assets/units/robert_baratheon_portrait.png`
 
+- Selected master: `robert_baratheon_master_v1.png` — chosen for its broad warrior-king silhouette and grounded stag-lord weight; crop note: the shared centered 896×896 crop keeps the detected face in the upper-center portrait band.
+
 ### Howland Reed {#howland_reed}
 
 ```text
@@ -64,6 +70,8 @@ Character addendum: Howland Reed, compact marshland scout-lord, alert watchful e
 
 Expected master path: `design/portraits/core-batch-2026-07-15/masters/howland_reed_master_v1.png`
 Expected runtime export: `game/冰与火/assets/units/howland_reed_portrait.png`
+
+- Selected master: `howland_reed_master_v1.png` — chosen for its compact scout-lord presentation and restrained marshland palette; crop note: the shared centered 896×896 crop retains a readable face and practical shoulder silhouette.
 
 ### Arthur Dayne {#arthur_dayne}
 
@@ -74,6 +82,8 @@ Character addendum: Ser Arthur Dayne, legendary royal knight, pale dignified fac
 Expected master path: `design/portraits/core-batch-2026-07-15/masters/arthur_dayne_master_v1.png`
 Expected runtime export: `game/冰与火/assets/units/arthur_dayne_portrait.png`
 
+- Selected master: `arthur_dayne_master_v1.png` — chosen for its disciplined legendary-knight presentation and pale steel hierarchy; crop note: the shared centered 896×896 crop prioritizes the primary detected face and excludes peripheral detail.
+
 ### Jaime Lannister {#jaime_lannister}
 
 ```text
@@ -82,6 +92,8 @@ Character addendum: Jaime Lannister as a dangerous young elite knight, handsome 
 
 Expected master path: `design/portraits/core-batch-2026-07-15/masters/jaime_lannister_master_v1.png`
 Expected runtime export: `game/冰与火/assets/units/jaime_lannister_portrait.png`
+
+- Selected master: `jaime_lannister_master_v1.png` — chosen for its aristocratic young-knight silhouette and gold-crimson material read; crop note: the shared centered 896×896 crop keeps the face large while preserving enough armor for faction recognition.
 
 ### Royal Guard Captain {#royal_guard_captain}
 
@@ -92,6 +104,8 @@ Character addendum: royal guard captain, elite crown enforcer, hard authoritaria
 Expected master path: `design/portraits/core-batch-2026-07-15/masters/royal_guard_captain_master_v1.png`
 Expected runtime export: `game/冰与火/assets/units/royal_guard_captain_portrait.png`
 
+- Selected master: `royal_guard_captain_master_v1.png` — chosen for its elite command presence and readable human face within heavier armor; crop note: the shared centered 896×896 crop keeps the primary face and authoritative shoulder line centered.
+
 ### Lannister Soldier {#lannister_soldier}
 
 ```text
@@ -100,3 +114,5 @@ Character addendum: Lannister foot soldier representative portrait, disciplined 
 
 Expected master path: `design/portraits/core-batch-2026-07-15/masters/lannister_soldier_master_v1.png`
 Expected runtime export: `game/冰与火/assets/units/lannister_soldier_portrait.png`
+
+- Selected master: `lannister_soldier_master_v1.png` — chosen for its grounded red-gold infantry identity and practical equipment profile; crop note: the shared centered 896×896 crop follows the approved batch framing despite helmet-limited face detection.
