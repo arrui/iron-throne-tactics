@@ -10,6 +10,7 @@ script = ExtResource("1")
 texture = ExtResource("2")
 scale = Vector2(2, 2)
 texture_filter = 1
+hframes = 3
 
 [node name="Label" type="Label" parent="."]
 offset_left = -20.0

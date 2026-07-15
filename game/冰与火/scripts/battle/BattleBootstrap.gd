@@ -13,19 +13,19 @@ const SPRITE_PATH        := "res://assets/units/"
 
 # ── 单位精灵映射表（所有章节通用）─────────────────────────
 const UNIT_SPRITE_MAP := {
-	"ned_stark.json":           "ned_stark_map.png",
-	"robert_baratheon.json":    "robert_baratheon_map.png",
+	"arthur_dayne.json":        "arthur_dayne_map.png",
+	"barristan_selmy.json":     "barristan_selmy_map.png",
+	"dorne_knight.json":        "dorne_knight_map.png",
 	"howland_reed.json":        "howland_reed_map.png",
+	"lannister_soldier.json":   "lannister_soldier_map.png",
+	"ned_stark.json":           "ned_stark_map.png",
+	"northern_knight.json":     "northern_knight_map.png",
+	"rebel_lord.json":          "rebel_lord_map.png",
+	"rhaegar_targaryen.json":   "rhaegar_targaryen_map.png",
+	"robert_baratheon.json":    "robert_baratheon_map.png",
+	"royal_guard_captain.json": "royal_guard_captain_map.png",
 	"royal_soldier.json":       "royal_soldier_map.png",
-	"rhaegar_targaryen.json":   "ned_stark_map.png",
-	"barristan_selmy.json":     "ned_stark_map.png",
-	"rebel_lord.json":          "howland_reed_map.png",
-	"targaryen_soldier.json":   "royal_soldier_map.png",
-	"arthur_dayne.json":        "ned_stark_map.png",
-	"dorne_knight.json":        "royal_soldier_map.png",
-	"northern_knight.json":     "howland_reed_map.png",
-	"lannister_soldier.json":   "royal_soldier_map.png",
-	"royal_guard_captain.json": "royal_soldier_map.png",
+	"targaryen_soldier.json":   "targaryen_soldier_map.png",
 }
 const UNIT_PORTRAIT_MAP := {
 	"arthur_dayne.json":        "arthur_dayne_portrait.png",
@@ -956,7 +956,7 @@ func _make_unit_r(filename: String, team: int, pos: Vector2i) -> Unit:
 		var tex := load(SPRITE_PATH + sf) as Texture2D
 		if tex != null:
 			var sp: Sprite2D = unit.get_node("Sprite")
-			sp.texture = tex; sp.region_enabled = true; sp.region_rect = Rect2(0,0,32,32)
+			sp.texture = tex
 	var pf: String = UNIT_PORTRAIT_MAP.get(filename, "")
 	if pf != "":
 		var pp: String = SPRITE_PATH + pf

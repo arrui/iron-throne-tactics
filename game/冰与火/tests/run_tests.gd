@@ -67,6 +67,7 @@ func _run_all_tests() -> void:
 		["地图视觉风格统一回归", _test_visual_style_unification],
 		["地图语义规范回归", _test_map_visual_language_spec],
 		["人物立绘资源完整性", _test_portrait_assets],
+		["专属地图精灵资源与动画", _test_map_sprite_assets_and_animation],
 		["对话立绘映射完整性", _test_dialogue_portrait_mapping],
 		["字体初始化方法存在", _test_font_setup],
 		["关键场景与脚本冒烟加载", _test_scene_and_script_smoke],
@@ -2238,6 +2239,65 @@ func _test_portrait_assets() -> void:
 			"立绘分辨率升级为至少96×96：%s (%dx%d)" % [portrait_name, tex.get_width(), tex.get_height()])
 		_assert(tex.get_width() == tex.get_height(),
 			"立绘保持方形比例：%s" % portrait_name)
+
+func _test_map_sprite_assets_and_animation() -> void:
+	var expected_sprite_map := {
+		"arthur_dayne.json": "arthur_dayne_map.png",
+		"barristan_selmy.json": "barristan_selmy_map.png",
+		"dorne_knight.json": "dorne_knight_map.png",
+		"howland_reed.json": "howland_reed_map.png",
+		"lannister_soldier.json": "lannister_soldier_map.png",
+		"ned_stark.json": "ned_stark_map.png",
+		"northern_knight.json": "northern_knight_map.png",
+		"rebel_lord.json": "rebel_lord_map.png",
+		"rhaegar_targaryen.json": "rhaegar_targaryen_map.png",
+		"robert_baratheon.json": "robert_baratheon_map.png",
+		"royal_guard_captain.json": "royal_guard_captain_map.png",
+		"royal_soldier.json": "royal_soldier_map.png",
+		"targaryen_soldier.json": "targaryen_soldier_map.png",
+	}
+	_assert_eq(BootstrapClass.UNIT_SPRITE_MAP, expected_sprite_map,
+		"所有可上场单位使用一对一专属地图精灵映射")
+
+	var sprite_names: Array[String] = []
+	for sprite_name: String in expected_sprite_map.values():
+		sprite_names.append(sprite_name)
+	# 詹姆与史林特暂未拥有单位 JSON，但预制同规格资源供后续章节直接接入。
+	sprite_names.append("jaime_lannister_map.png")
+	sprite_names.append("janos_slynt_map.png")
+	for sprite_name: String in sprite_names:
+		var path := "res://assets/units/" + sprite_name
+		_assert(FileAccess.file_exists(path), "地图精灵资源存在：%s" % sprite_name)
+		if not FileAccess.file_exists(path):
+			continue
+		var img := Image.load_from_file(ProjectSettings.globalize_path(path))
+		_assert(img != null and not img.is_empty(), "地图精灵可直接读取：%s" % sprite_name)
+		if img == null or img.is_empty():
+			continue
+		_assert_eq(img.get_size(), Vector2i(96, 32), "地图精灵为横向三帧96×32：%s" % sprite_name)
+		_assert(img.detect_alpha() != Image.ALPHA_NONE, "地图精灵保留透明通道：%s" % sprite_name)
+		for frame_idx in 3:
+			var frame_img := img.get_region(Rect2i(frame_idx * 32, 0, 32, 32))
+			_assert(frame_img.get_used_rect().has_area(),
+				"地图精灵第%d帧包含可见像素：%s" % [frame_idx + 1, sprite_name])
+
+	var unit_scene := load("res://scenes/battle/Unit.tscn") as PackedScene
+	_assert(unit_scene != null, "单位场景可加载以验证地图精灵运行时行为")
+	if unit_scene == null:
+		return
+	var unit := unit_scene.instantiate() as Unit
+	root.add_child(unit)
+	await process_frame
+	var sprite := unit.get_node("Sprite") as Sprite2D
+	_assert(sprite.visible, "地图精灵在战场单位上可见")
+	_assert_eq(sprite.hframes, 3, "地图精灵按三帧横向图集配置")
+	var name_label := unit.get_node("Label") as Label
+	_assert(name_label.offset_bottom <= -32.0, "单位简称完全位于精灵上方而非遮挡角色")
+	var initial_frame := sprite.frame
+	await create_timer(0.4).timeout
+	_assert(sprite.frame != initial_frame, "地图精灵待机动画会自动切换帧")
+	unit.queue_free()
+	await process_frame
 
 func _test_dialogue_portrait_mapping() -> void:
 	const DIALOGUE_SYSTEM_PATH := "res://scripts/dialogue/DialogueSystem.gd"

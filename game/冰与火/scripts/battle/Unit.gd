@@ -16,6 +16,7 @@ var weapon_key: String:
 	get: return data.get_weapon_key() if data != null else "sword_E"
 
 var _pending_death: bool = false
+var _idle_time: float = 0.0
 
 # ── GDD 色盘（Banner Saga 暗色系）──────────────────────────
 const _TS            := 72      # 与 BattleMap.TILE_SIZE 同步
@@ -41,10 +42,13 @@ const _DONE_MIX      := 0.55   # 行动完毕灰化程度
 
 # ── 初始化 ──────────────────────────────────────────────────
 func _ready() -> void:
-	# 隐藏 PNG 精灵——改用 _draw() 程序化六边形
+	# 专属像素精灵叠在阵营六边形之上；三帧图集用于轻微待机动画。
 	var sprite := get_node_or_null("Sprite") as Sprite2D
 	if sprite:
-		sprite.visible = false
+		sprite.visible = true
+		sprite.hframes = 3
+		sprite.frame = 0
+	set_process(true)
 	# 调整名字标签：居中、阵营色、加阴影
 	var lbl := get_node_or_null("Label") as Label
 	if lbl:
@@ -55,8 +59,8 @@ func _ready() -> void:
 		lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
 		lbl.add_theme_constant_override("shadow_offset_x", 1)
 		lbl.add_theme_constant_override("shadow_offset_y", 1)
-		lbl.offset_top    = -11.0
-		lbl.offset_bottom =  11.0
+		lbl.offset_top    = -52.0
+		lbl.offset_bottom = -32.0
 		lbl.offset_left   = -18.0
 		lbl.offset_right  =  18.0
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -65,6 +69,12 @@ func _ready() -> void:
 	var hp_lbl := get_node_or_null("HPLabel") as Label
 	if hp_lbl:
 		hp_lbl.visible = false
+
+func _process(delta: float) -> void:
+	_idle_time += delta
+	var sprite := get_node_or_null("Sprite") as Sprite2D
+	if sprite != null and sprite.hframes == 3:
+		sprite.frame = int(_idle_time / 0.28) % 3
 
 func setup(unit_data: UnitData, unit_team: int, pos: Vector2i) -> void:
 	data     = unit_data
