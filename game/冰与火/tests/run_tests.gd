@@ -1347,6 +1347,10 @@ func _test_visual_style_unification() -> void:
 		"BattleMap 会为南北桥口岸块补高光顶沿线")
 	_assert(src.contains("draw_line(Vector2(rect.position.x + 10, rect.position.y + 12),"),
 		"BattleMap 会为东西桥口岸块补高光侧沿线")
+	_assert(src.contains("draw_line(Vector2(rect.position.x + 12, rect.position.y + rect.size.y - 10),"),
+		"BattleMap 会为南北桥口岸块另一侧补压暗沿线")
+	_assert(src.contains("draw_line(Vector2(rect.position.x + rect.size.x - 10, rect.position.y + 12),"),
+		"BattleMap 会为东西桥口岸块另一侧补压暗沿线")
 	_assert(src.contains("func _river_bank_mask"),
 		"BattleMap 提供河岸暴露检测，支撑非桥接岸线强化")
 	_assert(src.contains("var banks := _river_bank_mask(x, y)"),
@@ -2084,9 +2088,13 @@ func _test_map_visual_language_spec() -> void:
 		var ch4_bridge_mouth_inner: Dictionary = ch4._river_bank_mask(16, 8)
 		_assert(ch4_bridge_mouth_inner.get("north", false) and ch4._adjacent_terrain_count(16, 8, 6) > 0,
 			"Ch4 语义回归：内护城河主桥北桥口邻接河段同时保留北岸与桥口接触")
+		_assert(ch4_bridge_mouth_inner.get("south", false),
+			"Ch4 语义回归：内护城河单行河段桥口仍保留对侧压暗岸线")
 		var ch4_bridge_mouth_blackwater: Dictionary = ch4._river_bank_mask(16, 19)
 		_assert(ch4_bridge_mouth_blackwater.get("south", false) and ch4._adjacent_terrain_count(16, 19, 6) > 0,
 			"Ch4 语义回归：黑水河主桥南桥口邻接河段同时保留南岸与桥口接触")
+		_assert(ch4_bridge_mouth_blackwater.get("north", false),
+			"Ch4 语义回归：黑水河单行河段桥口仍保留对侧压暗岸线")
 	_assert(_path_exists_on_passable_grid(ch4, Vector2i(18, 22), ch4.victory_pos),
 		"Ch4 语义回归：中轴部署区到铁王座存在连续可达路径")
 	var ch4_axis: Array[Vector2i] = ch4._find_objective_guidance_path()

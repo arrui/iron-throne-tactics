@@ -1117,6 +1117,9 @@ func _draw_river_detail(rect: Rect2, x: int, y: int) -> void:
 	if bridge_neighbors > 0 and horizontal_flow and banks.get("south", false):
 		draw_rect(Rect2(rect.position.x + 12, rect.position.y + rect.size.y - 12, rect.size.x - 24, 8),
 			Color(0.14, 0.10, 0.06, 0.20))
+		draw_line(Vector2(rect.position.x + 12, rect.position.y + rect.size.y - 10),
+			Vector2(rect.position.x + rect.size.x - 12, rect.position.y + rect.size.y - 10),
+			Color(0.10, 0.08, 0.06, 0.16), 2.0, true)
 	if bridge_neighbors > 0 and not horizontal_flow and banks.get("west", false):
 		draw_rect(Rect2(rect.position.x + 4, rect.position.y + 12, 8, rect.size.y - 24),
 			Color(0.28, 0.22, 0.14, 0.18))
@@ -1126,6 +1129,9 @@ func _draw_river_detail(rect: Rect2, x: int, y: int) -> void:
 	if bridge_neighbors > 0 and not horizontal_flow and banks.get("east", false):
 		draw_rect(Rect2(rect.position.x + rect.size.x - 12, rect.position.y + 12, 8, rect.size.y - 24),
 			Color(0.14, 0.10, 0.06, 0.20))
+		draw_line(Vector2(rect.position.x + rect.size.x - 10, rect.position.y + 12),
+			Vector2(rect.position.x + rect.size.x - 10, rect.position.y + rect.size.y - 12),
+			Color(0.10, 0.08, 0.06, 0.14), 2.0, true)
 	if bridge_neighbors > 0 and horizontal_flow:
 		if _terrain_at_or_cliff(x - 1, y) == TERRAIN_BRIDGE:
 			draw_rect(Rect2(rect.position.x + 2, rect.position.y + 8, 8, rect.size.y - 16),
