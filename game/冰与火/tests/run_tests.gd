@@ -1325,6 +1325,12 @@ func _test_visual_style_unification() -> void:
 		"BattleMap 会为南北桥头前地补纵向接桥石带")
 	_assert(src.contains("draw_rect(Rect2(rect.position.x + 4, rect.position.y + 18, 10, rect.size.y - 36)"),
 		"BattleMap 会为东西桥头前地补横向接桥石带")
+	_assert(src.contains("if bridge_neighbors > 0 and horizontal_flow and banks.get(\"north\", false):"),
+		"BattleMap 会在南北桥口邻接河段补北向桥口岸块")
+	_assert(src.contains("if bridge_neighbors > 0 and not horizontal_flow and banks.get(\"west\", false):"),
+		"BattleMap 会在东西桥口邻接河段补西向桥口岸块")
+	_assert(src.contains("draw_rect(Rect2(rect.position.x + 12, rect.position.y + 4, rect.size.x - 24, 8)"),
+		"BattleMap 会为桥口邻接河段补窄桥口岸带")
 	_assert(src.contains("func _river_bank_mask"),
 		"BattleMap 提供河岸暴露检测，支撑非桥接岸线强化")
 	_assert(src.contains("var banks := _river_bank_mask(x, y)"),
@@ -1842,6 +1848,12 @@ func _test_map_visual_language_spec() -> void:
 		var ch2_south_bank: Dictionary = ch2._river_bank_mask(11, 9)
 		_assert(ch2_south_bank.get("south", false), "Ch2 语义回归：中桥左侧南岸河段保留南岸强化")
 		_assert(not ch2_south_bank.get("north", false), "Ch2 语义回归：中桥左侧南岸河段不会误判成北岸")
+		var ch2_bridge_mouth_north: Dictionary = ch2._river_bank_mask(16, 8)
+		_assert(ch2_bridge_mouth_north.get("north", false) and ch2._adjacent_terrain_count(16, 8, 6) > 0,
+			"Ch2 语义回归：中桥北桥口邻接河段同时保留北岸与桥口接触")
+		var ch2_bridge_mouth_south: Dictionary = ch2._river_bank_mask(16, 9)
+		_assert(ch2_bridge_mouth_south.get("south", false) and ch2._adjacent_terrain_count(16, 9, 6) > 0,
+			"Ch2 语义回归：中桥南桥口邻接河段同时保留南岸与桥口接触")
 	_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return "争夺三桥" in msg and "雷加" in msg),
 		"Ch2 语义回归：开场状态提示明确三桥与雷加目标")
 	_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("目标：") and "争夺三桥" in msg),
@@ -2011,6 +2023,12 @@ func _test_map_visual_language_spec() -> void:
 		var ch4_blackwater_bank: Dictionary = ch4._river_bank_mask(13, 19)
 		_assert(ch4_blackwater_bank.get("north", false) and ch4_blackwater_bank.get("south", false),
 			"Ch4 语义回归：黑水河非桥接河段同时保留南北两侧岸线")
+		var ch4_bridge_mouth_inner: Dictionary = ch4._river_bank_mask(16, 8)
+		_assert(ch4_bridge_mouth_inner.get("north", false) and ch4._adjacent_terrain_count(16, 8, 6) > 0,
+			"Ch4 语义回归：内护城河主桥北桥口邻接河段同时保留北岸与桥口接触")
+		var ch4_bridge_mouth_blackwater: Dictionary = ch4._river_bank_mask(16, 19)
+		_assert(ch4_bridge_mouth_blackwater.get("south", false) and ch4._adjacent_terrain_count(16, 19, 6) > 0,
+			"Ch4 语义回归：黑水河主桥南桥口邻接河段同时保留南岸与桥口接触")
 	_assert(_path_exists_on_passable_grid(ch4, Vector2i(18, 22), ch4.victory_pos),
 		"Ch4 语义回归：中轴部署区到铁王座存在连续可达路径")
 	var ch4_axis: Array[Vector2i] = ch4._find_objective_guidance_path()
