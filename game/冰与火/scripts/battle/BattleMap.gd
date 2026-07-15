@@ -1175,6 +1175,9 @@ func _draw_bridge_detail(rect: Rect2, x: int, y: int) -> void:
 				Color(0.82, 0.76, 0.62, 0.22), 2.0, true)
 		if vertical_bridge and bridge_ends.get("south", false):
 			draw_rect(Rect2(rect.position.x + 14, rect.position.y + rect.size.y - 12, rect.size.x - 28, 8), cap_shadow)
+			draw_line(Vector2(rect.position.x + 16, rect.position.y + rect.size.y - 10),
+				Vector2(rect.position.x + rect.size.x - 16, rect.position.y + rect.size.y - 10),
+				Color(0.08, 0.06, 0.04, 0.22), 2.0, true)
 	else:
 		var center_y := rect.position.y + rect.size.y * 0.5
 		for i: int in 4:
@@ -1190,6 +1193,9 @@ func _draw_bridge_detail(rect: Rect2, x: int, y: int) -> void:
 				Color(0.82, 0.76, 0.62, 0.22), 2.0, true)
 		if not vertical_bridge and bridge_ends.get("east", false):
 			draw_rect(Rect2(rect.position.x + rect.size.x - 12, rect.position.y + 14, 8, rect.size.y - 28), cap_shadow)
+			draw_line(Vector2(rect.position.x + rect.size.x - 10, rect.position.y + 16),
+				Vector2(rect.position.x + rect.size.x - 10, rect.position.y + rect.size.y - 16),
+				Color(0.08, 0.06, 0.04, 0.22), 2.0, true)
 
 func _draw_ellipse(rect: Rect2, color: Color) -> void:
 	var points := PackedVector2Array()

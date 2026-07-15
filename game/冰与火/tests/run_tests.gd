@@ -1319,6 +1319,10 @@ func _test_visual_style_unification() -> void:
 		"BattleMap 会为桥端补纵向桥台石帽")
 	_assert(src.contains("draw_rect(Rect2(rect.position.x + 4, rect.position.y + 14, 8, rect.size.y - 28)"),
 		"BattleMap 会为桥端补横向桥台石帽")
+	_assert(src.contains("draw_line(Vector2(rect.position.x + 16, rect.position.y + rect.size.y - 10),"),
+		"BattleMap 会为南北桥尾端补压暗收口线")
+	_assert(src.contains("draw_line(Vector2(rect.position.x + rect.size.x - 10, rect.position.y + 16),"),
+		"BattleMap 会为东西桥尾端补压暗收口线")
 	_assert(src.contains("if bridge_neighbors > 0 and river_neighbors == 0:"),
 		"BattleMap 会为桥头前的陆地补桥面接驳石带")
 	_assert(src.contains("draw_rect(Rect2(rect.position.x + 18, rect.position.y + 4, rect.size.x - 36, 10)"),
@@ -1840,8 +1844,10 @@ func _test_map_visual_language_spec() -> void:
 	if ch2.has_method("_bridge_end_mask"):
 		var ch2_north_bridge_end: Dictionary = ch2._bridge_end_mask(14, 7)
 		_assert(ch2_north_bridge_end.get("north", false), "Ch2 语义回归：中桥北桥头桥端保留北向端帽")
+		_assert(not ch2_north_bridge_end.get("south", false), "Ch2 语义回归：中桥北桥头不会误判成南向端帽")
 		var ch2_south_bridge_end: Dictionary = ch2._bridge_end_mask(14, 10)
 		_assert(ch2_south_bridge_end.get("south", false), "Ch2 语义回归：中桥南桥头桥端保留南向端帽")
+		_assert(not ch2_south_bridge_end.get("north", false), "Ch2 语义回归：中桥南桥头不会误判成北向端帽")
 	for north_bridgehead: Vector2i in [Vector2i(7, 7), Vector2i(14, 7), Vector2i(21, 7)]:
 		_assert_eq(ch2._terrain_at_or_cliff(north_bridgehead.x, north_bridgehead.y - 1), 0,
 			"Ch2 语义回归：桥北桥头 %s 与陆地主通路直接接驳" % str(north_bridgehead))
