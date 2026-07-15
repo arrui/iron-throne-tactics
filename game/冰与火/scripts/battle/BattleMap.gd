@@ -858,6 +858,9 @@ func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 		draw_line(Vector2(rect.position.x + 10, threshold_y - 2),
 			Vector2(rect.position.x + rect.size.x - 10, threshold_y - 2),
 			Color(0.74, 0.64, 0.44, 0.24), 2.0, true)
+		draw_line(Vector2(rect.position.x + 10, threshold_y + 2),
+			Vector2(rect.position.x + rect.size.x - 10, threshold_y + 2),
+			Color(0.10, 0.08, 0.06, 0.20), 2.0, true)
 		draw_line(Vector2(rect.position.x + 12, rect.position.y + 14),
 			Vector2(rect.position.x + 12, rect.position.y + rect.size.y - 14),
 			Color(0.16, 0.12, 0.08, 0.18), 2.0, true)
@@ -887,6 +890,9 @@ func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 		draw_line(Vector2(threshold_x - 2, rect.position.y + 10),
 			Vector2(threshold_x - 2, rect.position.y + rect.size.y - 10),
 			Color(0.74, 0.64, 0.44, 0.24), 2.0, true)
+		draw_line(Vector2(threshold_x + 2, rect.position.y + 10),
+			Vector2(threshold_x + 2, rect.position.y + rect.size.y - 10),
+			Color(0.10, 0.08, 0.06, 0.20), 2.0, true)
 		draw_line(Vector2(rect.position.x + 14, rect.position.y + 12),
 			Vector2(rect.position.x + rect.size.x - 14, rect.position.y + 12),
 			Color(0.16, 0.12, 0.08, 0.18), 2.0, true)
