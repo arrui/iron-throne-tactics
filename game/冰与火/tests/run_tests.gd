@@ -1343,6 +1343,10 @@ func _test_visual_style_unification() -> void:
 		"BattleMap 会在东西桥口邻接河段补西向桥口岸块")
 	_assert(src.contains("draw_rect(Rect2(rect.position.x + 12, rect.position.y + 4, rect.size.x - 24, 8)"),
 		"BattleMap 会为桥口邻接河段补窄桥口岸带")
+	_assert(src.contains("draw_line(Vector2(rect.position.x + 12, rect.position.y + 10),"),
+		"BattleMap 会为南北桥口岸块补高光顶沿线")
+	_assert(src.contains("draw_line(Vector2(rect.position.x + 10, rect.position.y + 12),"),
+		"BattleMap 会为东西桥口岸块补高光侧沿线")
 	_assert(src.contains("func _river_bank_mask"),
 		"BattleMap 提供河岸暴露检测，支撑非桥接岸线强化")
 	_assert(src.contains("var banks := _river_bank_mask(x, y)"),
@@ -1889,9 +1893,13 @@ func _test_map_visual_language_spec() -> void:
 		var ch2_bridge_mouth_north: Dictionary = ch2._river_bank_mask(16, 8)
 		_assert(ch2_bridge_mouth_north.get("north", false) and ch2._adjacent_terrain_count(16, 8, 6) > 0,
 			"Ch2 语义回归：中桥北桥口邻接河段同时保留北岸与桥口接触")
+		_assert(not ch2_bridge_mouth_north.get("south", false),
+			"Ch2 语义回归：中桥北桥口邻接河段不会误判成双向岸块")
 		var ch2_bridge_mouth_south: Dictionary = ch2._river_bank_mask(16, 9)
 		_assert(ch2_bridge_mouth_south.get("south", false) and ch2._adjacent_terrain_count(16, 9, 6) > 0,
 			"Ch2 语义回归：中桥南桥口邻接河段同时保留南岸与桥口接触")
+		_assert(not ch2_bridge_mouth_south.get("north", false),
+			"Ch2 语义回归：中桥南桥口邻接河段不会误判成双向岸块")
 	_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return "争夺三桥" in msg and "雷加" in msg),
 		"Ch2 语义回归：开场状态提示明确三桥与雷加目标")
 	_assert(ch2.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("目标：") and "争夺三桥" in msg),
