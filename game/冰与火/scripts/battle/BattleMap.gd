@@ -839,6 +839,8 @@ func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 		var threshold_y := rect.position.y + rect.size.y * 0.5
 		draw_rect(Rect2(rect.position.x + 18, rect.position.y + 6, rect.size.x - 36, 6),
 			Color(0.44, 0.36, 0.24, 0.18))
+		draw_rect(Rect2(rect.position.x + 18, rect.position.y + rect.size.y - 12, rect.size.x - 36, 6),
+			Color(0.12, 0.09, 0.06, 0.18))
 		if wall_contact.get("north", false):
 			draw_rect(Rect2(rect.position.x + 12, rect.position.y + 8, rect.size.x - 24, 6),
 				Color(0.18, 0.14, 0.10, 0.18))
@@ -866,6 +868,8 @@ func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 		var threshold_x := rect.position.x + rect.size.x * 0.5
 		draw_rect(Rect2(rect.position.x + 6, rect.position.y + 18, 6, rect.size.y - 36),
 			Color(0.44, 0.36, 0.24, 0.16))
+		draw_rect(Rect2(rect.position.x + rect.size.x - 12, rect.position.y + 18, 6, rect.size.y - 36),
+			Color(0.12, 0.09, 0.06, 0.18))
 		if wall_contact.get("west", false):
 			draw_rect(Rect2(rect.position.x + 8, rect.position.y + 12, 6, rect.size.y - 24),
 				Color(0.18, 0.14, 0.10, 0.16))
