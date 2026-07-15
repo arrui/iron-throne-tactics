@@ -856,6 +856,9 @@ func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 		if gate_vertical and wall_contact.get("east", false):
 			draw_rect(Rect2(rect.position.x + rect.size.x - 16, rect.position.y + 10, 8, rect.size.y - 20),
 				Color(0.16, 0.12, 0.08, 0.24))
+			draw_line(Vector2(rect.position.x + rect.size.x - 15, rect.position.y + 12),
+				Vector2(rect.position.x + rect.size.x - 15, rect.position.y + rect.size.y - 12),
+				Color(0.10, 0.08, 0.06, 0.18), 2.0, true)
 		draw_rect(Rect2(rect.position.x + 8, threshold_y - 5, rect.size.x - 16, 10),
 			Color(0.12, 0.09, 0.06, 0.24))
 		draw_line(Vector2(rect.position.x + 10, threshold_y - 2),
@@ -891,6 +894,9 @@ func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 		if gate_horizontal and wall_contact.get("south", false):
 			draw_rect(Rect2(rect.position.x + 10, rect.position.y + rect.size.y - 16, rect.size.x - 20, 8),
 				Color(0.16, 0.12, 0.08, 0.22))
+			draw_line(Vector2(rect.position.x + 12, rect.position.y + rect.size.y - 15),
+				Vector2(rect.position.x + rect.size.x - 12, rect.position.y + rect.size.y - 15),
+				Color(0.10, 0.08, 0.06, 0.18), 2.0, true)
 		draw_rect(Rect2(threshold_x - 5, rect.position.y + 8, 10, rect.size.y - 16),
 			Color(0.12, 0.09, 0.06, 0.24))
 		draw_line(Vector2(threshold_x - 2, rect.position.y + 10),
