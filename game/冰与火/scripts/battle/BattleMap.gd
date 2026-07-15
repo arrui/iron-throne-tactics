@@ -735,9 +735,15 @@ func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 	if wet_edges.get("north", -1) == TERRAIN_RIVER:
 		draw_rect(Rect2(rect.position.x + 8, rect.position.y + 8, rect.size.x - 16, 10),
 			Color(0.10, 0.14, 0.20, 0.18))
+		draw_line(Vector2(rect.position.x + 8, rect.position.y + 18),
+			Vector2(rect.position.x + rect.size.x - 8, rect.position.y + 18),
+			Color(0.18, 0.22, 0.30, 0.14), 2.0, true)
 	if wet_edges.get("south", -1) == TERRAIN_RIVER:
 		draw_rect(Rect2(rect.position.x + 8, rect.position.y + rect.size.y - 18, rect.size.x - 16, 10),
 			Color(0.08, 0.12, 0.18, 0.18))
+		draw_line(Vector2(rect.position.x + 8, rect.position.y + rect.size.y - 18),
+			Vector2(rect.position.x + rect.size.x - 8, rect.position.y + rect.size.y - 18),
+			Color(0.16, 0.18, 0.24, 0.14), 2.0, true)
 	if wet_edges.get("north", -1) == TERRAIN_SWAMP:
 		draw_rect(Rect2(rect.position.x + 8, rect.position.y + 8, rect.size.x - 16, 10),
 			Color(0.16, 0.18, 0.10, 0.18))

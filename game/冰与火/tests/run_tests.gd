@@ -1301,6 +1301,10 @@ func _test_visual_style_unification() -> void:
 		"BattleMap 会为贴北侧河流的平地补湿边压暗")
 	_assert(src.contains("if wet_edges.get(\"south\", -1) == TERRAIN_SWAMP:"),
 		"BattleMap 会为贴南侧沼泽的平地补泥边提示")
+	_assert(src.contains("draw_line(Vector2(rect.position.x + 8, rect.position.y + 18),"),
+		"BattleMap 会为贴河平地补河岸收口线")
+	_assert(src.contains("draw_line(Vector2(rect.position.x + 8, rect.position.y + rect.size.y - 18),"),
+		"BattleMap 会为贴南河平地补河岸收口线")
 	_assert(src.contains("draw_rect(Rect2(rect.position.x + 8, rect.position.y + 8, rect.size.x - 16, 10)"),
 		"BattleMap 会为贴边平地补窄条湿边层")
 	_assert(src.contains("if bridge_neighbors > 0 and horizontal_flow:"),
@@ -1870,6 +1874,7 @@ func _test_map_visual_language_spec() -> void:
 	if ch2.has_method("_plain_wet_edge_mask"):
 		var ch2_north_bank_plain: Dictionary = ch2._plain_wet_edge_mask(9, 7)
 		_assert_eq(ch2_north_bank_plain.get("south", -1), 4, "Ch2 语义回归：中桥北岸平地保留朝河湿边")
+		_assert_eq(ch2_north_bank_plain.get("north", -1), -1, "Ch2 语义回归：中桥北岸平地不会误判成双向贴河")
 		var ch2_south_mud_plain: Dictionary = ch2._plain_wet_edge_mask(11, 15)
 		_assert_eq(ch2_south_mud_plain.get("south", -1), 5, "Ch2 语义回归：南岸泥地前平地保留朝沼泥边")
 	_assert(ch2.has_method("_bridge_end_mask"), "Ch2 语义回归：桥端暴露检测辅助可用")
@@ -2070,6 +2075,7 @@ func _test_map_visual_language_spec() -> void:
 		_assert_eq(ch4_moat_plain.get("south", -1), 4, "Ch4 语义回归：内护城河北岸平地保留朝河湿边")
 		var ch4_blackwater_plain: Dictionary = ch4._plain_wet_edge_mask(13, 20)
 		_assert_eq(ch4_blackwater_plain.get("north", -1), 4, "Ch4 语义回归：黑水河南岸平地保留朝河湿边")
+		_assert_eq(ch4_blackwater_plain.get("south", -1), -1, "Ch4 语义回归：黑水河南岸平地不会误判成双向贴河")
 	_assert(ch4.has_method("_bridge_end_mask"), "Ch4 语义回归：桥端暴露检测辅助可用")
 	if ch4.has_method("_bridge_end_mask"):
 		var ch4_inner_bridge_end: Dictionary = ch4._bridge_end_mask(18, 8)
