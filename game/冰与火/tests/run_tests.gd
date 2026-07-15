@@ -1383,6 +1383,10 @@ func _test_visual_style_unification() -> void:
 		"BattleMap 会为纵向门洞补右侧门框边墙")
 	_assert(src.contains("if gate_horizontal and wall_contact.get(\"north\", false):"),
 		"BattleMap 会为横向门洞补上侧门框边墙")
+	_assert(src.contains("draw_rect(Rect2(rect.position.x + 18, rect.position.y + 6, rect.size.x - 36, 6)"),
+		"BattleMap 会为纵向门洞补上门楣石带")
+	_assert(src.contains("draw_rect(Rect2(rect.position.x + 6, rect.position.y + 18, 6, rect.size.y - 36)"),
+		"BattleMap 会为横向门洞补侧向门楣石带")
 	_assert(src.contains("draw_rect(Rect2(rect.position.x + 8, rect.position.y + 10, 8, rect.size.y - 20)"),
 		"BattleMap 会为门洞侧缘补局部门框石体")
 	_assert(src.contains("if _terrain_at_or_cliff(x, y - 1) != TERRAIN_CLIFF:"),
@@ -1932,6 +1936,11 @@ func _test_map_visual_language_spec() -> void:
 	if ch3.has_method("_plain_wet_edge_mask"):
 		var ch3_swamp_plain: Dictionary = ch3._plain_wet_edge_mask(5, 6)
 		_assert_eq(ch3_swamp_plain.get("south", -1), 5, "Ch3 语义回归：塔前湿地上缘平地保留朝沼泥边")
+	_assert(ch3._gate_runs_horizontal(11, 5), "Ch3 语义回归：欢乐塔前左门道保持横向门洞识别")
+	_assert(ch3._gate_runs_horizontal(12, 5), "Ch3 语义回归：欢乐塔前右门道保持横向门洞识别")
+	var ch3_tower_gate_contact: Dictionary = ch3._plain_wall_contact_mask(11, 5)
+	_assert(ch3_tower_gate_contact.get("north", false) and ch3_tower_gate_contact.get("south", false),
+		"Ch3 语义回归：欢乐塔前门道仍保留上下门楣依托")
 	_assert_eq(ch3._terrain_at_or_cliff(12, 8), 0, "Ch3 语义回归：塔前中轴接敌格保持通路")
 	_assert(ch3._terrain_at_or_cliff(10, 8) == 0 or ch3._terrain_at_or_cliff(14, 8) == 0,
 		"Ch3 语义回归：塔前至少保留一侧绕行空间")
