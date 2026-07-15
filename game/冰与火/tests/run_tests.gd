@@ -1329,6 +1329,10 @@ func _test_visual_style_unification() -> void:
 		"BattleMap 会为南北桥头前地补纵向接桥石带")
 	_assert(src.contains("draw_rect(Rect2(rect.position.x + 4, rect.position.y + 18, 10, rect.size.y - 36)"),
 		"BattleMap 会为东西桥头前地补横向接桥石带")
+	_assert(src.contains("draw_line(Vector2(rect.position.x + 18, rect.position.y + 14),"),
+		"BattleMap 会为南北桥头前地补接桥收口线")
+	_assert(src.contains("draw_line(Vector2(rect.position.x + 14, rect.position.y + 18),"),
+		"BattleMap 会为东西桥头前地补接桥收口线")
 	_assert(src.contains("if bridge_neighbors > 0 and horizontal_flow and banks.get(\"north\", false):"),
 		"BattleMap 会在南北桥口邻接河段补北向桥口岸块")
 	_assert(src.contains("if bridge_neighbors > 0 and not horizontal_flow and banks.get(\"west\", false):"),
@@ -1837,6 +1841,8 @@ func _test_map_visual_language_spec() -> void:
 		"Ch2 语义回归：中桥北桥头前地仍与桥面直接接驳")
 	_assert(ch2._terrain_at_or_cliff(14, 11) == 0 and ch2._adjacent_terrain_count(14, 11, 6) > 0,
 		"Ch2 语义回归：中桥南桥头前地仍与桥面直接接驳")
+	_assert(ch2._adjacent_terrain_count(14, 6, 6) == 1 and ch2._adjacent_terrain_count(14, 11, 6) == 1,
+		"Ch2 语义回归：中桥桥头前地保持单侧接桥收口")
 	_assert(ch2.has_method("_wall_corner_mask"), "Ch2 语义回归：墙体角部暴露检测辅助可用")
 	if ch2.has_method("_wall_corner_mask"):
 		var ch2_bridge_bastion: Dictionary = ch2._wall_corner_mask(12, 7)
@@ -2113,6 +2119,8 @@ func _test_map_visual_language_spec() -> void:
 		"Ch4 语义回归：红堡内护城河主桥北桥头前地仍与桥面直接接驳")
 	_assert(ch4._terrain_at_or_cliff(18, 9) == 0 and ch4._adjacent_terrain_count(18, 9, 6) > 0,
 		"Ch4 语义回归：红堡内护城河主桥南桥头前地仍与桥面直接接驳")
+	_assert(ch4._adjacent_terrain_count(18, 7, 6) == 1 and ch4._adjacent_terrain_count(18, 9, 6) == 1,
+		"Ch4 语义回归：红堡内护城河主桥桥头前地保持单侧接桥收口")
 	_assert_eq(ch4._terrain_at_or_cliff(18, 7), 0, "Ch4 语义回归：中轴主桥北桥头与陆地直接接驳")
 	_assert_eq(ch4._terrain_at_or_cliff(18, 9), 0, "Ch4 语义回归：中轴主桥南桥头与陆地直接接驳")
 	_assert(ch4._terrain_at_or_cliff(12, 11) == 2 and ch4._terrain_at_or_cliff(13, 11) == 2 and ch4._terrain_at_or_cliff(14, 11) == 2,

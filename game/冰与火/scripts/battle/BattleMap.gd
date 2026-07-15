@@ -797,6 +797,9 @@ func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 			if _terrain_at_or_cliff(x, y - 1) == TERRAIN_BRIDGE:
 				draw_rect(Rect2(rect.position.x + 18, rect.position.y + 4, rect.size.x - 36, 10),
 					Color(0.36, 0.30, 0.20, 0.20))
+				draw_line(Vector2(rect.position.x + 18, rect.position.y + 14),
+					Vector2(rect.position.x + rect.size.x - 18, rect.position.y + 14),
+					Color(0.52, 0.44, 0.30, 0.16), 2.0, true)
 			if _terrain_at_or_cliff(x, y + 1) == TERRAIN_BRIDGE:
 				draw_rect(Rect2(rect.position.x + 18, rect.position.y + rect.size.y - 14, rect.size.x - 36, 10),
 					Color(0.18, 0.14, 0.10, 0.22))
@@ -804,6 +807,9 @@ func _draw_plain_detail(rect: Rect2, x: int, y: int) -> void:
 			if _terrain_at_or_cliff(x - 1, y) == TERRAIN_BRIDGE:
 				draw_rect(Rect2(rect.position.x + 4, rect.position.y + 18, 10, rect.size.y - 36),
 					Color(0.36, 0.30, 0.20, 0.18))
+				draw_line(Vector2(rect.position.x + 14, rect.position.y + 18),
+					Vector2(rect.position.x + 14, rect.position.y + rect.size.y - 18),
+					Color(0.52, 0.44, 0.30, 0.14), 2.0, true)
 			if _terrain_at_or_cliff(x + 1, y) == TERRAIN_BRIDGE:
 				draw_rect(Rect2(rect.position.x + rect.size.x - 14, rect.position.y + 18, 10, rect.size.y - 36),
 					Color(0.18, 0.14, 0.10, 0.20))
