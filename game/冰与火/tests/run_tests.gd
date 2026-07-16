@@ -2112,6 +2112,24 @@ func _test_unit_state_machine() -> void:
 	_assert(battle._preview_enemy == null, "再次左键同一敌军会关闭安全距离预览")
 	battle._input(preview_enemy_click)
 	_assert(battle._preview_enemy == distant_enemy, "关闭后可再次左键敌军恢复安全距离预览")
+	var close_preview_event := InputEventKey.new()
+	close_preview_event.pressed = true
+	close_preview_event.keycode = KEY_ESCAPE
+	battle._input(close_preview_event)
+	_assert(battle._preview_enemy == null,
+		"敌军安全距离预览可通过正式 ESC 输入链路关闭")
+
+	var danger_toggle_event := InputEventKey.new()
+	danger_toggle_event.pressed = true
+	danger_toggle_event.keycode = KEY_D
+	var danger_before: bool = battle._show_danger
+	battle._input(danger_toggle_event)
+	_assert_eq(battle._show_danger, not danger_before, "D 键会通过正式输入链路切换危险区")
+	battle._input(danger_toggle_event)
+	_assert_eq(battle._show_danger, danger_before, "再次按 D 键会恢复危险区显示状态")
+
+	battle._input(preview_enemy_click)
+	_assert(battle._preview_enemy == distant_enemy, "快捷键输入验证后仍可重新打开敌军安全距离预览")
 	var select_mover_click := InputEventMouseButton.new()
 	select_mover_click.button_index = MOUSE_BUTTON_LEFT
 	select_mover_click.pressed = true
