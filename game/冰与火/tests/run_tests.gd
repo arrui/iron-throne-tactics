@@ -1089,6 +1089,10 @@ func _test_settings_menu() -> void:
 	var menu := scene.instantiate()
 	root.add_child(menu)
 	await process_frame
+	_assert(menu.can_process(), "未暂停游戏时设置菜单仍可处理输入")
+	var close_button := menu.get_node_or_null("Dimmer/Panel/Margin/Content/Buttons/Close") as Button
+	_assert(close_button != null and close_button.can_process(),
+		"未暂停游戏时设置菜单按钮可处理输入")
 	_assert(menu.get_node_or_null("Dimmer/Panel/Margin/Content/BattleAnimations") is CheckButton,
 		"设置菜单包含战斗动画开关")
 	_assert(menu.get_node_or_null("Dimmer/Panel/Margin/Content/AutoCamera") is CheckButton,

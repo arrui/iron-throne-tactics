@@ -14,7 +14,8 @@ signal closed
 var _settings: Node = null
 
 func _ready() -> void:
-	process_mode = Node.PROCESS_MODE_WHEN_PAUSED
+	# 设置入口既可在正常运行的主菜单/战场打开，也应兼容暂停态。
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_settings = get_node_or_null("/root/GameSettings")
 	if _settings == null:
 		_settings = load("res://scripts/systems/GameSettings.gd").new()
