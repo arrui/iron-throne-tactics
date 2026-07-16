@@ -12,7 +12,8 @@ static func start_new_campaign() -> void:
 static func save_chapter_complete(chapter: int) -> void:
 	var data := _read_json()
 	# 转为 int 数组，避免 JSON 反序列化时浮点类型干扰 in 运算符
-	var raw: Array = data.get("completed_chapters", [])
+	var raw_value: Variant = data.get("completed_chapters", [])
+	var raw: Array = raw_value if raw_value is Array else []
 	var completed: Array[int] = []
 	for v: Variant in raw:
 		completed.append(int(v))
@@ -30,7 +31,8 @@ static func load_current_chapter() -> int:
 
 static func get_completed_chapters() -> Array[int]:
 	var data := _read_json()
-	var raw: Array = data.get("completed_chapters", [])
+	var raw_value: Variant = data.get("completed_chapters", [])
+	var raw: Array = raw_value if raw_value is Array else []
 	var result: Array[int] = []
 	for v in raw:
 		result.append(int(v))

@@ -1009,6 +1009,12 @@ func _test_save_system() -> void:
 	ss._write_json({"chapter": 0, "completed_chapters": []})
 	_assert_eq(ss.load_current_chapter(), 1, "非法存档章节安全降级到Ch1")
 	ss.delete_save()
+	ss._write_json({"chapter": 2, "completed_chapters": "legacy"})
+	_assert(ss.get_completed_chapters().is_empty(), "损坏的已完成章节字段安全降级为空列表")
+	ss.save_chapter_complete(2)
+	_assert_eq(ss.load_current_chapter(), 3, "损坏存档恢复后仍可继续保存章节进度")
+	_assert(ss.get_completed_chapters().has(2), "损坏存档恢复后记录新完成章节")
+	ss.delete_save()
 
 	# 保存第1章完成
 	ss.save_chapter_complete(1)
