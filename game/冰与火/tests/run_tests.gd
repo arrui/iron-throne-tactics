@@ -1226,6 +1226,38 @@ func _test_opening_main_menu() -> void:
 		opening_scene.queue_free()
 	await process_frame
 
+	SaveSystem._write_json({"chapter": 3, "completed_chapters": [1, 2]})
+	GameState.deploy_selection = ["ned_stark.json", "northern_knight.json"]
+	var confirmed_opening := scene.instantiate()
+	confirmed_opening.set_script(TestOpeningClass)
+	root.add_child(confirmed_opening)
+	await process_frame
+	confirmed_opening._bind_main_menu()
+	confirmed_opening._refresh_main_menu()
+	var confirmed_new_game := confirmed_opening.get_node_or_null(
+		"MainMenu/MenuPanel/MenuContent/NewGameButton") as Button
+	var new_game_dialog := confirmed_opening.get_node_or_null("NewGameConfirm") as ConfirmationDialog
+	if confirmed_new_game != null:
+		confirmed_new_game.pressed.emit()
+	_assert(new_game_dialog != null and new_game_dialog.visible,
+		"已有存档时点击新游戏真实打开二次确认框")
+	_assert(not confirmed_opening.played_chapter_1,
+		"确认前不会提前清档或进入 Ch1")
+	if new_game_dialog != null:
+		new_game_dialog.confirmed.emit()
+	await process_frame
+	_assert(confirmed_opening.played_chapter_1,
+		"确认新游戏后真实进入 Ch1 标题与过场流程")
+	_assert_eq(SaveSystem.load_current_chapter(), 1,
+		"确认新游戏后旧进度重置为 Ch1 检查点")
+	_assert(SaveSystem.get_completed_chapters().is_empty(),
+		"确认新游戏后清除旧章节完成记录")
+	_assert(GameState.deploy_selection.is_empty(),
+		"确认新游戏后清除旧部署选择")
+	if is_instance_valid(confirmed_opening):
+		confirmed_opening.queue_free()
+	await process_frame
+
 	SaveSystem.delete_save()
 	var opening := TestOpeningClass.new()
 	root.add_child(opening)
