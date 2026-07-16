@@ -4,6 +4,7 @@ var recorded_dialogues: Array[String] = []
 var recorded_cutscenes: Array[String] = []
 var recorded_advances: Array[int] = []
 var recorded_statuses: Array[String] = []
+var restart_requested: bool = false
 
 func _enter_tree() -> void:
 	if get_node_or_null("HighlightLayer") == null:
@@ -94,3 +95,6 @@ func _set_status(msg: String) -> void:
 		phase_label.text = msg
 	if _status_label:
 		_status_label.text = msg
+
+func _restart() -> void:
+	restart_requested = true

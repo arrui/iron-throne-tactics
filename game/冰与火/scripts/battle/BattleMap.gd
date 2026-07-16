@@ -1596,6 +1596,8 @@ func _do_move_animated(unit: Unit, target: Vector2i) -> void:
 
 # ── 输入 ─────────────────────────────────────────────────
 func _input(event: InputEvent) -> void:
+	if _settings_menu_open():
+		return
 	# D键：危险区切换
 	if event is InputEventKey and (event as InputEventKey).pressed:
 		var key := (event as InputEventKey).keycode
@@ -2270,8 +2272,13 @@ func _set_terrain_info(msg: String) -> void:
 	if _terrain_label: _terrain_label.text = msg
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _settings_menu_open():
+		return
 	if event is InputEventKey and event.pressed and event.keycode == KEY_R:
 		_restart()
+
+func _settings_menu_open() -> bool:
+	return get_node_or_null("SettingsMenu") != null
 
 # ── 工具 ─────────────────────────────────────────────────
 func _unit_at(pos: Vector2i, team: int) -> Unit:

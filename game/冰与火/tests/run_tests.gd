@@ -1173,6 +1173,26 @@ func _test_settings_menu() -> void:
 	_assert(battle_menu != null and battle._animating_battle,
 		"战斗设置按钮真实挂载弹窗并锁定战斗操作")
 	if battle_menu != null:
+		var danger_before: bool = battle._show_danger
+		var danger_event := InputEventKey.new()
+		danger_event.pressed = true
+		danger_event.keycode = KEY_D
+		battle._input(danger_event)
+		_assert_eq(battle._show_danger, danger_before, "设置弹窗打开时不会穿透危险区快捷键")
+
+		var autopilot_before: bool = battle._autopilot
+		var autopilot_event := InputEventKey.new()
+		autopilot_event.pressed = true
+		autopilot_event.keycode = KEY_A
+		battle._input(autopilot_event)
+		_assert_eq(battle._autopilot, autopilot_before, "设置弹窗打开时不会穿透自动托管快捷键")
+
+		var restart_event := InputEventKey.new()
+		restart_event.pressed = true
+		restart_event.keycode = KEY_R
+		battle._unhandled_input(restart_event)
+		_assert(not battle.restart_requested, "设置弹窗打开时不会穿透重开快捷键")
+
 		var battle_close := battle_menu.get_node_or_null(
 			"Dimmer/Panel/Margin/Content/Buttons/Close") as Button
 		if battle_close != null:
