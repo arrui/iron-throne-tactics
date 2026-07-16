@@ -12,7 +12,8 @@ static func save_chapter_complete(chapter: int) -> void:
 	if chapter not in completed:
 		completed.append(chapter)
 	data["completed_chapters"] = completed
-	data["chapter"] = chapter + 1
+	var current_progress := int(data.get("chapter", 1))
+	data["chapter"] = maxi(current_progress, chapter + 1)
 	data["timestamp"] = Time.get_date_string_from_system()
 	_write_json(data)
 

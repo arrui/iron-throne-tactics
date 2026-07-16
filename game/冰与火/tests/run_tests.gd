@@ -1029,6 +1029,15 @@ func _test_save_system() -> void:
 	for v in completed3:
 		if v == 1: count += 1
 	_assert_eq(count, 1,                   "重复保存不会重复添加到列表")
+	_assert_eq(ss.load_current_chapter(), 3, "重复完成较早章节不会让存档进度倒退")
+
+	# 完成终章后进度保留在序章完成态，回顾旧章也不得覆盖。
+	ss.save_chapter_complete(4)
+	_assert_eq(ss.load_current_chapter(), 5, "完成Ch4后存档进入序章完成态")
+	ss.save_chapter_complete(2)
+	_assert_eq(ss.load_current_chapter(), 5, "序章完成后回顾旧章不会让存档进度倒退")
+	var completed4: Array = ss.get_completed_chapters()
+	_assert(completed4.has(4),             "已完成章节列表包含终章")
 
 	# 清理：删除测试存档
 	ss.delete_save()
