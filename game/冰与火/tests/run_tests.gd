@@ -2087,11 +2087,27 @@ func _test_unit_state_machine() -> void:
 
 	var move_origin := Vector2i(2, 3)
 	var moved_pos := Vector2i(3, 4)
-	battle.selected_unit = mover
-	battle.player_state = battle.PlayerState.UNIT_SELECTED
-	battle.move_range = battle._calc_move_range(mover)
+	var settings := root.get_node_or_null("GameSettings")
+	var old_auto_camera: bool = settings.auto_camera_enabled
+	settings.auto_camera_enabled = false
+	var select_mover_click := InputEventMouseButton.new()
+	select_mover_click.button_index = MOUSE_BUTTON_LEFT
+	select_mover_click.pressed = true
+	select_mover_click.position = battle.get_global_transform_with_canvas() * battle._g2p(move_origin)
+	battle._input(select_mover_click)
+	_assert(battle.selected_unit == mover and battle.player_state == battle.PlayerState.UNIT_SELECTED,
+		"左键我方单位会通过正式输入链路选中可行动单位")
+	_assert(not battle.move_range.is_empty(), "正式左键选中单位后会计算移动范围")
 	_assert(moved_pos in battle.move_range, "目标格位于正式移动范围内")
-	await battle._do_move_animated(mover, moved_pos)
+	var move_click := InputEventMouseButton.new()
+	move_click.button_index = MOUSE_BUTTON_LEFT
+	move_click.pressed = true
+	move_click.position = battle.get_global_transform_with_canvas() * battle._g2p(moved_pos)
+	battle._input(move_click)
+	for frame: int in range(60):
+		if not battle._animating_battle:
+			break
+		await process_frame
 	_assert_eq(mover.state, Unit.State.MOVED, "正式移动流程会将单位标记为已移动")
 	_assert_eq(mover.grid_pos, moved_pos, "正式移动流程会更新单位格坐标")
 	_assert_eq(mover.position, battle._g2p(moved_pos), "正式移动动画会到达目标格场景位置")
@@ -2110,6 +2126,17 @@ func _test_unit_state_machine() -> void:
 	_assert(not action_menu.visible, "取消移动后关闭行动菜单")
 	_assert(battle.recorded_statuses.any(func(msg: String) -> bool: return msg == "移动测试员 取消移动"),
 		"取消移动后显示明确状态反馈")
+	var deselect_event := InputEventKey.new()
+	deselect_event.pressed = true
+	deselect_event.keycode = KEY_ESCAPE
+	battle._input(deselect_event)
+	_assert(battle.selected_unit == null and battle.player_state == battle.PlayerState.IDLE,
+		"ESC 会通过正式输入链路取消当前单位选择")
+	_assert(battle.move_range.is_empty() and battle.attack_tiles.is_empty(),
+		"ESC 取消选择后清理移动与攻击范围")
+	battle._input(select_mover_click)
+	_assert(battle.selected_unit == mover and battle.player_state == battle.PlayerState.UNIT_SELECTED,
+		"取消选择后可再次通过左键选中同一单位")
 
 	var in_place_click := InputEventMouseButton.new()
 	in_place_click.button_index = MOUSE_BUTTON_RIGHT
@@ -2128,6 +2155,7 @@ func _test_unit_state_machine() -> void:
 	_assert(not action_menu.visible, "ESC 会通过正式输入链路关闭原地行动菜单")
 	_assert(battle.selected_unit == mover and battle.player_state == battle.PlayerState.UNIT_SELECTED,
 		"ESC 关闭原地行动菜单后保留单位选中态")
+	settings.auto_camera_enabled = old_auto_camera
 
 	var end_turn_button := battle.get_node_or_null("UI/EndTurnBtn") as Button
 	_assert(end_turn_button != null, "正式战场包含结束回合按钮")
