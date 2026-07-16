@@ -2099,6 +2099,24 @@ func _test_unit_state_machine() -> void:
 	_assert(battle.recorded_statuses.any(func(msg: String) -> bool: return msg == "移动测试员 取消移动"),
 		"取消移动后显示明确状态反馈")
 
+	var in_place_click := InputEventMouseButton.new()
+	in_place_click.button_index = MOUSE_BUTTON_RIGHT
+	in_place_click.pressed = true
+	in_place_click.position = battle.get_global_transform_with_canvas() * battle._g2p(mover.grid_pos)
+	battle._input(in_place_click)
+	_assert(action_menu.visible and battle.player_state == battle.PlayerState.UNIT_MOVED,
+		"右键已选单位会通过正式输入链路打开原地行动菜单")
+	_assert_eq(battle._pre_move_pos, Vector2i(-1, -1),
+		"右键原地行动不会留下可取消的移动记录")
+	_assert(not cancel_move_button.visible, "右键原地行动菜单不会显示取消移动按钮")
+	var close_in_place_event := InputEventKey.new()
+	close_in_place_event.pressed = true
+	close_in_place_event.keycode = KEY_ESCAPE
+	battle._input(close_in_place_event)
+	_assert(not action_menu.visible, "ESC 会通过正式输入链路关闭原地行动菜单")
+	_assert(battle.selected_unit == mover and battle.player_state == battle.PlayerState.UNIT_SELECTED,
+		"ESC 关闭原地行动菜单后保留单位选中态")
+
 	var end_turn_button := battle.get_node_or_null("UI/EndTurnBtn") as Button
 	_assert(end_turn_button != null, "正式战场包含结束回合按钮")
 	if end_turn_button != null:
