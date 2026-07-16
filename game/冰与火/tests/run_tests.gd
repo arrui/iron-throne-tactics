@@ -1130,13 +1130,30 @@ func _test_settings_menu() -> void:
 	_assert(menu.get_node_or_null("Dimmer/Panel/Margin/Content/Buttons/Close") is Button,
 		"设置菜单包含关闭按钮")
 	_assert(menu.has_signal("closed"), "设置菜单提供关闭信号")
-	menu.queue_free()
+	var menu_closed := {"value": false}
+	menu.closed.connect(func() -> void: menu_closed["value"] = true)
+	if close_button != null:
+		close_button.pressed.emit()
 	await process_frame
+	_assert(menu_closed["value"], "点击保存并返回按钮会发出关闭信号")
+	_assert(not is_instance_valid(menu), "点击保存并返回按钮会释放设置菜单")
 
 	var opening := TestOpeningClass.new()
 	root.add_child(opening)
 	await process_frame
 	_assert(opening.has_method("_open_settings_menu"), "Opening 提供设置菜单入口")
+	opening._open_settings_menu()
+	await process_frame
+	var opening_menu := opening.get_node_or_null("SettingsMenu") as SettingsMenu
+	_assert(opening_menu != null, "主菜单设置入口真实挂载设置弹窗")
+	if opening_menu != null:
+		var opening_close := opening_menu.get_node_or_null(
+			"Dimmer/Panel/Margin/Content/Buttons/Close") as Button
+		if opening_close != null:
+			opening_close.pressed.emit()
+		await process_frame
+		_assert(opening.get_node_or_null("SettingsMenu") == null,
+			"主菜单设置弹窗点击返回后真实关闭")
 	opening.queue_free()
 	await process_frame
 
@@ -1149,6 +1166,20 @@ func _test_settings_menu() -> void:
 	battle._animating_battle = true
 	battle._open_settings_menu()
 	_assert(battle.get_node_or_null("SettingsMenu") == null, "战斗演出期间不能打开设置菜单破坏流程锁")
+	battle._animating_battle = false
+	battle._settings_btn.pressed.emit()
+	await process_frame
+	var battle_menu := battle.get_node_or_null("SettingsMenu") as SettingsMenu
+	_assert(battle_menu != null and battle._animating_battle,
+		"战斗设置按钮真实挂载弹窗并锁定战斗操作")
+	if battle_menu != null:
+		var battle_close := battle_menu.get_node_or_null(
+			"Dimmer/Panel/Margin/Content/Buttons/Close") as Button
+		if battle_close != null:
+			battle_close.pressed.emit()
+		await process_frame
+		_assert(battle.get_node_or_null("SettingsMenu") == null and not battle._animating_battle,
+			"战斗设置弹窗点击返回后关闭并解除操作锁")
 	battle.queue_free()
 	await process_frame
 
