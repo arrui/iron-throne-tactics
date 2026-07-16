@@ -1330,11 +1330,21 @@ func _test_opening_main_menu() -> void:
 	for spec: Dictionary in route_specs:
 		var chapter := int(spec["chapter"])
 		SaveSystem._write_json({"chapter": chapter, "completed_chapters": []})
-		var continued := TestOpeningClass.new()
+		var continued := scene.instantiate()
+		continued.set_script(TestOpeningClass)
 		root.add_child(continued)
 		await process_frame
-		continued.run_continue_game()
+		continued._bind_main_menu()
+		continued._refresh_main_menu()
+		var route_continue := continued.get_node_or_null(
+			"MainMenu/MenuPanel/MenuContent/ContinueButton") as Button
+		_assert(route_continue != null and not route_continue.disabled,
+			"Ch%d 存档会启用继续游戏按钮" % chapter)
+		if route_continue != null:
+			route_continue.pressed.emit()
 		_assert_eq(GameState.current_chapter, chapter, "继续游戏同步当前章节到Ch%d" % chapter)
+		_assert(not continued.get_node("MainMenu").visible,
+			"点击继续游戏后隐藏主菜单")
 		if chapter == 1:
 			_assert(continued.played_chapter_1, "继续Ch1进入第一章标题与过场流程")
 			_assert(continued.recorded_scene_changes.is_empty(), "继续Ch1不误跳后续章节场景")
