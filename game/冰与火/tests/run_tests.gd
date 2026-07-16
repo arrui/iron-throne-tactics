@@ -832,18 +832,36 @@ func _test_battle_predict_full() -> void:
 	battle.enemy_units.assign([defender])
 	battle.selected_unit = attacker
 	battle.player_state = battle.PlayerState.UNIT_MOVED
-	battle.attack_tiles.assign([defender.grid_pos])
-	battle._open_predict(attacker, defender)
+	battle.attack_tiles = battle._adj_enemies(attacker.grid_pos)
 
+	var action_menu := battle.get_node_or_null("UI/ActionMenu") as PanelContainer
+	var attack_button: Button = null
+	if action_menu != null:
+		attack_button = action_menu.get_node_or_null("VBox/AttackBtn") as Button
+	_assert(action_menu != null and attack_button != null,
+		"正式战场行动菜单包含攻击按钮")
+	if action_menu == null or attack_button == null:
+		battle.queue_free()
+		await process_frame
+		return
 	var predict_panel := battle.get_node("UI/PredictPanel") as PanelContainer
 	var confirm_button := predict_panel.get_node("VBox/Buttons/ConfirmBtn") as Button
 	var cancel_button := predict_panel.get_node("VBox/Buttons/CancelBtn") as Button
+	_assert_eq(attack_button.pressed.get_connections().size(), 1,
+		"正式攻击按钮仅连接一个处理目标")
 	_assert(confirm_button.pressed.get_connections().size() == 1,
 		"战斗预测确认按钮仅连接一个处理目标")
 	_assert(cancel_button.pressed.get_connections().size() == 1,
 		"战斗预测取消按钮仅连接一个处理目标")
+	_assert_eq(battle.attack_tiles, [defender.grid_pos],
+		"正式邻接计算只生成唯一相邻敌军目标")
+	battle._show_action_menu(attacker.grid_pos, true)
+	_assert(action_menu.visible and attack_button.visible, "相邻敌军存在时正式行动菜单显示攻击按钮")
+	attack_button.pressed.emit()
 	_assert(predict_panel.visible and battle.player_state == battle.PlayerState.PREDICT,
-		"打开预测后面板可见并进入预测状态")
+		"点击正式攻击按钮会打开唯一相邻敌军的战斗预测")
+	_assert(not action_menu.visible and battle.target_enemy == defender,
+		"点击正式攻击按钮会关闭行动菜单并锁定相邻目标")
 	cancel_button.pressed.emit()
 	_assert(not predict_panel.visible, "点击预测取消按钮真实关闭面板")
 	_assert_eq(battle.player_state, battle.PlayerState.UNIT_MOVED,
@@ -851,7 +869,10 @@ func _test_battle_predict_full() -> void:
 	_assert(battle.target_enemy == null, "取消预测后清除旧攻击目标")
 	_assert(battle.attack_tiles.has(defender.grid_pos), "取消预测后保留相邻敌军供重新选择")
 
-	battle._open_predict(attacker, defender)
+	battle._show_action_menu(attacker.grid_pos, true)
+	attack_button.pressed.emit()
+	_assert(predict_panel.visible and battle.target_enemy == defender,
+		"取消后再次点击正式攻击按钮可重新锁定相邻目标")
 	var settings := root.get_node_or_null("GameSettings")
 	var old_animation_enabled: bool = settings.battle_animations_enabled
 	var old_auto_camera: bool = settings.auto_camera_enabled
