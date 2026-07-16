@@ -1238,13 +1238,21 @@ func _test_settings_menu() -> void:
 		battle._unhandled_input(restart_event)
 		_assert(not battle.restart_requested, "设置弹窗打开时不会穿透重开快捷键")
 
-		var battle_close := battle_menu.get_node_or_null(
-			"Dimmer/Panel/Margin/Content/Buttons/Close") as Button
-		if battle_close != null:
-			battle_close.pressed.emit()
+		var battle_animations := battle_menu.get_node_or_null(
+			"Dimmer/Panel/Margin/Content/BattleAnimations") as CheckButton
+		if battle_animations != null:
+			battle_animations.button_pressed = not global_settings.battle_animations_enabled
+		var cancel_event := InputEventKey.new()
+		cancel_event.pressed = true
+		cancel_event.keycode = KEY_ESCAPE
+		battle_menu._unhandled_input(cancel_event)
 		await process_frame
 		_assert(battle.get_node_or_null("SettingsMenu") == null and not battle._animating_battle,
-			"战斗设置弹窗点击返回后关闭并解除操作锁")
+			"战斗设置弹窗按 ESC 后关闭并解除操作锁")
+		_assert_eq(global_settings.battle_animations_enabled,
+			not old_battle_animations, "战斗设置弹窗按 ESC 关闭时保存控件设置")
+	global_settings.battle_animations_enabled = old_battle_animations
+	global_settings.save_settings(false)
 	battle.queue_free()
 	await process_frame
 
