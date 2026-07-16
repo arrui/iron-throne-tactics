@@ -2189,6 +2189,35 @@ func _test_unit_state_machine() -> void:
 	_assert(battle.selected_unit == waiter and battle.player_state == battle.PlayerState.UNIT_SELECTED,
 		"单位选择态左键另一可行动友军会通过正式输入链路切换选中对象")
 	_assert(battle.move_range.has(waiter.grid_pos), "切换友军后会按新单位位置重算移动范围")
+	var invalid_tile_click := InputEventMouseButton.new()
+	invalid_tile_click.button_index = MOUSE_BUTTON_LEFT
+	invalid_tile_click.pressed = true
+	invalid_tile_click.position = battle.get_global_transform_with_canvas() * battle._g2p(Vector2i(20, 15))
+	battle._input(invalid_tile_click)
+	_assert(battle.selected_unit == null and battle.player_state == battle.PlayerState.IDLE,
+		"单位选择态左键不可移动空格会通过正式输入链路取消选择")
+	_assert(battle.move_range.is_empty() and battle.attack_tiles.is_empty(),
+		"点击不可移动空格取消选择后会清理行动范围")
+
+	battle._input(select_mover_click)
+	_assert(battle.selected_unit == mover and battle.player_state == battle.PlayerState.UNIT_SELECTED,
+		"测试已行动友军切换前会重新选中当前可行动单位")
+	waiter.mark_acted()
+	battle._input(switch_unit_click)
+	_assert(battle.selected_unit == null and battle.player_state == battle.PlayerState.IDLE,
+		"选择态左键已行动友军不会错误切换到不可行动单位")
+	waiter.reset_turn()
+
+	battle._animating_battle = true
+	battle._input(select_mover_click)
+	_assert(battle.selected_unit == null and battle.player_state == battle.PlayerState.IDLE,
+		"战斗动画操作锁会阻止正式左键选择我方单位")
+	battle._animating_battle = false
+	battle.current_phase = battle.Phase.ENEMY_TURN
+	battle._input(select_mover_click)
+	_assert(battle.selected_unit == null and battle.player_state == battle.PlayerState.IDLE,
+		"敌方回合会阻止正式左键选择我方单位")
+	battle.current_phase = battle.Phase.PLAYER_TURN
 	settings.auto_camera_enabled = old_auto_camera
 
 	var end_turn_button := battle.get_node_or_null("UI/EndTurnBtn") as Button
