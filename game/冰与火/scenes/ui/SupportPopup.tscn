@@ -28,7 +28,7 @@ offset_bottom = -12.0
 [node name="TitleLabel" type="Label" parent="Background/VBox"]
 theme_override_colors/font_color = Color(1.0, 0.82, 0.2, 1.0)
 theme_override_font_sizes/font_size = 16
-text = "\u2694 \u652f\u63f4\u52a0\u6210"
+text = "⚔ 支援加成"
 
 [node name="SeparatorLine" type="HSeparator" parent="Background/VBox"]
 size_flags_horizontal = 3
@@ -47,5 +47,5 @@ text = ""
 size_flags_horizontal = 3
 
 [node name="CloseBtn" type="Button" parent="Background/VBox"]
-text = "\u77e5\u9053\u4e86"
+text = "知道了"
 size_flags_horizontal = 8

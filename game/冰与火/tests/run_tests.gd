@@ -1866,6 +1866,9 @@ func _test_visual_style_unification() -> void:
 	await process_frame
 
 	var support_scene := load("res://scenes/ui/SupportPopup.tscn") as PackedScene
+	var support_scene_source := FileAccess.get_file_as_string("res://scenes/ui/SupportPopup.tscn")
+	_assert(not "\\u" in support_scene_source,
+		"支援弹窗使用 Godot 支持的直接 Unicode 文本而非 JSON 转义")
 	var themed_support := support_scene.instantiate()
 	root.add_child(themed_support)
 	await process_frame
