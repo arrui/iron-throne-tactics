@@ -3462,6 +3462,22 @@ func _test_overlay_runtime_flow() -> void:
 		if quit_connections.size() == 1:
 			var quit_callable: Callable = quit_connections[0].get("callable", Callable())
 			_assert_eq(quit_callable.get_method(), "_return_to_opening", "GameOver 返回主菜单信号连接到主入口返回方法")
+		var restart_button := game_over.get_node_or_null("Background/VBox/RestartBtn") as Button
+		if restart_button != null:
+			restart_button.pressed.emit()
+		_assert(game_over_battle.restart_requested,
+			"点击 GameOver 重新开始按钮真实调用章节重开")
+		_assert(not game_over.visible,
+			"点击 GameOver 重新开始按钮后隐藏失败界面")
+
+		game_over.visible = true
+		var quit_button := game_over.get_node_or_null("Background/VBox/QuitBtn") as Button
+		if quit_button != null:
+			quit_button.pressed.emit()
+		_assert(game_over_battle.return_to_opening_requested,
+			"点击 GameOver 返回主菜单按钮真实调用主入口返回")
+		_assert(not game_over.visible,
+			"点击 GameOver 返回主菜单按钮后隐藏失败界面")
 	if is_instance_valid(game_over_battle):
 		game_over_battle.queue_free()
 	await process_frame

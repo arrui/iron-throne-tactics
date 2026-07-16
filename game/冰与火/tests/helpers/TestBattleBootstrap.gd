@@ -5,6 +5,7 @@ var recorded_cutscenes: Array[String] = []
 var recorded_advances: Array[int] = []
 var recorded_statuses: Array[String] = []
 var restart_requested: bool = false
+var return_to_opening_requested: bool = false
 
 func _enter_tree() -> void:
 	if get_node_or_null("HighlightLayer") == null:
@@ -98,3 +99,6 @@ func _set_status(msg: String) -> void:
 
 func _restart() -> void:
 	restart_requested = true
+
+func _return_to_opening() -> void:
+	return_to_opening_requested = true
