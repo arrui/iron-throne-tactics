@@ -1175,6 +1175,9 @@ func _test_opening_main_menu() -> void:
 	if opening.has_method("run_new_game"):
 		opening.run_new_game()
 		_assert(opening.played_chapter_1, "无存档时新游戏直接进入 Ch1")
+		_assert(SaveSystem.has_save(), "新战役进入 Ch1 前建立章节检查点")
+		_assert_eq(SaveSystem.load_current_chapter(), 1, "新战役检查点从 Ch1 开始")
+		_assert(SaveSystem.get_completed_chapters().is_empty(), "新战役检查点不包含已完成章节")
 	if is_instance_valid(opening):
 		opening.queue_free()
 	await process_frame

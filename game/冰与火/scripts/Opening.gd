@@ -88,6 +88,7 @@ func _on_new_game_pressed() -> void:
 
 func _start_new_game() -> void:
 	SaveSystem.delete_save()
+	SaveSystem.start_new_campaign()
 	GameState.current_chapter = 1
 	GameState.deploy_selection = []
 	_hide_main_menu()
