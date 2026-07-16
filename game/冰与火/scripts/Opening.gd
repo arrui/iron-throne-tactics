@@ -4,6 +4,7 @@ extends Node
 const PrologueChapterBriefs := preload("res://scripts/chapter/PrologueChapterBriefs.gd")
 
 const CUTSCENE_SCENE := preload("res://scenes/cutscene/CutscenePlayer.tscn")
+const SETTINGS_SCENE := preload("res://scenes/ui/SettingsMenu.tscn")
 const BATTLE_SCENE   := "res://scenes/battle/BattleMap.tscn"
 const TRANSITION_PATH := "res://scenes/ui/ChapterTransition.tscn"
 
@@ -109,6 +110,13 @@ func _show_debug_menu() -> void:
 		)
 		vbox.add_child(btn)
 
+	var settings_btn := Button.new()
+	settings_btn.text = "⚙  设置"
+	settings_btn.custom_minimum_size = Vector2(320, 40)
+	settings_btn.add_theme_font_override("font", _font)
+	settings_btn.pressed.connect(_open_settings_menu)
+	vbox.add_child(settings_btn)
+
 	# 清除存档按钮
 	var sep := HSeparator.new()
 	vbox.add_child(sep)
@@ -125,6 +133,13 @@ func _show_debug_menu() -> void:
 		_start_normal_flow()
 	)
 	vbox.add_child(clear_btn)
+
+func _open_settings_menu() -> void:
+	var existing := get_node_or_null("SettingsMenu")
+	if existing != null:
+		return
+	var menu := SETTINGS_SCENE.instantiate()
+	add_child(menu)
 
 # ── 正常游戏流程（检查存档 → 章节路由）────────────────────
 func _start_normal_flow() -> void:

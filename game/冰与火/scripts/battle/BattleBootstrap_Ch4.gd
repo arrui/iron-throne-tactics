@@ -209,6 +209,7 @@ func _play_dialogue(path: String) -> void:
 		add_child(_dialogue_box)
 		await get_tree().process_frame
 		_dialogue_sys = _dialogue_box as DialogueSystem
+	_bind_dialogue_camera(_dialogue_sys)
 	set_process_input(false)
 	_dialogue_sys.play(path)
 	await _dialogue_sys.dialogue_finished

@@ -9,6 +9,7 @@ const TILE_SIZE := 72
 const CAM_SPEED := 520.0
 
 const BATTLE_ANIM_SCENE  := preload("res://scenes/battle/BattleAnimation.tscn")
+const SETTINGS_SCENE     := preload("res://scenes/ui/SettingsMenu.tscn")
 const GAME_OVER_PATH     := "res://scenes/ui/GameOver.tscn"
 const SUPPORT_POPUP_PATH := "res://scenes/ui/SupportPopup.tscn"
 const BattleChromeTheme := preload("res://scripts/ui/BattleChromeTheme.gd")
@@ -92,6 +93,7 @@ var _result_title:     Label         = null
 var _result_msg:       Label         = null
 var _restart_btn:      Button        = null
 var _end_turn_btn:     Button        = null
+var _settings_btn:     Button        = null
 var _items_btn:        Button        = null
 
 # ── 道具面板（动态创建）──────────────────────────────────
@@ -336,10 +338,50 @@ func _handle_cam_scroll(delta: float) -> void:
 		_cam.position += dir.normalized() * CAM_SPEED * delta
 
 func _scroll_to_show(grid_pos: Vector2i) -> void:
-	if not is_instance_valid(_cam): return
+	focus_grid(grid_pos)
+
+func focus_grid(grid_pos: Vector2i, duration: float = 0.22) -> void:
+	var settings := get_node_or_null("/root/GameSettings")
+	if not is_instance_valid(_cam) or (settings != null and not settings.auto_camera_enabled):
+		return
+	var target := _g2p(grid_pos)
+	if duration <= 0.0:
+		_cam.position = target
+		return
 	var tween := create_tween()
-	tween.tween_property(_cam, "position", _g2p(grid_pos), 0.22)\
+	tween.tween_property(_cam, "position", target, duration)\
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	await tween.finished
+
+func focus_unit(unit: Unit, duration: float = 0.22) -> void:
+	if is_instance_valid(unit):
+		await focus_grid(unit.grid_pos, duration)
+
+func focus_combat(attacker: Unit, defender: Unit, duration: float = 0.22) -> void:
+	if not is_instance_valid(attacker) or not is_instance_valid(defender):
+		return
+	var midpoint := Vector2i(
+		roundi((attacker.grid_pos.x + defender.grid_pos.x) * 0.5),
+		roundi((attacker.grid_pos.y + defender.grid_pos.y) * 0.5))
+	await focus_grid(midpoint, duration)
+
+func _bind_dialogue_camera(dialogue: DialogueSystem) -> void:
+	if dialogue != null and not dialogue.line_changed.is_connected(_focus_dialogue_speaker):
+		dialogue.line_changed.connect(_focus_dialogue_speaker)
+
+func _focus_dialogue_speaker(speaker: String, duration: float = 0.22) -> void:
+	if speaker.is_empty() or speaker == "旁白":
+		return
+	var aliases := {
+		"霍兰德": ["霍兰", "霍兰德"],
+		"王军": ["王军", "皇家卫兵", "王军指挥官"],
+		"皇家卫兵": ["皇家卫兵", "王军", "王军指挥官"],
+	}
+	var names: Array = aliases.get(speaker, [speaker])
+	for unit: Unit in player_units + enemy_units:
+		if is_instance_valid(unit) and not unit.is_dead() and unit.data.name in names:
+			await focus_unit(unit, duration)
+			return
 
 # ── 坐标转换：地图格 → 屏幕位置（供 CanvasLayer 用）──────
 func _tile_to_screen(grid_pos: Vector2i) -> Vector2:
@@ -363,6 +405,7 @@ func _bind_ui() -> void:
 	_predict_panel = get_node_or_null("UI/PredictPanel") as PanelContainer
 	_result_panel  = get_node_or_null("UI/ResultPanel")  as PanelContainer
 	_end_turn_btn  = get_node_or_null("UI/EndTurnBtn")   as Button
+	_settings_btn  = get_node_or_null("UI/SettingsBtn")  as Button
 
 	if _action_menu:
 		_atk_btn         = _action_menu.get_node_or_null("VBox/AttackBtn")    as Button
@@ -398,10 +441,22 @@ func _bind_ui() -> void:
 
 	if _end_turn_btn and not _end_turn_btn.pressed.is_connected(_on_end_turn_pressed):
 		_end_turn_btn.pressed.connect(_on_end_turn_pressed)
+	if _settings_btn and not _settings_btn.pressed.is_connected(_open_settings_menu):
+		_settings_btn.pressed.connect(_open_settings_menu)
 
 	# 自动托管状态标签（右下角，EndTurnBtn旁）
 	call_deferred("_setup_autopilot_ui")
 	call_deferred("_setup_minimap")
+
+func _open_settings_menu() -> void:
+	if _animating_battle or get_node_or_null("SettingsMenu") != null:
+		return
+	var menu := SETTINGS_SCENE.instantiate()
+	add_child(menu)
+	_animating_battle = true
+	menu.closed.connect(func() -> void:
+		_animating_battle = false
+	)
 
 func _setup_minimap() -> void:
 	_minimap = MiniMap.new()
@@ -1504,6 +1559,7 @@ func _do_move_animated(unit: Unit, target: Vector2i) -> void:
 	_pre_move_pos  = unit.grid_pos
 	var path       := _find_path_to(unit, target)
 	_animating_battle = true
+	await focus_unit(unit, 0.18)
 	unit.mark_moved()
 	move_range.clear()
 	_path_preview.clear()
@@ -1518,6 +1574,10 @@ func _do_move_animated(unit: Unit, target: Vector2i) -> void:
 		var tw := create_tween()
 		tw.tween_property(unit, "position", _g2p(step), 0.09)\
 			.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_QUAD)
+		var settings := get_node_or_null("/root/GameSettings")
+		if is_instance_valid(_cam) and (settings == null or settings.auto_camera_enabled):
+			tw.parallel().tween_property(_cam, "position", _g2p(step), 0.09)\
+				.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_QUAD)
 		await tw.finished
 		if is_instance_valid(unit): _redraw_all()
 
@@ -1837,22 +1897,24 @@ func _start_battle_with_animation(attacker: Unit, defender: Unit) -> void:
 		_animating_battle = false
 		return
 	_animating_battle = true
+	await focus_combat(attacker, defender, 0.18)
 
 	var bonus: Dictionary = get_terrain_bonus(defender.grid_pos)
 	var pred: Dictionary = BattleCalculator.predict(
 		attacker.data, defender.data, attacker.weapon_key, defender.weapon_key,
 		bonus.get("avoid", 0))
+	var result := _build_combat_result(pred, attacker.data.hp, defender.data.hp)
 
-	var anim_node: BattleAnimation = BATTLE_ANIM_SCENE.instantiate() as BattleAnimation
-	var ui_layer := get_node_or_null("UI") as CanvasLayer
-	if ui_layer:
-		ui_layer.add_child(anim_node)
-	else:
-		add_child(anim_node)
-
-	anim_node.play(attacker, defender, pred)
-	var result: Dictionary = await anim_node.animation_finished
-	anim_node.queue_free()
+	if _battle_animations_enabled():
+		var anim_node: BattleAnimation = BATTLE_ANIM_SCENE.instantiate() as BattleAnimation
+		var ui_layer := get_node_or_null("UI") as CanvasLayer
+		if ui_layer:
+			ui_layer.add_child(anim_node)
+		else:
+			add_child(anim_node)
+		anim_node.play(attacker, defender, result)
+		await anim_node.animation_finished
+		anim_node.queue_free()
 
 	if is_instance_valid(attacker) and is_instance_valid(defender):
 		_execute_combat_from_result(attacker, defender, result)
@@ -1864,6 +1926,32 @@ func _start_battle_with_animation(attacker: Unit, defender: Unit) -> void:
 		_check_victory()
 		_check_all_acted()
 	_animating_battle = false
+
+func _battle_animations_enabled() -> bool:
+	var settings := get_node_or_null("/root/GameSettings")
+	return settings == null or settings.battle_animations_enabled
+
+func _build_combat_result(pred: Dictionary, attacker_hp: int, defender_hp: int) -> Dictionary:
+	var atk_hit := _roll(int(pred.get("atk_hit", 0)))
+	var atk_crit := atk_hit and _roll(int(pred.get("atk_crit", 0)))
+	var atk_damage := int(pred.get("atk_damage", 0)) * (3 if atk_crit else 1) if atk_hit else 0
+	var defender_survives := defender_hp - atk_damage > 0
+
+	var def_hit := defender_survives and _roll(int(pred.get("def_hit", 0)))
+	var def_crit := def_hit and _roll(int(pred.get("def_crit", 0)))
+	var def_damage := int(pred.get("def_damage", 0)) * (3 if def_crit else 1) if def_hit else 0
+	var attacker_survives := attacker_hp - def_damage > 0
+
+	var double_attempt := bool(pred.get("atk_double", false)) and defender_survives and attacker_survives
+	var double_hit := double_attempt and _roll(int(pred.get("atk_hit", 0)))
+	var double_crit := double_hit and _roll(int(pred.get("atk_crit", 0)))
+	var double_damage := int(pred.get("atk_damage", 0)) * (3 if double_crit else 1) if double_hit else 0
+	return {
+		"atk_hit": atk_hit, "atk_crit": atk_crit, "atk_damage": atk_damage,
+		"def_hit": def_hit, "def_crit": def_crit, "def_damage": def_damage,
+		"atk_double": double_attempt, "double_hit": double_hit,
+		"double_crit": double_crit, "double_damage": double_damage,
+	}
 
 # ── 战斗结算 ─────────────────────────────────────────────
 func _execute_combat_from_result(attacker: Unit, defender: Unit,
@@ -1986,6 +2074,7 @@ func _start_enemy_turn() -> void:
 		var enemy: Unit = enemies_this_turn[i]
 		if not is_instance_valid(enemy) or enemy.is_dead(): continue
 		if enemy.team == 2: continue   # 中立单位不参与敌方回合
+		await focus_unit(enemy, 0.18)
 
 		var action: Dictionary = EnemyAI.decide(enemy, player_units, _calc_move_range(enemy))
 		if not is_instance_valid(enemy): continue
@@ -2001,6 +2090,9 @@ func _start_enemy_turn() -> void:
 			enemy.grid_pos = step
 			var tw := create_tween()
 			tw.tween_property(enemy, "position", _g2p(step), 0.09)
+			var settings := get_node_or_null("/root/GameSettings")
+			if is_instance_valid(_cam) and (settings == null or settings.auto_camera_enabled):
+				tw.parallel().tween_property(_cam, "position", _g2p(step), 0.09)
 			await tw.finished
 			if is_instance_valid(enemy): _redraw_all()
 		if path.is_empty() and is_instance_valid(enemy):

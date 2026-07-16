@@ -26,6 +26,10 @@ const ROUND_GAP          := 0.30
 @onready var _def_hp_lbl: Label      = $Panel/DefSide/HPLabel
 
 @onready var _panel: Control = $Panel
+@onready var _stage_backdrop: ColorRect = $Panel/StageBackdrop
+@onready var _impact_flash: ColorRect = $Panel/ImpactFlash
+@onready var _slash_trail: Polygon2D = $Panel/SlashTrail
+@onready var _critical_label: Label = $Panel/CriticalLabel
 
 var _panel_hidden_y: float = 0.0
 var _panel_shown_y:  float = 0.0
@@ -34,7 +38,7 @@ func _ready() -> void:
 	visible = false
 	var vs := get_viewport_rect().size
 	_panel_hidden_y = vs.y
-	_panel_shown_y  = vs.y - 200.0
+	_panel_shown_y  = 0.0
 	if _panel:
 		_panel.position.y = _panel_hidden_y
 	# 动态实例化后需主动应用 CJK 字体（不在初始 call_deferred 范围内）
@@ -60,7 +64,7 @@ func _apply_font_recursive(node: Node, font: Font) -> void:
 	for child in node.get_children():
 		_apply_font_recursive(child, font)
 
-func play(attacker: Unit, defender: Unit, pred: Dictionary) -> void:
+func play(attacker: Unit, defender: Unit, result: Dictionary) -> void:
 	# ── 在任何await之前提取所有需要的数据 ──────────────────
 	# await期间节点可能被释放，必须在此之前把数据存成局部变量
 	if not is_instance_valid(attacker) or not is_instance_valid(defender):
@@ -76,31 +80,19 @@ func play(attacker: Unit, defender: Unit, pred: Dictionary) -> void:
 	_setup_sides(attacker, defender)
 	await _slide_panel(_panel_shown_y)
 
-	# ── 预先掷骰（动画和结算共用同一套随机数）──
-	var atk_hit:  bool = _roll(pred.get("atk_hit",  0))
-	var atk_crit: bool = atk_hit and _roll(pred.get("atk_crit", 0))
-	var atk_base: int  = int(pred.get("atk_damage", 0))
-	var atk_dmg:  int  = atk_base * (3 if atk_crit else 1) if atk_hit else 0
+	# 战斗地图已统一生成结果，动画只负责表现，开关不会改变随机结算。
+	var atk_hit: bool = result.get("atk_hit", false)
+	var atk_crit: bool = result.get("atk_crit", false)
+	var atk_dmg: int = result.get("atk_damage", 0)
 
 	var def_hp_after_atk: int = maxi(def_hp_now - atk_dmg, 0)
 
-	var def_hit:  bool = false
-	var def_crit: bool = false
-	var def_dmg:  int  = 0
-	if def_hp_after_atk > 0:
-		def_hit  = _roll(pred.get("def_hit",  0))
-		def_crit = def_hit and _roll(pred.get("def_crit", 0))
-		var def_base: int = int(pred.get("def_damage", 0))
-		def_dmg = def_base * (3 if def_crit else 1) if def_hit else 0
-
-	var atk_double_hit:  bool = false
-	var atk_double_crit: bool = false
-	var atk_double_dmg:  int  = 0
-	if pred.get("atk_double", false) and def_hp_after_atk > 0:
-		atk_double_hit  = _roll(pred.get("atk_hit",  0))
-		atk_double_crit = atk_double_hit and _roll(pred.get("atk_crit", 0))
-		var dbl_base: int = int(pred.get("atk_damage", 0))
-		atk_double_dmg = dbl_base * (3 if atk_double_crit else 1) if atk_double_hit else 0
+	var def_hit: bool = result.get("def_hit", false)
+	var def_crit: bool = result.get("def_crit", false)
+	var def_dmg: int = result.get("def_damage", 0)
+	var atk_double_hit: bool = result.get("double_hit", false)
+	var atk_double_crit: bool = result.get("double_crit", false)
+	var atk_double_dmg: int = result.get("double_damage", 0)
 
 	# ── 播放动画（使用本地变量，不再访问节点data）──
 	await _do_attack_anim(_atk_icon, _def_icon, _def_hp_bar, _def_hp_lbl,
@@ -112,7 +104,7 @@ func play(attacker: Unit, defender: Unit, pred: Dictionary) -> void:
 			def_hit, def_dmg, def_crit, true, atk_hp_now)
 		await get_tree().create_timer(ROUND_GAP).timeout
 
-	if pred.get("atk_double", false) and def_hp_after_atk > 0:
+	if result.get("atk_double", false) and def_hp_after_atk > 0:
 		await _do_attack_anim(_atk_icon, _def_icon, _def_hp_bar, _def_hp_lbl,
 			atk_double_hit, atk_double_dmg, atk_double_crit, false, def_hp_after_atk)
 		await get_tree().create_timer(ROUND_GAP).timeout
@@ -120,15 +112,7 @@ func play(attacker: Unit, defender: Unit, pred: Dictionary) -> void:
 	await _slide_panel(_panel_hidden_y)
 	visible = false
 
-	animation_finished.emit({
-		"atk_hit":       atk_hit,
-		"atk_damage":    atk_dmg,
-		"def_hit":       def_hit,
-		"def_damage":    def_dmg,
-		"atk_double":    pred.get("atk_double", false),
-		"double_hit":    atk_double_hit,
-		"double_damage": atk_double_dmg,
-	})
+	animation_finished.emit(result)
 
 # ── UI初始化 ────────────────────────────────────────────
 func _setup_sides(attacker: Unit, defender: Unit) -> void:
@@ -194,6 +178,9 @@ func _do_attack_anim(
 
 	var dir := 1.0 if not is_counter else -1.0
 	var origin_x := atk_icon.position.x
+	var def_origin := def_icon.position
+	if crit:
+		await _play_critical_intro(atk_icon)
 
 	# 快冲：加速冲向目标
 	var tween_charge := create_tween()
@@ -203,6 +190,7 @@ func _do_attack_anim(
 	await tween_charge.finished
 
 	if hit:
+		await _play_impact(atk_icon, def_icon, dir, crit)
 		# 受击方抖动
 		await _shake_icon(def_icon)
 		# 更新HP条
@@ -211,6 +199,12 @@ func _do_attack_anim(
 		# 伤害数字
 		_spawn_damage_label(def_icon, damage, crit)
 	else:
+		var dodge := create_tween()
+		dodge.tween_property(def_icon, "position:y", def_origin.y - 38.0, 0.09)\
+			.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+		dodge.tween_property(def_icon, "position", def_origin, 0.16)\
+			.set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+		await dodge.finished
 		_spawn_miss_label(def_icon)
 
 	await get_tree().create_timer(HIT_PAUSE).timeout
@@ -220,6 +214,42 @@ func _do_attack_anim(
 	tween_back.tween_property(atk_icon, "position:x", origin_x, RETURN_DURATION)\
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 	await tween_back.finished
+
+func _play_critical_intro(icon: Sprite2D) -> void:
+	_critical_label.visible = true
+	_critical_label.modulate.a = 0.0
+	_stage_backdrop.color = Color(0.015, 0.012, 0.025, 1.0)
+	var original_scale := icon.scale
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(_critical_label, "modulate:a", 1.0, 0.08)
+	tween.tween_property(icon, "scale", original_scale * 1.18, 0.12)\
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	await tween.finished
+	await get_tree().create_timer(0.12).timeout
+	icon.scale = original_scale
+	_critical_label.visible = false
+	_stage_backdrop.color = Color(0.035, 0.055, 0.08, 0.98)
+
+func _play_impact(attacker: Sprite2D, defender: Sprite2D, dir: float, critical: bool) -> void:
+	_slash_trail.position = _slash_center(attacker, defender)
+	_slash_trail.rotation = -0.2 * dir
+	_slash_trail.scale = Vector2(0.25, 0.25)
+	_slash_trail.modulate.a = 1.0
+	_slash_trail.visible = true
+	_impact_flash.visible = true
+	_impact_flash.color.a = 0.72 if critical else 0.46
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(_slash_trail, "scale", Vector2(1.35, 1.35), 0.09)
+	tween.tween_property(_slash_trail, "modulate:a", 0.0, 0.14)
+	tween.tween_property(_impact_flash, "color:a", 0.0, 0.12)
+	tween.tween_property(_panel, "position:x", 12.0 * dir, 0.04)
+	tween.chain().tween_property(_panel, "position:x", 0.0, 0.06)
+	await tween.finished
+	_slash_trail.visible = false
+	_impact_flash.visible = false
+
+func _slash_center(attacker: Sprite2D, defender: Sprite2D) -> Vector2:
+	return (attacker.global_position + defender.global_position) * 0.5 - _panel.global_position
 
 # ── 受击抖动（左右快速震动）──────────────────────────────
 func _shake_icon(icon: Sprite2D) -> void:
@@ -276,6 +306,3 @@ func _spawn_miss_label(near: Sprite2D) -> void:
 	tween.tween_property(lbl, "position:y", lbl.position.y - 24.0, 0.5)
 	tween.tween_property(lbl, "modulate:a", 0.0, 0.5)
 	tween.chain().tween_callback(lbl.queue_free)
-
-func _roll(rate: int) -> bool:
-	return randi() % 100 < rate

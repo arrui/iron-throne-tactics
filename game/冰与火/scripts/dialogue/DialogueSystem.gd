@@ -3,6 +3,7 @@ class_name DialogueSystem
 extends CanvasLayer
 
 signal dialogue_finished
+signal line_changed(speaker: String)
 
 const BattleChromeTheme := preload("res://scripts/ui/BattleChromeTheme.gd")
 
@@ -92,6 +93,7 @@ func _show_line(idx: int) -> void:
 		return
 	var line: Dictionary = _lines[idx]
 	_speaker_label.text  = line.get("speaker", "")
+	line_changed.emit(_speaker_label.text)
 	_full_text           = line.get("text", "")
 	_text_label.text     = ""
 	_prompt_icon.visible = false

@@ -60,6 +60,10 @@ func _run_all_tests() -> void:
 		["武器三角加成", _test_weapon_triangle],
 		["Boss 无敌底板（min_hp）", _test_boss_min_hp],
 		["SaveSystem 存档读档", _test_save_system],
+		["GameSettings 设置持久化", _test_game_settings],
+		["SettingsMenu 设置菜单", _test_settings_menu],
+		["自动镜头聚焦", _test_auto_camera_focus],
+		["战斗结果与动画开关", _test_combat_result_and_animation_setting],
 		["守卫型Boss数据字段", _test_guard_boss_fields],
 		["战斗动画freed节点防护", _test_animation_freed_guard],
 		["回合结束防重入", _test_turn_ending_guard],
@@ -1025,6 +1029,170 @@ func _test_save_system() -> void:
 	# 清理：删除测试存档
 	ss.delete_save()
 	_assert(not ss.has_save(),             "测试结束后清理存档")
+
+# ══════════════════════════════════════════════════════════
+# 设置系统：默认值、持久化、恢复默认及与存档相互独立
+# ══════════════════════════════════════════════════════════
+func _test_game_settings() -> void:
+	const SETTINGS_PATH := "res://scripts/systems/GameSettings.gd"
+	if not ResourceLoader.exists(SETTINGS_PATH):
+		_assert(false, "GameSettings.gd 文件存在")
+		return
+
+	var settings_script := load(SETTINGS_PATH)
+	var settings: Node = settings_script.new()
+	settings.config_path = "user://test_settings.cfg"
+	settings.clear_saved_settings()
+	settings.load_settings()
+
+	_assert(settings.battle_animations_enabled, "默认开启战斗动画")
+	_assert(settings.auto_camera_enabled, "默认开启自动镜头")
+	_assert_eq(settings.master_volume, 1.0, "默认主音量为100%")
+	_assert(not settings.fullscreen_enabled, "默认使用窗口模式")
+
+	settings.battle_animations_enabled = false
+	settings.auto_camera_enabled = false
+	settings.master_volume = 0.35
+	settings.fullscreen_enabled = true
+	settings.save_settings(false)
+
+	var loaded: Node = settings_script.new()
+	loaded.config_path = "user://test_settings.cfg"
+	loaded.load_settings(false)
+	_assert(not loaded.battle_animations_enabled, "战斗动画开关可持久化")
+	_assert(not loaded.auto_camera_enabled, "自动镜头开关可持久化")
+	_assert_eq(loaded.master_volume, 0.35, "主音量可持久化")
+	_assert(loaded.fullscreen_enabled, "全屏开关可持久化")
+
+	loaded.reset_to_defaults(false)
+	_assert(loaded.battle_animations_enabled, "恢复默认会重新开启战斗动画")
+	_assert(loaded.auto_camera_enabled, "恢复默认会重新开启自动镜头")
+	_assert_eq(loaded.master_volume, 1.0, "恢复默认会重置主音量")
+	_assert(not loaded.fullscreen_enabled, "恢复默认会回到窗口模式")
+
+	# 删除章节存档不得删除独立设置。
+	SaveSystem.delete_save()
+	_assert(FileAccess.file_exists("user://test_settings.cfg"), "清除存档不会删除设置")
+	loaded.clear_saved_settings()
+	settings.free()
+	loaded.free()
+
+func _test_settings_menu() -> void:
+	const MENU_PATH := "res://scenes/ui/SettingsMenu.tscn"
+	_assert(ResourceLoader.exists(MENU_PATH), "设置菜单场景存在")
+	if not ResourceLoader.exists(MENU_PATH):
+		return
+	var scene := load(MENU_PATH) as PackedScene
+	_assert(scene != null, "设置菜单场景可加载")
+	if scene == null:
+		return
+	var menu := scene.instantiate()
+	root.add_child(menu)
+	await process_frame
+	_assert(menu.get_node_or_null("Dimmer/Panel/Margin/Content/BattleAnimations") is CheckButton,
+		"设置菜单包含战斗动画开关")
+	_assert(menu.get_node_or_null("Dimmer/Panel/Margin/Content/AutoCamera") is CheckButton,
+		"设置菜单包含自动镜头开关")
+	_assert(menu.get_node_or_null("Dimmer/Panel/Margin/Content/MasterVolume") is HSlider,
+		"设置菜单包含主音量滑杆")
+	_assert(menu.get_node_or_null("Dimmer/Panel/Margin/Content/Fullscreen") is CheckButton,
+		"设置菜单包含全屏开关")
+	_assert(menu.get_node_or_null("Dimmer/Panel/Margin/Content/Buttons/Defaults") is Button,
+		"设置菜单包含恢复默认按钮")
+	_assert(menu.get_node_or_null("Dimmer/Panel/Margin/Content/Buttons/Close") is Button,
+		"设置菜单包含关闭按钮")
+	_assert(menu.has_signal("closed"), "设置菜单提供关闭信号")
+	menu.queue_free()
+
+	var opening := TestOpeningClass.new()
+	root.add_child(opening)
+	await process_frame
+	_assert(opening.has_method("_open_settings_menu"), "Opening 提供设置菜单入口")
+	opening.queue_free()
+
+	var battle_scene := load("res://scenes/battle/BattleMap.tscn") as PackedScene
+	var battle := battle_scene.instantiate()
+	_assert(battle.get_node_or_null("UI/SettingsBtn") is Button, "战斗 HUD 包含设置按钮")
+	root.add_child(battle)
+	await process_frame
+	battle._animating_battle = true
+	battle._open_settings_menu()
+	_assert(battle.get_node_or_null("SettingsMenu") == null, "战斗演出期间不能打开设置菜单破坏流程锁")
+	battle.queue_free()
+
+func _test_auto_camera_focus() -> void:
+	var battle_scene := load("res://scenes/battle/BattleMap.tscn") as PackedScene
+	var battle := battle_scene.instantiate()
+	root.add_child(battle)
+	await process_frame
+	var camera := battle.get_node("Camera2D") as Camera2D
+	var settings := root.get_node_or_null("GameSettings")
+	var old_enabled: bool = settings.auto_camera_enabled
+
+	settings.auto_camera_enabled = true
+	camera.position = Vector2(640, 360)
+	battle.focus_grid(Vector2i(10, 8), 0.0)
+	_assert_eq(camera.position, battle._g2p(Vector2i(10, 8)),
+		"开启自动镜头时会聚焦到目标格中心")
+
+	settings.auto_camera_enabled = false
+	var held_position := camera.position
+	battle.focus_grid(Vector2i(2, 2), 0.0)
+	_assert_eq(camera.position, held_position, "关闭自动镜头后不会强制移动镜头")
+
+	var ned := Unit.new()
+	ned.setup(_make_unit_data({"name": "测试发言者"}), 0, Vector2i(7, 5))
+	battle.get_node("UnitLayer").add_child(ned)
+	battle.player_units.append(ned)
+	settings.auto_camera_enabled = true
+	battle._focus_dialogue_speaker("测试发言者", 0.0)
+	_assert_eq(camera.position, battle._g2p(ned.grid_pos), "战场对话会聚焦到发言单位")
+	var before_narration := camera.position
+	battle._focus_dialogue_speaker("旁白", 0.0)
+	_assert_eq(camera.position, before_narration, "旁白不会改变战场镜头")
+
+	settings.auto_camera_enabled = old_enabled
+	battle.queue_free()
+
+func _test_combat_result_and_animation_setting() -> void:
+	var battle_scene := load("res://scenes/battle/BattleMap.tscn") as PackedScene
+	var battle := battle_scene.instantiate()
+	root.add_child(battle)
+	await process_frame
+	var guaranteed := {
+		"atk_hit": 100, "atk_crit": 100, "atk_damage": 5, "atk_double": true,
+		"def_hit": 0, "def_crit": 0, "def_damage": 4,
+	}
+	var result: Dictionary = battle._build_combat_result(guaranteed, 20, 20)
+	_assert(result.get("atk_hit", false), "统一战斗结果会记录攻击命中")
+	_assert(result.get("atk_crit", false), "统一战斗结果会记录攻击暴击")
+	_assert_eq(result.get("atk_damage", 0), 15, "暴击伤害在统一结果中结算为三倍")
+	_assert(not result.get("def_hit", true), "统一战斗结果会记录反击未命中")
+	_assert(result.get("double_hit", false), "统一战斗结果会独立记录追击命中")
+	_assert_eq(result.get("double_damage", 0), 15, "追击暴击伤害写入统一结果")
+	_assert(battle._battle_animations_enabled(), "默认开启战斗动画")
+	var settings := root.get_node_or_null("GameSettings")
+	var old_enabled: bool = settings.battle_animations_enabled
+	settings.battle_animations_enabled = false
+	_assert(not battle._battle_animations_enabled(), "设置关闭后战斗流程跳过动画")
+	settings.battle_animations_enabled = old_enabled
+	var anim_scene := load("res://scenes/battle/BattleAnimation.tscn") as PackedScene
+	var anim := anim_scene.instantiate()
+	root.add_child(anim)
+	await process_frame
+	_assert(anim.get_node_or_null("Panel/StageBackdrop") is ColorRect, "战斗动画包含大面积舞台背景")
+	_assert(anim.get_node_or_null("Panel/ImpactFlash") is ColorRect, "战斗动画包含全舞台命中闪光")
+	_assert(anim.get_node_or_null("Panel/SlashTrail") is Polygon2D, "战斗动画包含武器轨迹")
+	_assert(anim.get_node_or_null("Panel/CriticalLabel") is Label, "战斗动画包含暴击演出标题")
+	var atk_icon := anim.get_node("Panel/AtkSide/Icon") as Sprite2D
+	var def_icon := anim.get_node("Panel/DefSide/Icon") as Sprite2D
+	var panel := anim.get_node("Panel") as Control
+	var expected_slash_center: Vector2 = (
+		(atk_icon.global_position + def_icon.global_position) * 0.5 - panel.global_position)
+	_assert_eq(anim._slash_center(atk_icon, def_icon), expected_slash_center,
+		"武器轨迹使用双方全局位置计算舞台中心")
+	anim.queue_free()
+	battle.queue_free()
 
 # ══════════════════════════════════════════════════════════
 # 测试套件 11：Unit 状态机（含 undo_move）
@@ -3057,11 +3225,16 @@ func _test_overlay_runtime_flow() -> void:
 	root.add_child(dialogue)
 	await process_frame
 	var dialogue_finished_state := {"done": false}
+	var changed_speakers: Array[String] = []
 	dialogue.dialogue_finished.connect(func() -> void:
 		dialogue_finished_state["done"] = true
 	)
+	dialogue.line_changed.connect(func(speaker: String) -> void:
+		changed_speakers.append(speaker)
+	)
 	dialogue.play("res://data/dialogues/prologue_1_pre.json")
 	await process_frame
+	_assert_eq(changed_speakers, ["旁白"], "DialogueSystem 首句会通知说话人变化")
 	_assert(dialogue.visible, "DialogueSystem 播放后真实对话框可见")
 	_assert_eq(dialogue._speaker_label.text, "旁白", "DialogueSystem 首句说话人正确")
 	_assert(not dialogue._portrait_panel.visible, "旁白首句默认隐藏立绘")
@@ -3071,6 +3244,7 @@ func _test_overlay_runtime_flow() -> void:
 	_assert(dialogue._prompt_icon.visible, "DialogueSystem 跳字后显示继续提示")
 	dialogue._advance()
 	_assert_eq(dialogue._speaker_label.text, "奈德", "DialogueSystem 推进到第二句后切换说话人")
+	_assert_eq(changed_speakers, ["旁白", "奈德"], "DialogueSystem 每次换行都会通知说话人")
 	dialogue._skip_typing()
 	_assert(dialogue._portrait_panel.visible, "DialogueSystem 进入角色发言后显示立绘")
 	_assert(dialogue._portrait_rect.texture != null, "DialogueSystem 角色发言时加载立绘纹理")
