@@ -26,7 +26,7 @@ static func save_chapter_complete(chapter: int) -> void:
 
 static func load_current_chapter() -> int:
 	var data := _read_json()
-	return int(data.get("chapter", 1))
+	return maxi(1, int(data.get("chapter", 1)))
 
 static func get_completed_chapters() -> Array[int]:
 	var data := _read_json()

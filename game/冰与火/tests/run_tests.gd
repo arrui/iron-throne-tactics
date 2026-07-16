@@ -1005,6 +1005,11 @@ func _test_save_system() -> void:
 	_assert(not ss.has_save(),             "删除后has_save=false")
 	_assert_eq(ss.load_current_chapter(), 1, "无存档时默认返回章节1")
 
+	# 非法章节值不得把主菜单或战斗分发器带入不存在的章节。
+	ss._write_json({"chapter": 0, "completed_chapters": []})
+	_assert_eq(ss.load_current_chapter(), 1, "非法存档章节安全降级到Ch1")
+	ss.delete_save()
+
 	# 保存第1章完成
 	ss.save_chapter_complete(1)
 	_assert(ss.has_save(),                 "保存后has_save=true")
@@ -1182,17 +1187,30 @@ func _test_opening_main_menu() -> void:
 		opening.queue_free()
 	await process_frame
 
-	SaveSystem.save_chapter_complete(2)
-	var continued := TestOpeningClass.new()
-	root.add_child(continued)
-	await process_frame
-	if continued.has_method("run_continue_game"):
+	var route_specs: Array[Dictionary] = [
+		{"chapter": 1, "scene": ""},
+		{"chapter": 2, "scene": "res://scenes/chapter/Ch2_Opening.tscn"},
+		{"chapter": 3, "scene": "res://scenes/chapter/Ch3_Opening.tscn"},
+		{"chapter": 4, "scene": "res://scenes/chapter/Ch4_Opening.tscn"},
+	]
+	for spec: Dictionary in route_specs:
+		var chapter := int(spec["chapter"])
+		SaveSystem._write_json({"chapter": chapter, "completed_chapters": []})
+		var continued := TestOpeningClass.new()
+		root.add_child(continued)
+		await process_frame
 		continued.run_continue_game()
-		_assert(continued.recorded_scene_changes.has("res://scenes/chapter/Ch3_Opening.tscn"),
-			"继续游戏按存档路由到当前章节")
-	if is_instance_valid(continued):
-		continued.queue_free()
-	await process_frame
+		_assert_eq(GameState.current_chapter, chapter, "继续游戏同步当前章节到Ch%d" % chapter)
+		if chapter == 1:
+			_assert(continued.played_chapter_1, "继续Ch1进入第一章标题与过场流程")
+			_assert(continued.recorded_scene_changes.is_empty(), "继续Ch1不误跳后续章节场景")
+		else:
+			_assert(not continued.played_chapter_1, "继续Ch%d不误重开Ch1" % chapter)
+			_assert(continued.recorded_scene_changes.has(str(spec["scene"])),
+				"继续Ch%d路由到对应章节Opening" % chapter)
+		if is_instance_valid(continued):
+			continued.queue_free()
+		await process_frame
 
 	SaveSystem.save_chapter_complete(4)
 	var completed_opening := scene.instantiate()
