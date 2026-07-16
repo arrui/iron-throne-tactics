@@ -975,6 +975,178 @@ func _test_item_system() -> void:
 	var item4 := d.use_item(99)
 	_assert(item4.is_empty(),               "越界索引返回空字典")
 
+	# 正式战场：动态道具按钮的取消、治疗与无可用道具调用链
+	var battle_scene := load("res://scenes/battle/BattleMap.tscn") as PackedScene
+	var battle := battle_scene.instantiate()
+	battle.set_script(TestBootstrapClass)
+	root.add_child(battle)
+	await process_frame
+	for existing_unit: Unit in battle.player_units + battle.enemy_units:
+		if is_instance_valid(existing_unit):
+			existing_unit.queue_free()
+	await process_frame
+	battle.player_units.clear()
+	battle.enemy_units.clear()
+	battle._battle_over = false
+	battle.current_phase = battle.Phase.PLAYER_TURN
+
+	var healer := Unit.new()
+	healer.setup(_make_unit_data({
+		"name": "道具测试员", "hp": 10, "max_hp": 30,
+		"items": [
+			{"name": "急救药", "type": "heal", "heal_amount": 10, "uses": 2},
+			{"name": "过期药", "type": "heal", "heal_amount": 5, "uses": 0},
+		],
+	}), 0, Vector2i(3, 3))
+	var reserve := Unit.new()
+	reserve.setup(_make_unit_data({
+		"name": "待命友军",
+		"items": [{"name": "空药瓶", "type": "heal", "heal_amount": 5, "uses": 0}],
+	}), 0, Vector2i(2, 3))
+	var distant_enemy := Unit.new()
+	distant_enemy.setup(_make_enemy_data({"name": "远处敌军"}), 1, Vector2i(8, 8))
+	battle.get_node("UnitLayer").add_child(healer)
+	battle.get_node("UnitLayer").add_child(reserve)
+	battle.get_node("UnitLayer").add_child(distant_enemy)
+	battle.player_units.assign([healer, reserve])
+	battle.enemy_units.assign([distant_enemy])
+	battle.selected_unit = healer
+	battle.player_state = battle.PlayerState.UNIT_MOVED
+	battle._show_action_menu(healer.grid_pos, false)
+
+	var action_menu := battle.get_node_or_null("UI/ActionMenu") as PanelContainer
+	var items_button: Button = null
+	if action_menu != null:
+		items_button = action_menu.get_node_or_null("VBox/ItemsBtn") as Button
+	_assert(action_menu != null and items_button != null,
+		"正式战场包含行动菜单与道具按钮")
+	if action_menu == null or items_button == null:
+		battle.queue_free()
+		await process_frame
+		return
+	_assert(items_button.pressed.get_connections().size() == 1,
+		"正式行动菜单道具按钮仅连接一个处理目标")
+	items_button.pressed.emit()
+	var first_panel := battle._active_items_panel as PanelContainer
+	_assert(first_panel != null and is_instance_valid(first_panel),
+		"点击正式道具按钮会创建动态道具面板")
+	if first_panel == null or not is_instance_valid(first_panel):
+		battle.queue_free()
+		await process_frame
+		return
+	var first_vbox: VBoxContainer = null
+	if first_panel.get_child_count() > 0:
+		first_vbox = first_panel.get_child(0) as VBoxContainer
+	_assert(first_vbox != null, "动态道具面板包含按钮容器")
+	if first_vbox == null:
+		battle.queue_free()
+		await process_frame
+		return
+	var first_buttons: Array[Button] = []
+	for child: Node in first_vbox.get_children():
+		if child is Button:
+			first_buttons.append(child as Button)
+	_assert_eq(first_buttons.size(), 2, "动态面板只生成可用道具按钮和取消按钮")
+	if first_buttons.size() != 2:
+		battle.queue_free()
+		await process_frame
+		return
+	_assert(first_buttons[0].text.begins_with("急救药"), "可用道具按钮显示急救药")
+	_assert(first_buttons.all(func(btn: Button) -> bool: return not btn.text.begins_with("过期药")),
+		"uses=0 的过期道具不会生成按钮")
+	var cancel_button := first_buttons[-1]
+	_assert_eq(cancel_button.text, "取消", "动态道具面板末项为取消按钮")
+	var hp_before_cancel: int = healer.data.hp
+	var uses_before_cancel: int = int((healer.data.items[0] as Dictionary).get("uses", -1))
+	cancel_button.pressed.emit()
+	await process_frame
+	_assert(battle._active_items_panel == null and not is_instance_valid(first_panel),
+		"点击动态取消按钮会释放道具面板")
+	_assert(action_menu.visible, "取消使用道具后重新显示行动菜单")
+	_assert(battle.selected_unit == healer and healer.state != Unit.State.DONE,
+		"取消使用道具后保留当前单位且不消耗行动")
+	_assert_eq(healer.data.hp, hp_before_cancel, "取消使用道具不会改变生命值")
+	_assert_eq(int((healer.data.items[0] as Dictionary).get("uses", -1)), uses_before_cancel,
+		"取消使用道具不会消耗次数")
+
+	items_button.pressed.emit()
+	var heal_panel := battle._active_items_panel as PanelContainer
+	_assert(heal_panel != null and is_instance_valid(heal_panel),
+		"取消后再次点击正式道具按钮会重建动态面板")
+	if heal_panel == null or not is_instance_valid(heal_panel):
+		battle.queue_free()
+		await process_frame
+		return
+	var heal_vbox: VBoxContainer = null
+	if heal_panel.get_child_count() > 0:
+		heal_vbox = heal_panel.get_child(0) as VBoxContainer
+	_assert(heal_vbox != null, "重建的动态道具面板包含按钮容器")
+	if heal_vbox == null:
+		battle.queue_free()
+		await process_frame
+		return
+	var heal_button: Button = null
+	for child: Node in heal_vbox.get_children():
+		if child is Button and (child as Button).text.begins_with("急救药"):
+			heal_button = child as Button
+	_assert(heal_button != null, "再次打开动态面板仍可找到急救药按钮")
+	if heal_button != null:
+		heal_button.pressed.emit()
+	await process_frame
+	_assert(battle._active_items_panel == null and not is_instance_valid(heal_panel),
+		"点击治疗道具后释放动态道具面板")
+	_assert_eq(healer.data.hp, 20, "点击急救药按钮真实恢复 10 HP")
+	_assert_eq(int((healer.data.items[0] as Dictionary).get("uses", -1)), 1,
+		"点击急救药按钮真实消耗一次道具")
+	_assert(healer.state == Unit.State.DONE, "使用道具后单位结束本回合行动")
+	_assert(battle.selected_unit == null, "使用道具后清除当前选中单位")
+	_assert(battle.recorded_statuses.any(func(msg: String) -> bool: return "恢复 10 HP" in msg),
+		"使用治疗道具后显示恢复量反馈")
+
+	battle.selected_unit = reserve
+	battle.player_state = battle.PlayerState.UNIT_MOVED
+	battle._show_action_menu(reserve.grid_pos, false)
+	_assert(not items_button.visible, "无可用道具时正式行动菜单隐藏道具入口")
+	battle._show_items_panel(reserve)
+	var empty_panel := battle._active_items_panel as PanelContainer
+	_assert(empty_panel != null and is_instance_valid(empty_panel),
+		"内部空状态入口可创建无可用道具面板")
+	if empty_panel == null or not is_instance_valid(empty_panel):
+		battle.queue_free()
+		await process_frame
+		return
+	var empty_vbox: VBoxContainer = null
+	if empty_panel.get_child_count() > 0:
+		empty_vbox = empty_panel.get_child(0) as VBoxContainer
+	_assert(empty_vbox != null, "无可用道具面板包含空状态容器")
+	if empty_vbox == null:
+		battle.queue_free()
+		await process_frame
+		return
+	var empty_label_found := false
+	var empty_buttons: Array[Button] = []
+	for child: Node in empty_vbox.get_children():
+		if child is Label and (child as Label).text == "（无可用道具）":
+			empty_label_found = true
+		if child is Button:
+			empty_buttons.append(child as Button)
+	_assert(empty_label_found, "无可用道具时动态面板显示空状态")
+	_assert_eq(empty_buttons.size(), 1, "无可用道具时只生成取消按钮")
+	if empty_buttons.size() != 1:
+		battle.queue_free()
+		await process_frame
+		return
+	_assert_eq(empty_buttons[0].text, "取消", "无可用道具时仍可取消返回")
+	empty_buttons[0].pressed.emit()
+	await process_frame
+	_assert(battle._active_items_panel == null and not is_instance_valid(empty_panel),
+		"无可用道具面板的取消按钮会释放面板")
+	_assert(action_menu.visible and battle.selected_unit == reserve,
+		"无可用道具取消后返回当前单位行动菜单")
+
+	battle.queue_free()
+	await process_frame
+
 # ══════════════════════════════════════════════════════════
 # 测试套件 15：武器三角加成
 # ══════════════════════════════════════════════════════════
