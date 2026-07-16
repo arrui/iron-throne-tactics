@@ -1003,13 +1003,23 @@ func _test_item_system() -> void:
 		"name": "待命友军",
 		"items": [{"name": "空药瓶", "type": "heal", "heal_amount": 5, "uses": 0}],
 	}), 0, Vector2i(2, 3))
+	var bomber := Unit.new()
+	bomber.setup(_make_unit_data({
+		"name": "火油测试员",
+		"items": [{"name": "野火瓶", "type": "offensive", "burn_damage": 6, "uses": 1}],
+	}), 0, Vector2i(5, 5))
+	var adjacent_enemy := Unit.new()
+	adjacent_enemy.setup(_make_enemy_data({"name": "相邻敌军", "hp": 16, "max_hp": 16}),
+		1, Vector2i(6, 5))
 	var distant_enemy := Unit.new()
 	distant_enemy.setup(_make_enemy_data({"name": "远处敌军"}), 1, Vector2i(8, 8))
 	battle.get_node("UnitLayer").add_child(healer)
 	battle.get_node("UnitLayer").add_child(reserve)
+	battle.get_node("UnitLayer").add_child(bomber)
+	battle.get_node("UnitLayer").add_child(adjacent_enemy)
 	battle.get_node("UnitLayer").add_child(distant_enemy)
-	battle.player_units.assign([healer, reserve])
-	battle.enemy_units.assign([distant_enemy])
+	battle.player_units.assign([healer, reserve, bomber])
+	battle.enemy_units.assign([adjacent_enemy, distant_enemy])
 	battle.selected_unit = healer
 	battle.player_state = battle.PlayerState.UNIT_MOVED
 	battle._show_action_menu(healer.grid_pos, false)
@@ -1102,6 +1112,51 @@ func _test_item_system() -> void:
 	_assert(battle.selected_unit == null, "使用道具后清除当前选中单位")
 	_assert(battle.recorded_statuses.any(func(msg: String) -> bool: return "恢复 10 HP" in msg),
 		"使用治疗道具后显示恢复量反馈")
+
+	battle.selected_unit = bomber
+	battle.player_state = battle.PlayerState.UNIT_MOVED
+	battle._show_action_menu(bomber.grid_pos, true)
+	_assert(items_button.visible, "持有攻击型道具时正式行动菜单显示道具入口")
+	items_button.pressed.emit()
+	var offensive_panel := battle._active_items_panel as PanelContainer
+	_assert(offensive_panel != null and is_instance_valid(offensive_panel),
+		"点击正式道具按钮会为攻击型道具创建动态面板")
+	if offensive_panel == null or not is_instance_valid(offensive_panel):
+		battle.queue_free()
+		await process_frame
+		return
+	var offensive_vbox: VBoxContainer = null
+	if offensive_panel.get_child_count() > 0:
+		offensive_vbox = offensive_panel.get_child(0) as VBoxContainer
+	_assert(offensive_vbox != null, "攻击型道具面板包含按钮容器")
+	if offensive_vbox == null:
+		battle.queue_free()
+		await process_frame
+		return
+	var offensive_button: Button = null
+	for child: Node in offensive_vbox.get_children():
+		if child is Button and (child as Button).text.begins_with("野火瓶"):
+			offensive_button = child as Button
+	_assert(offensive_button != null, "动态道具面板显示攻击型道具按钮")
+	if offensive_button == null:
+		battle.queue_free()
+		await process_frame
+		return
+	var adjacent_hp_before: int = adjacent_enemy.data.hp
+	var distant_hp_before: int = distant_enemy.data.hp
+	offensive_button.pressed.emit()
+	await process_frame
+	_assert(battle._active_items_panel == null and not is_instance_valid(offensive_panel),
+		"点击攻击型道具后释放动态道具面板")
+	_assert_eq(adjacent_enemy.data.hp, adjacent_hp_before - 6,
+		"点击野火瓶按钮真实伤害第一个相邻敌军")
+	_assert_eq(distant_enemy.data.hp, distant_hp_before, "攻击型道具不会伤害非相邻敌军")
+	_assert_eq(bomber.data.items.size(), 0, "攻击型道具次数耗尽后从背包移除")
+	_assert(bomber.state == Unit.State.DONE and battle.selected_unit == null,
+		"使用攻击型道具后结束行动并清除选中单位")
+	_assert(battle.recorded_statuses.any(func(msg: String) -> bool:
+		return "使用【野火瓶】" in msg and "造成 6 伤" in msg),
+		"使用攻击型道具后显示名称与伤害反馈")
 
 	battle.selected_unit = reserve
 	battle.player_state = battle.PlayerState.UNIT_MOVED
