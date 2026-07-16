@@ -2143,6 +2143,22 @@ func _test_unit_state_machine() -> void:
 	var deselect_event := InputEventKey.new()
 	deselect_event.pressed = true
 	deselect_event.keycode = KEY_ESCAPE
+	battle._input(move_click)
+	for frame: int in range(60):
+		if not battle._animating_battle:
+			break
+		await process_frame
+	_assert(mover.grid_pos == moved_pos and battle.player_state == battle.PlayerState.UNIT_MOVED,
+		"测试 ESC 取消移动前会通过正式输入链路再次完成移动")
+	battle._input(deselect_event)
+	_assert_eq(mover.state, Unit.State.IDLE, "移动后按 ESC 会恢复单位未行动状态")
+	_assert_eq(mover.grid_pos, move_origin, "移动后按 ESC 会恢复单位原始格坐标")
+	_assert_eq(mover.position, battle._g2p(move_origin), "移动后按 ESC 会恢复单位原始场景位置")
+	_assert_eq(battle._pre_move_pos, Vector2i(-1, -1), "移动后按 ESC 会清理移动前坐标")
+	_assert(battle.selected_unit == mover and battle.player_state == battle.PlayerState.UNIT_SELECTED,
+		"移动后按 ESC 会保留选中单位并返回单位选择状态")
+	_assert(not action_menu.visible, "移动后按 ESC 会关闭行动菜单")
+
 	battle._input(deselect_event)
 	_assert(battle.selected_unit == null and battle.player_state == battle.PlayerState.IDLE,
 		"ESC 会通过正式输入链路取消当前单位选择")
@@ -2217,6 +2233,23 @@ func _test_unit_state_machine() -> void:
 	battle._input(select_mover_click)
 	_assert(battle.selected_unit == null and battle.player_state == battle.PlayerState.IDLE,
 		"敌方回合会阻止正式左键选择我方单位")
+	battle._input(preview_enemy_click)
+	_assert(battle._preview_enemy == distant_enemy,
+		"敌方回合仍允许通过正式左键查看敌军安全距离预览")
+	battle._input(select_mover_click)
+	_assert(battle._preview_enemy == null,
+		"敌方回合点击非敌军格会关闭安全距离预览")
+	_assert(battle.selected_unit == null and battle.player_state == battle.PlayerState.IDLE,
+		"敌方回合关闭敌军预览时不会穿透并选择我方单位")
+
+	battle._battle_over = true
+	battle._input(preview_enemy_click)
+	_assert(battle._preview_enemy == null,
+		"战斗结束操作锁会阻止正式左键打开敌军安全距离预览")
+	battle._input(select_mover_click)
+	_assert(battle.selected_unit == null and battle.player_state == battle.PlayerState.IDLE,
+		"战斗结束操作锁会阻止正式左键选择我方单位")
+	battle._battle_over = false
 	battle.current_phase = battle.Phase.PLAYER_TURN
 	settings.auto_camera_enabled = old_auto_camera
 
