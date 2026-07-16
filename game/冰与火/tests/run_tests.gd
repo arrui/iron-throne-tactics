@@ -1181,6 +1181,30 @@ func _test_opening_main_menu() -> void:
 	if is_instance_valid(continued):
 		continued.queue_free()
 	await process_frame
+
+	SaveSystem.save_chapter_complete(4)
+	var completed_opening := scene.instantiate()
+	root.add_child(completed_opening)
+	await process_frame
+	var completed_continue := completed_opening.get_node_or_null("MainMenu/MenuPanel/MenuContent/ContinueButton") as Button
+	var completed_progress := completed_opening.get_node_or_null("MainMenu/MenuPanel/MenuContent/ProgressLabel") as Label
+	_assert(completed_continue != null and completed_continue.disabled,
+		"序章全部完成后禁用继续游戏")
+	_assert(completed_continue != null and completed_continue.text == "序章已完成",
+		"序章全部完成后继续按钮显示完成状态")
+	_assert(completed_progress != null and completed_progress.text == "序章战役已完成",
+		"序章全部完成后进度文案显示完成状态")
+	if is_instance_valid(completed_opening):
+		completed_opening.queue_free()
+	await process_frame
+	var completed_route := TestOpeningClass.new()
+	root.add_child(completed_route)
+	await process_frame
+	completed_route.run_continue_game()
+	_assert(not completed_route.played_chapter_1 and completed_route.recorded_scene_changes.is_empty(),
+		"序章全部完成后继续入口不会误重开第一章")
+	completed_route.queue_free()
+	await process_frame
 	SaveSystem.delete_save()
 
 func _test_auto_camera_focus() -> void:

@@ -67,7 +67,12 @@ func _refresh_main_menu() -> void:
 		_continue_button.text = "继续游戏"
 		_progress_label.text = "尚无战役记录"
 		return
-	var chapter := clampi(SaveSystem.load_current_chapter(), 1, 4)
+	var chapter := SaveSystem.load_current_chapter()
+	if chapter > 4:
+		_continue_button.disabled = true
+		_continue_button.text = "序章已完成"
+		_progress_label.text = "序章战役已完成"
+		return
 	_continue_button.text = "继续游戏 · %s" % _chapter_display_name(chapter)
 	_progress_label.text = "当前进度：%s" % _chapter_display_name(chapter)
 
@@ -95,6 +100,8 @@ func _on_continue_pressed() -> void:
 
 func _continue_game() -> void:
 	var chapter := SaveSystem.load_current_chapter()
+	if chapter > 4:
+		return
 	GameState.current_chapter = chapter
 	_hide_main_menu()
 	if chapter <= 1 or not CHAPTER_SCENE_MAP.has(chapter):
