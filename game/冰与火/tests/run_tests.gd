@@ -2166,9 +2166,29 @@ func _test_unit_state_machine() -> void:
 	close_in_place_event.pressed = true
 	close_in_place_event.keycode = KEY_ESCAPE
 	battle._input(close_in_place_event)
-	_assert(not action_menu.visible, "ESC 会通过正式输入链路关闭原地行动菜单")
+	_assert(not action_menu.visible, "ESC 会通过正式输入链路关闭右键原地行动菜单")
 	_assert(battle.selected_unit == mover and battle.player_state == battle.PlayerState.UNIT_SELECTED,
-		"ESC 关闭原地行动菜单后保留单位选中态")
+		"ESC 关闭右键原地行动菜单后保留单位选中态")
+
+	battle._input(select_mover_click)
+	_assert(action_menu.visible and battle.player_state == battle.PlayerState.UNIT_MOVED,
+		"再次左键已选单位会通过正式输入链路打开原地行动菜单")
+	_assert_eq(battle._pre_move_pos, Vector2i(-1, -1),
+		"左键原地行动不会留下可取消的移动记录")
+	_assert(not cancel_move_button.visible, "左键原地行动菜单不会显示取消移动按钮")
+	battle._input(close_in_place_event)
+	_assert(not action_menu.visible, "ESC 会通过正式输入链路关闭左键原地行动菜单")
+	_assert(battle.selected_unit == mover and battle.player_state == battle.PlayerState.UNIT_SELECTED,
+		"ESC 关闭左键原地行动菜单后保留单位选中态")
+	waiter.reset_turn()
+	var switch_unit_click := InputEventMouseButton.new()
+	switch_unit_click.button_index = MOUSE_BUTTON_LEFT
+	switch_unit_click.pressed = true
+	switch_unit_click.position = battle.get_global_transform_with_canvas() * battle._g2p(waiter.grid_pos)
+	battle._input(switch_unit_click)
+	_assert(battle.selected_unit == waiter and battle.player_state == battle.PlayerState.UNIT_SELECTED,
+		"单位选择态左键另一可行动友军会通过正式输入链路切换选中对象")
+	_assert(battle.move_range.has(waiter.grid_pos), "切换友军后会按新单位位置重算移动范围")
 	settings.auto_camera_enabled = old_auto_camera
 
 	var end_turn_button := battle.get_node_or_null("UI/EndTurnBtn") as Button
