@@ -3158,10 +3158,14 @@ func _test_ch1_save_and_deploy_flow() -> void:
 	_assert(ch1_kill.recorded_dialogues.has("res://data/dialogues/prologue_1_post.json"),
 		"Ch1 敌军全灭触发战后对话")
 	_assert(ch1_kill.recorded_advances.has(2), "Ch1 敌军全灭后推进到第2章")
+	_assert_eq(SaveSystem.load_current_chapter(), 2, "Ch1 敌军全灭同步保存 Ch2 检查点")
+	_assert(SaveSystem.get_completed_chapters().has(1), "Ch1 敌军全灭同步记录 Ch1 已完成")
 	if is_instance_valid(ch1_kill):
 		ch1_kill.queue_free()
 	await process_frame
 
+	SaveSystem.delete_save()
+	SaveSystem.start_new_campaign()
 	GameState.current_chapter = 1
 	var ch1_goal := TestBootstrapClass.new()
 	root.add_child(ch1_goal)
@@ -3174,6 +3178,8 @@ func _test_ch1_save_and_deploy_flow() -> void:
 		await process_frame
 		_assert(ch1_goal._ned_reached_victory, "Ch1 奈德到达目标后胜利标记置位")
 		_assert(ch1_goal.recorded_advances.has(2), "Ch1 奈德到达目标后推进到第2章")
+		_assert_eq(SaveSystem.load_current_chapter(), 2, "Ch1 奈德到达目标同步保存 Ch2 检查点")
+		_assert(SaveSystem.get_completed_chapters().has(1), "Ch1 奈德到达目标同步记录 Ch1 已完成")
 	if is_instance_valid(ch1_goal):
 		ch1_goal.queue_free()
 	await process_frame
