@@ -3023,6 +3023,8 @@ func _test_chapter_opening_configuration() -> void:
 		"章节 Opening 配置测试释放临时节点实例")
 
 func _test_chapter_event_flow() -> void:
+	SaveSystem.delete_save()
+	SaveSystem.start_new_campaign()
 	var opening_scene: PackedScene = load("res://scenes/Opening.tscn") as PackedScene
 	_assert(opening_scene != null, "Opening 场景可加载用于章节回归")
 	if opening_scene == null:
@@ -3056,6 +3058,8 @@ func _test_chapter_event_flow() -> void:
 		await process_frame
 		_assert(ch2.recorded_advances.has(3), "Ch2 胜利后推进到第3章")
 		_assert_eq(GameState.current_chapter, 3, "Ch2 事件后当前章节=3")
+		_assert_eq(SaveSystem.load_current_chapter(), 3, "Ch2 胜利事件同步保存 Ch3 检查点")
+		_assert(SaveSystem.get_completed_chapters().has(2), "Ch2 胜利事件同步记录 Ch2 已完成")
 	if is_instance_valid(ch2):
 		ch2.queue_free()
 	await process_frame
@@ -3085,6 +3089,8 @@ func _test_chapter_event_flow() -> void:
 		"Ch3 触发战后对话")
 	_assert(ch3.recorded_advances.has(4), "Ch3 事件后推进到第4章")
 	_assert_eq(GameState.current_chapter, 4, "Ch3 事件后当前章节=4")
+	_assert_eq(SaveSystem.load_current_chapter(), 4, "Ch3 塔事件同步保存 Ch4 检查点")
+	_assert(SaveSystem.get_completed_chapters().has(3), "Ch3 塔事件同步记录 Ch3 已完成")
 	_assert(ch3._battle_over, "Ch3 塔事件过程中战斗已结束")
 	if is_instance_valid(ch3):
 		ch3.queue_free()
@@ -3127,12 +3133,16 @@ func _test_chapter_event_flow() -> void:
 		"Ch4 最终结局过场触发")
 	_assert(ch4.recorded_advances.has(0), "Ch4 结局后返回主入口")
 	_assert_eq(GameState.current_chapter, 1, "Ch4 事件后章节重置到1")
+	_assert_eq(SaveSystem.load_current_chapter(), 5, "Ch4 结局同步保存序章完成态")
+	_assert(SaveSystem.get_completed_chapters().has(4), "Ch4 结局同步记录 Ch4 已完成")
 	if is_instance_valid(ch4):
 		ch4.queue_free()
 	await process_frame
 
 func _test_ch1_save_and_deploy_flow() -> void:
 	# ── Ch1：敌军全灭胜利与到达胜利格胜利 ─────────────────
+	SaveSystem.delete_save()
+	SaveSystem.start_new_campaign()
 	GameState.current_chapter = 1
 	var ch1_kill := TestBootstrapClass.new()
 	root.add_child(ch1_kill)
