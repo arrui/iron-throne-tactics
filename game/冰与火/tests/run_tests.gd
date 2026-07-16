@@ -1272,6 +1272,36 @@ func _test_opening_main_menu() -> void:
 	_assert(scene != null, "Opening 正式主菜单场景可加载")
 	if scene == null:
 		return
+	SaveSystem.delete_save()
+	var old_current_chapter: int = GameState.current_chapter
+	GameState.current_chapter = 4
+	var fresh_opening := scene.instantiate()
+	fresh_opening.set_script(TestOpeningClass)
+	root.add_child(fresh_opening)
+	await process_frame
+	fresh_opening._bind_main_menu()
+	fresh_opening._refresh_main_menu()
+	var fresh_continue := fresh_opening.get_node_or_null(
+		"MainMenu/MenuPanel/MenuContent/ContinueButton") as Button
+	var fresh_progress := fresh_opening.get_node_or_null(
+		"MainMenu/MenuPanel/MenuContent/ProgressLabel") as Label
+	_assert(fresh_continue != null and fresh_continue.disabled,
+		"无存档时正式继续游戏按钮禁用")
+	_assert(fresh_continue != null and fresh_continue.text == "继续游戏",
+		"无存档时继续游戏按钮使用默认文案")
+	_assert(fresh_progress != null and fresh_progress.text == "尚无战役记录",
+		"无存档时主菜单显示尚无进度")
+	if fresh_continue != null:
+		fresh_continue.pressed.emit()
+	_assert(fresh_opening.get_node("MainMenu").visible,
+		"无存档时继续信号不会隐藏主菜单")
+	_assert(not fresh_opening.played_chapter_1 and fresh_opening.recorded_scene_changes.is_empty(),
+		"无存档时继续信号不会误进任何章节")
+	_assert_eq(GameState.current_chapter, 4, "无存档时继续信号不会改写当前章节")
+	GameState.current_chapter = old_current_chapter
+	fresh_opening.queue_free()
+	await process_frame
+
 	var opening_scene := scene.instantiate()
 	root.add_child(opening_scene)
 	await process_frame
