@@ -1442,6 +1442,27 @@ func _test_auto_camera_focus() -> void:
 	_assert_eq(camera.position, battle._g2p(ned.grid_pos),
 		"战场对话换行信号真实驱动镜头聚焦发言单位")
 
+	for existing_unit: Unit in battle.player_units + battle.enemy_units:
+		if is_instance_valid(existing_unit):
+			existing_unit.queue_free()
+	await process_frame
+	battle.player_units.clear()
+	battle.enemy_units.clear()
+	var tracked_player := Unit.new()
+	tracked_player.setup(_make_unit_data({"name": "镜头目标"}), 0, Vector2i(7, 6))
+	battle.get_node("UnitLayer").add_child(tracked_player)
+	battle.player_units.append(tracked_player)
+	var tracked_enemy := Unit.new()
+	tracked_enemy.setup(_make_enemy_data({"name": "移动敌军", "move": 2}), 1, Vector2i(2, 3))
+	battle.get_node("UnitLayer").add_child(tracked_enemy)
+	battle.enemy_units.append(tracked_enemy)
+	var enemy_start := tracked_enemy.grid_pos
+	camera.position = Vector2.ZERO
+	await battle._start_enemy_turn()
+	_assert(tracked_enemy.grid_pos != enemy_start, "敌军回合测试单位实际发生移动")
+	_assert_eq(camera.position, battle._g2p(tracked_enemy.grid_pos),
+		"开启自动镜头时敌军移动结束后镜头跟随到最终位置")
+
 	settings.auto_camera_enabled = old_enabled
 	battle.queue_free()
 	await process_frame
