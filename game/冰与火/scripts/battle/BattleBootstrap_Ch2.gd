@@ -15,10 +15,10 @@ const POST_DIALOGUE_PATH  := "res://data/dialogues/ch2_post.json"
 const UNIT_SPRITE_MAP := {
 	"ned_stark.json":           "ned_stark_map.png",
 	"robert_baratheon.json":    "robert_baratheon_map.png",
-	"rhaegar_targaryen.json":   "ned_stark_map.png",       # 占位，待专用精灵
-	"barristan_selmy.json":     "ned_stark_map.png",
-	"rebel_lord.json":          "howland_reed_map.png",
-	"targaryen_soldier.json":   "royal_soldier_map.png",
+	"rhaegar_targaryen.json":   "rhaegar_targaryen_map.png",
+	"barristan_selmy.json":     "barristan_selmy_map.png",
+	"rebel_lord.json":          "rebel_lord_map.png",
+	"targaryen_soldier.json":   "targaryen_soldier_map.png",
 }
 
 # 0=平原 1=森林 2=矮墙 3=峭壁 4=河流 5=沼泽 6=桥梁

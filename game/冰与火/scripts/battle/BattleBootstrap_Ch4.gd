@@ -14,9 +14,9 @@ const POST_DIALOGUE_PATH := "res://data/dialogues/ch4_post.json"
 
 const UNIT_SPRITE_MAP := {
 	"ned_stark.json":          "ned_stark_map.png",
-	"northern_knight.json":    "howland_reed_map.png",
-	"lannister_soldier.json":  "royal_soldier_map.png",
-	"royal_guard_captain.json":"royal_soldier_map.png",
+	"northern_knight.json":    "northern_knight_map.png",
+	"lannister_soldier.json":  "lannister_soldier_map.png",
+	"royal_guard_captain.json":"royal_guard_captain_map.png",
 	"royal_soldier.json":      "royal_soldier_map.png",
 }
 

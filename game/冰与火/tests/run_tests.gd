@@ -19,6 +19,9 @@ const BattleCalculatorClass := preload("res://scripts/battle/BattleCalculator.gd
 const UnitDataClass          := preload("res://scripts/data/UnitData.gd")
 const EnemyAIClass           := preload("res://scripts/battle/EnemyAI.gd")
 const BootstrapClass         := preload("res://scripts/battle/BattleBootstrap.gd")
+const Ch2BootstrapClass      := preload("res://scripts/battle/BattleBootstrap_Ch2.gd")
+const Ch3BootstrapClass      := preload("res://scripts/battle/BattleBootstrap_Ch3.gd")
+const Ch4BootstrapClass      := preload("res://scripts/battle/BattleBootstrap_Ch4.gd")
 const PrologueChapterBriefsClass := preload("res://scripts/chapter/PrologueChapterBriefs.gd")
 const Ch4BattleBriefClass    := preload("res://scripts/chapter/Ch4BattleBrief.gd")
 const BattleChromeThemeClass := preload("res://scripts/ui/BattleChromeTheme.gd")
@@ -2482,6 +2485,28 @@ func _test_map_sprite_assets_and_animation() -> void:
 	}
 	_assert_eq(BootstrapClass.UNIT_SPRITE_MAP, expected_sprite_map,
 		"所有可上场单位使用一对一专属地图精灵映射")
+
+	var chapter_sprite_maps := {
+		"序章二": [Ch2BootstrapClass.UNIT_SPRITE_MAP, [
+			"ned_stark.json", "robert_baratheon.json", "rhaegar_targaryen.json",
+			"barristan_selmy.json", "rebel_lord.json", "targaryen_soldier.json",
+		]],
+		"序章三": [Ch3BootstrapClass.UNIT_SPRITE_MAP, [
+			"ned_stark.json", "howland_reed.json", "arthur_dayne.json",
+			"dorne_knight.json", "northern_knight.json", "royal_soldier.json",
+		]],
+		"序章四": [Ch4BootstrapClass.UNIT_SPRITE_MAP, [
+			"ned_stark.json", "northern_knight.json", "lannister_soldier.json",
+			"royal_guard_captain.json", "royal_soldier.json",
+		]],
+	}
+	for chapter_name: String in chapter_sprite_maps:
+		var chapter_data: Array = chapter_sprite_maps[chapter_name]
+		var sprite_map: Dictionary = chapter_data[0]
+		for unit_file: String in chapter_data[1]:
+			var expected_sprite := unit_file.trim_suffix(".json") + "_map.png"
+			_assert_eq(sprite_map.get(unit_file, ""), expected_sprite,
+				"%s 独立战场使用专属地图精灵：%s" % [chapter_name, unit_file])
 
 	var sprite_names: Array[String] = []
 	for sprite_name: String in expected_sprite_map.values():

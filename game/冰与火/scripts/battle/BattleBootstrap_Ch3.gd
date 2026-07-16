@@ -15,9 +15,9 @@ const POST_DIALOGUE_PATH := "res://data/dialogues/ch3_post.json"
 const UNIT_SPRITE_MAP := {
 	"ned_stark.json":       "ned_stark_map.png",
 	"howland_reed.json":    "howland_reed_map.png",
-	"arthur_dayne.json":    "ned_stark_map.png",
-	"dorne_knight.json":    "royal_soldier_map.png",
-	"northern_knight.json": "howland_reed_map.png",
+	"arthur_dayne.json":    "arthur_dayne_map.png",
+	"dorne_knight.json":    "dorne_knight_map.png",
+	"northern_knight.json": "northern_knight_map.png",
 	"royal_soldier.json":   "royal_soldier_map.png",
 }
 
