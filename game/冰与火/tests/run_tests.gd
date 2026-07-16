@@ -2090,6 +2090,19 @@ func _test_unit_state_machine() -> void:
 	var settings := root.get_node_or_null("GameSettings")
 	var old_auto_camera: bool = settings.auto_camera_enabled
 	settings.auto_camera_enabled = false
+	var preview_enemy_click := InputEventMouseButton.new()
+	preview_enemy_click.button_index = MOUSE_BUTTON_LEFT
+	preview_enemy_click.pressed = true
+	preview_enemy_click.position = battle.get_global_transform_with_canvas() * battle._g2p(distant_enemy.grid_pos)
+	battle._input(preview_enemy_click)
+	_assert(battle._preview_enemy == distant_enemy,
+		"空闲状态左键敌军会通过正式输入链路显示安全距离预览")
+	_assert(battle.selected_unit == null and battle.player_state == battle.PlayerState.IDLE,
+		"敌军安全距离预览不会错误选中我方单位或改变玩家状态")
+	battle._input(preview_enemy_click)
+	_assert(battle._preview_enemy == null, "再次左键同一敌军会关闭安全距离预览")
+	battle._input(preview_enemy_click)
+	_assert(battle._preview_enemy == distant_enemy, "关闭后可再次左键敌军恢复安全距离预览")
 	var select_mover_click := InputEventMouseButton.new()
 	select_mover_click.button_index = MOUSE_BUTTON_LEFT
 	select_mover_click.pressed = true
@@ -2097,6 +2110,7 @@ func _test_unit_state_machine() -> void:
 	battle._input(select_mover_click)
 	_assert(battle.selected_unit == mover and battle.player_state == battle.PlayerState.UNIT_SELECTED,
 		"左键我方单位会通过正式输入链路选中可行动单位")
+	_assert(battle._preview_enemy == null, "从敌军预览切换选中我方单位时会清理安全距离预览")
 	_assert(not battle.move_range.is_empty(), "正式左键选中单位后会计算移动范围")
 	_assert(moved_pos in battle.move_range, "目标格位于正式移动范围内")
 	var move_click := InputEventMouseButton.new()
