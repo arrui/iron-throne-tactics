@@ -2029,6 +2029,26 @@ func _test_unit_state_machine() -> void:
 	_assert(battle.recorded_statuses.any(func(msg: String) -> bool: return msg == "移动测试员 取消移动"),
 		"取消移动后显示明确状态反馈")
 
+	var end_turn_button := battle.get_node_or_null("UI/EndTurnBtn") as Button
+	_assert(end_turn_button != null, "正式战场包含结束回合按钮")
+	if end_turn_button != null:
+		battle.intercept_enemy_turn_start = true
+		_assert_eq(end_turn_button.pressed.get_connections().size(), 1,
+			"正式结束回合按钮仅连接一个处理目标")
+		battle.selected_unit = mover
+		battle.player_state = battle.PlayerState.UNIT_SELECTED
+		battle._show_action_menu(mover.grid_pos, false)
+		end_turn_button.disabled = false
+		end_turn_button.pressed.emit()
+		_assert_eq(battle.recorded_enemy_turn_starts, 1,
+			"点击正式结束回合按钮会启动一次敌方回合")
+		_assert_eq(battle.current_phase, battle.Phase.PLAYER_TURN,
+			"测试替身只记录敌方回合入口且不会启动异步敌军行动")
+		_assert(end_turn_button.disabled, "点击结束回合后立即禁用按钮防止重复触发")
+		_assert(battle.selected_unit == null and battle.player_state == battle.PlayerState.IDLE,
+			"点击结束回合后清除选中单位并返回空闲状态")
+		_assert(not action_menu.visible, "点击结束回合后关闭行动菜单")
+
 	battle.queue_free()
 	await process_frame
 

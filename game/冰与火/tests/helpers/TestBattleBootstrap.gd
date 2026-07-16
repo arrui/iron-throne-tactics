@@ -7,6 +7,8 @@ var recorded_statuses: Array[String] = []
 var restart_requested: bool = false
 var return_to_opening_requested: bool = false
 var fixed_combat_result: Dictionary = {}
+var recorded_enemy_turn_starts: int = 0
+var intercept_enemy_turn_start: bool = false
 
 func _enter_tree() -> void:
 	if get_node_or_null("HighlightLayer") == null:
@@ -104,6 +106,11 @@ func _restart() -> void:
 
 func _return_to_opening() -> void:
 	return_to_opening_requested = true
+
+func _start_enemy_turn() -> void:
+	recorded_enemy_turn_starts += 1
+	if not intercept_enemy_turn_start:
+		await super._start_enemy_turn()
 
 func _build_combat_result(pred: Dictionary, attacker_hp: int, defender_hp: int) -> Dictionary:
 	if not fixed_combat_result.is_empty():
