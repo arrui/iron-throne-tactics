@@ -1973,6 +1973,9 @@ func _test_unit_state_machine() -> void:
 	battle.get_node("UnitLayer").add_child(waiter)
 	battle.get_node("UnitLayer").add_child(mover)
 	battle.get_node("UnitLayer").add_child(distant_enemy)
+	waiter.position = battle._g2p(waiter.grid_pos)
+	mover.position = battle._g2p(mover.grid_pos)
+	distant_enemy.position = battle._g2p(distant_enemy.grid_pos)
 	battle.player_units.assign([waiter, mover])
 	battle.enemy_units.assign([distant_enemy])
 
@@ -2009,15 +2012,19 @@ func _test_unit_state_machine() -> void:
 
 	var move_origin := Vector2i(2, 3)
 	var moved_pos := Vector2i(3, 4)
-	mover.mark_moved()
-	mover.grid_pos = moved_pos
-	mover.position = battle._g2p(moved_pos)
 	battle.selected_unit = mover
-	battle._pre_move_pos = move_origin
-	battle.player_state = battle.PlayerState.UNIT_MOVED
-	battle._show_action_menu(moved_pos, false)
+	battle.player_state = battle.PlayerState.UNIT_SELECTED
+	battle.move_range = battle._calc_move_range(mover)
+	_assert(moved_pos in battle.move_range, "目标格位于正式移动范围内")
+	await battle._do_move_animated(mover, moved_pos)
+	_assert_eq(mover.state, Unit.State.MOVED, "正式移动流程会将单位标记为已移动")
+	_assert_eq(mover.grid_pos, moved_pos, "正式移动流程会更新单位格坐标")
+	_assert_eq(mover.position, battle._g2p(moved_pos), "正式移动动画会到达目标格场景位置")
+	_assert_eq(battle._pre_move_pos, move_origin, "正式移动流程会记录取消移动所需原坐标")
+	_assert(battle.player_state == battle.PlayerState.UNIT_MOVED,
+		"正式移动完成后进入单位已移动状态")
 	_assert(action_menu.visible and cancel_move_button.visible,
-		"实际移动后的行动菜单显示取消移动按钮")
+		"正式移动完成后自动显示含取消按钮的行动菜单")
 	cancel_move_button.pressed.emit()
 	_assert_eq(mover.state, Unit.State.IDLE, "点击取消移动按钮恢复单位未行动状态")
 	_assert_eq(mover.grid_pos, move_origin, "点击取消移动按钮恢复原始格坐标")
