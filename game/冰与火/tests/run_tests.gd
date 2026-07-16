@@ -803,6 +803,83 @@ func _test_battle_predict_full() -> void:
 	_assert(pred["def_damage"] >= 1 and pred["def_damage"] <= 50,
 		"def_damage在合理范围内（=%d）" % pred["def_damage"])
 
+	var battle_scene := load("res://scenes/battle/BattleMap.tscn") as PackedScene
+	var battle := battle_scene.instantiate()
+	battle.set_script(TestBootstrapClass)
+	root.add_child(battle)
+	await process_frame
+	for existing_unit: Unit in battle.player_units + battle.enemy_units:
+		if is_instance_valid(existing_unit):
+			existing_unit.queue_free()
+	await process_frame
+	battle.player_units.clear()
+	battle.enemy_units.clear()
+	battle._battle_over = false
+	battle.current_phase = battle.Phase.PLAYER_TURN
+
+	var attacker := Unit.new()
+	attacker.setup(_make_unit_data({
+		"name": "预测攻击方", "weapon_uses": 3, "weapon_max_uses": 3,
+	}), 0, Vector2i(3, 3))
+	var reserve := Unit.new()
+	reserve.setup(_make_unit_data({"name": "待命友军"}), 0, Vector2i(2, 3))
+	var defender := Unit.new()
+	defender.setup(_make_enemy_data({"name": "预测防守方"}), 1, Vector2i(4, 3))
+	battle.get_node("UnitLayer").add_child(attacker)
+	battle.get_node("UnitLayer").add_child(reserve)
+	battle.get_node("UnitLayer").add_child(defender)
+	battle.player_units.assign([attacker, reserve])
+	battle.enemy_units.assign([defender])
+	battle.selected_unit = attacker
+	battle.player_state = battle.PlayerState.UNIT_MOVED
+	battle.attack_tiles.assign([defender.grid_pos])
+	battle._open_predict(attacker, defender)
+
+	var predict_panel := battle.get_node("UI/PredictPanel") as PanelContainer
+	var confirm_button := predict_panel.get_node("VBox/Buttons/ConfirmBtn") as Button
+	var cancel_button := predict_panel.get_node("VBox/Buttons/CancelBtn") as Button
+	_assert(confirm_button.pressed.get_connections().size() == 1,
+		"战斗预测确认按钮仅连接一个处理目标")
+	_assert(cancel_button.pressed.get_connections().size() == 1,
+		"战斗预测取消按钮仅连接一个处理目标")
+	_assert(predict_panel.visible and battle.player_state == battle.PlayerState.PREDICT,
+		"打开预测后面板可见并进入预测状态")
+	cancel_button.pressed.emit()
+	_assert(not predict_panel.visible, "点击预测取消按钮真实关闭面板")
+	_assert_eq(battle.player_state, battle.PlayerState.UNIT_MOVED,
+		"点击预测取消按钮返回单位已移动状态")
+	_assert(battle.target_enemy == null, "取消预测后清除旧攻击目标")
+	_assert(battle.attack_tiles.has(defender.grid_pos), "取消预测后保留相邻敌军供重新选择")
+
+	battle._open_predict(attacker, defender)
+	var settings := root.get_node_or_null("GameSettings")
+	var old_animation_enabled: bool = settings.battle_animations_enabled
+	var old_auto_camera: bool = settings.auto_camera_enabled
+	settings.battle_animations_enabled = false
+	settings.auto_camera_enabled = false
+	battle.fixed_combat_result = {
+		"atk_hit": true, "atk_crit": false, "atk_damage": 4,
+		"def_hit": false, "def_crit": false, "def_damage": 0,
+		"atk_double": false, "double_hit": false,
+		"double_crit": false, "double_damage": 0,
+	}
+	var weapon_uses_before: int = attacker.data.weapon_uses
+	confirm_button.pressed.emit()
+	await process_frame
+	_assert(not predict_panel.visible, "点击预测确认按钮真实关闭面板")
+	_assert_eq(defender.data.hp, defender.data.max_hp - 4,
+		"点击预测确认按钮进入统一战斗结算")
+	_assert_eq(attacker.data.weapon_uses, weapon_uses_before - 1,
+		"预测确认后的真实战斗会消耗攻击方武器耐久")
+	_assert(attacker.state == Unit.State.DONE, "预测确认后的攻击方结束本回合行动")
+	_assert(battle.selected_unit == null and battle.target_enemy == null,
+		"预测确认结算后清理选中单位与攻击目标")
+	_assert(not battle._animating_battle, "预测确认结算后解除战斗操作锁")
+	settings.battle_animations_enabled = old_animation_enabled
+	settings.auto_camera_enabled = old_auto_camera
+	battle.queue_free()
+	await process_frame
+
 # ══════════════════════════════════════════════════════════
 # 测试套件 13：武器耐久系统
 # ══════════════════════════════════════════════════════════
