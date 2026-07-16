@@ -62,6 +62,7 @@ func _run_all_tests() -> void:
 		["SaveSystem 存档读档", _test_save_system],
 		["GameSettings 设置持久化", _test_game_settings],
 		["SettingsMenu 设置菜单", _test_settings_menu],
+		["Opening 正式主菜单", _test_opening_main_menu],
 		["自动镜头聚焦", _test_auto_camera_focus],
 		["战斗结果与动画开关", _test_combat_result_and_animation_setting],
 		["守卫型Boss数据字段", _test_guard_boss_fields],
@@ -1123,6 +1124,57 @@ func _test_settings_menu() -> void:
 	battle._open_settings_menu()
 	_assert(battle.get_node_or_null("SettingsMenu") == null, "战斗演出期间不能打开设置菜单破坏流程锁")
 	battle.queue_free()
+
+func _test_opening_main_menu() -> void:
+	const OPENING_PATH := "res://scenes/Opening.tscn"
+	var scene := load(OPENING_PATH) as PackedScene
+	_assert(scene != null, "Opening 正式主菜单场景可加载")
+	if scene == null:
+		return
+	var opening_scene := scene.instantiate()
+	root.add_child(opening_scene)
+	await process_frame
+	var new_game := opening_scene.get_node_or_null("MainMenu/MenuPanel/MenuContent/NewGameButton") as Button
+	var continue_game := opening_scene.get_node_or_null("MainMenu/MenuPanel/MenuContent/ContinueButton") as Button
+	var settings := opening_scene.get_node_or_null("MainMenu/MenuPanel/MenuContent/SettingsButton") as Button
+	var quit := opening_scene.get_node_or_null("MainMenu/MenuPanel/MenuContent/QuitButton") as Button
+	var confirm := opening_scene.get_node_or_null("NewGameConfirm") as ConfirmationDialog
+	_assert(new_game != null, "正式主菜单包含新游戏入口")
+	_assert(continue_game != null, "正式主菜单包含继续游戏入口")
+	_assert(settings != null, "正式主菜单包含设置入口")
+	_assert(quit != null, "正式主菜单包含退出入口")
+	_assert(confirm != null, "已有存档时新游戏提供二次确认")
+	if is_instance_valid(opening_scene):
+		opening_scene.queue_free()
+	await process_frame
+
+	SaveSystem.delete_save()
+	var opening := TestOpeningClass.new()
+	root.add_child(opening)
+	await process_frame
+	_assert(opening.has_method("_refresh_main_menu"), "Opening 可根据存档刷新主菜单")
+	_assert(opening.has_method("_on_new_game_pressed"), "Opening 提供新游戏入口行为")
+	_assert(opening.has_method("_on_continue_pressed"), "Opening 提供继续游戏入口行为")
+	_assert(opening.has_method("_on_quit_pressed"), "Opening 提供退出入口行为")
+	if opening.has_method("run_new_game"):
+		opening.run_new_game()
+		_assert(opening.played_chapter_1, "无存档时新游戏直接进入 Ch1")
+	if is_instance_valid(opening):
+		opening.queue_free()
+	await process_frame
+
+	SaveSystem.save_chapter_complete(2)
+	var continued := TestOpeningClass.new()
+	root.add_child(continued)
+	await process_frame
+	if continued.has_method("run_continue_game"):
+		continued.run_continue_game()
+		_assert(continued.recorded_scene_changes.has("res://scenes/chapter/Ch3_Opening.tscn"),
+			"继续游戏按存档路由到当前章节")
+	if is_instance_valid(continued):
+		continued.queue_free()
+	await process_frame
+	SaveSystem.delete_save()
 
 func _test_auto_camera_focus() -> void:
 	var battle_scene := load("res://scenes/battle/BattleMap.tscn") as PackedScene

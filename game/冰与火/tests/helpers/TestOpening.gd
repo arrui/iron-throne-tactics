@@ -25,15 +25,14 @@ func _begin_ch1_cutscene_flow() -> void:
 func _record_scene_change(path: String) -> void:
 	recorded_scene_changes.append(path)
 
+func _change_scene(path: String) -> void:
+	_record_scene_change(path)
+
+func run_new_game() -> void:
+	_start_new_game()
+
+func run_continue_game() -> void:
+	_continue_game()
+
 func run_start_normal_flow() -> void:
-	const SAVE_SYS_PATH := "res://scripts/systems/SaveSystem.gd"
-	if ResourceLoader.exists(SAVE_SYS_PATH):
-		var ss := load(SAVE_SYS_PATH)
-		if ss.has_save():
-			var chapter: int = ss.load_current_chapter()
-			if chapter > 1 and CHAPTER_SCENE_MAP.has(chapter):
-				var scene_path: String = CHAPTER_SCENE_MAP[chapter] as String
-				if ResourceLoader.exists(scene_path):
-					_record_scene_change(scene_path)
-					return
-	_play_chapter_1()
+	_start_normal_flow()
