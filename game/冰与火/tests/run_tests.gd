@@ -1130,6 +1130,46 @@ func _test_settings_menu() -> void:
 	_assert(menu.get_node_or_null("Dimmer/Panel/Margin/Content/Buttons/Close") is Button,
 		"设置菜单包含关闭按钮")
 	_assert(menu.has_signal("closed"), "设置菜单提供关闭信号")
+	var global_settings := root.get_node_or_null("GameSettings")
+	var old_battle_animations: bool = global_settings.battle_animations_enabled
+	var old_auto_camera: bool = global_settings.auto_camera_enabled
+	var old_master_volume: float = global_settings.master_volume
+	var old_fullscreen: bool = global_settings.fullscreen_enabled
+	global_settings.battle_animations_enabled = false
+	global_settings.auto_camera_enabled = false
+	global_settings.master_volume = 0.25
+	global_settings.fullscreen_enabled = true
+	menu._sync_controls()
+	var defaults_button := menu.get_node_or_null(
+		"Dimmer/Panel/Margin/Content/Buttons/Defaults") as Button
+	if defaults_button != null:
+		defaults_button.pressed.emit()
+	_assert(global_settings.battle_animations_enabled and global_settings.auto_camera_enabled,
+		"点击恢复默认会真实重置战斗动画与自动镜头设置")
+	_assert_eq(global_settings.master_volume, 1.0,
+		"点击恢复默认会真实重置主音量设置")
+	_assert(not global_settings.fullscreen_enabled,
+		"点击恢复默认会真实重置全屏设置")
+	var default_animations := menu.get_node_or_null(
+		"Dimmer/Panel/Margin/Content/BattleAnimations") as CheckButton
+	var default_camera := menu.get_node_or_null(
+		"Dimmer/Panel/Margin/Content/AutoCamera") as CheckButton
+	var default_volume := menu.get_node_or_null(
+		"Dimmer/Panel/Margin/Content/MasterVolume") as HSlider
+	var default_volume_label := menu.get_node_or_null(
+		"Dimmer/Panel/Margin/Content/VolumeValue") as Label
+	var default_fullscreen := menu.get_node_or_null(
+		"Dimmer/Panel/Margin/Content/Fullscreen") as CheckButton
+	_assert(default_animations != null and default_animations.button_pressed,
+		"恢复默认后战斗动画控件同步为开启")
+	_assert(default_camera != null and default_camera.button_pressed,
+		"恢复默认后自动镜头控件同步为开启")
+	_assert(default_volume != null and default_volume.value == 100.0,
+		"恢复默认后音量滑杆同步为100%")
+	_assert(default_volume_label != null and default_volume_label.text == "主音量：100%",
+		"恢复默认后音量文案同步为100%")
+	_assert(default_fullscreen != null and not default_fullscreen.button_pressed,
+		"恢复默认后全屏控件同步为关闭")
 	var menu_closed := {"value": false}
 	menu.closed.connect(func() -> void: menu_closed["value"] = true)
 	if close_button != null:
@@ -1137,6 +1177,11 @@ func _test_settings_menu() -> void:
 	await process_frame
 	_assert(menu_closed["value"], "点击保存并返回按钮会发出关闭信号")
 	_assert(not is_instance_valid(menu), "点击保存并返回按钮会释放设置菜单")
+	global_settings.battle_animations_enabled = old_battle_animations
+	global_settings.auto_camera_enabled = old_auto_camera
+	global_settings.master_volume = old_master_volume
+	global_settings.fullscreen_enabled = old_fullscreen
+	global_settings.save_settings(false)
 
 	var opening := TestOpeningClass.new()
 	root.add_child(opening)
