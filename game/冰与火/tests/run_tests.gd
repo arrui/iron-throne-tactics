@@ -896,6 +896,27 @@ func _test_battle_predict_full() -> void:
 	_assert(battle.selected_unit == null and battle.target_enemy == null,
 		"预测确认结算后清理选中单位与攻击目标")
 	_assert(not battle._animating_battle, "预测确认结算后解除战斗操作锁")
+
+	var second_defender := Unit.new()
+	second_defender.setup(_make_enemy_data({"name": "第二相邻敌军"}), 1, Vector2i(3, 4))
+	battle.get_node("UnitLayer").add_child(second_defender)
+	battle.enemy_units.append(second_defender)
+	attacker.reset_turn()
+	battle.selected_unit = attacker
+	battle.player_state = battle.PlayerState.UNIT_MOVED
+	battle.attack_tiles = battle._adj_enemies(attacker.grid_pos)
+	_assert_eq(battle.attack_tiles.size(), 2, "正式邻接计算可识别两个相邻敌军目标")
+	battle._show_action_menu(attacker.grid_pos, true)
+	var statuses_before_multi_target: int = battle.recorded_statuses.size()
+	attack_button.pressed.emit()
+	_assert(not predict_panel.visible and battle.target_enemy == null,
+		"存在多个相邻敌军时攻击按钮不会错误锁定任意目标")
+	_assert_eq(battle.player_state, battle.PlayerState.UNIT_MOVED,
+		"存在多个目标时保持单位已移动状态等待玩家选择")
+	_assert_eq(battle.recorded_statuses.size(), statuses_before_multi_target + 1,
+		"多目标攻击按钮会新增一条选择目标提示")
+	_assert_eq(battle.recorded_statuses.back(), "点击红色格子选择攻击目标",
+		"存在多个目标时显示明确的目标选择引导")
 	settings.battle_animations_enabled = old_animation_enabled
 	settings.auto_camera_enabled = old_auto_camera
 	battle.queue_free()
