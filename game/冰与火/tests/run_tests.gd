@@ -862,6 +862,15 @@ func _test_battle_predict_full() -> void:
 		"点击正式攻击按钮会打开唯一相邻敌军的战斗预测")
 	_assert(not action_menu.visible and battle.target_enemy == defender,
 		"点击正式攻击按钮会关闭行动菜单并锁定相邻目标")
+	var reserve_click := InputEventMouseButton.new()
+	reserve_click.button_index = MOUSE_BUTTON_LEFT
+	reserve_click.pressed = true
+	reserve_click.position = battle.get_global_transform_with_canvas() * battle._g2p(reserve.grid_pos)
+	battle._input(reserve_click)
+	_assert(predict_panel.visible and battle.player_state == battle.PlayerState.PREDICT,
+		"战斗预测面板显示时地图左键不会穿透并改变玩家状态")
+	_assert(battle.selected_unit == attacker and battle.target_enemy == defender,
+		"战斗预测面板显示时地图左键不会切换单位或攻击目标")
 	cancel_button.pressed.emit()
 	_assert(not predict_panel.visible, "点击预测取消按钮真实关闭面板")
 	_assert_eq(battle.player_state, battle.PlayerState.UNIT_MOVED,
@@ -2178,6 +2187,15 @@ func _test_unit_state_machine() -> void:
 	_assert_eq(battle._pre_move_pos, Vector2i(-1, -1),
 		"右键原地行动不会留下可取消的移动记录")
 	_assert(not cancel_move_button.visible, "右键原地行动菜单不会显示取消移动按钮")
+	var blocked_waiter_click := InputEventMouseButton.new()
+	blocked_waiter_click.button_index = MOUSE_BUTTON_LEFT
+	blocked_waiter_click.pressed = true
+	blocked_waiter_click.position = battle.get_global_transform_with_canvas() * battle._g2p(waiter.grid_pos)
+	battle._input(blocked_waiter_click)
+	_assert(action_menu.visible and battle.selected_unit == mover,
+		"行动菜单显示时地图左键不会穿透并切换选中单位")
+	_assert(battle.player_state == battle.PlayerState.UNIT_MOVED,
+		"行动菜单显示时地图左键不会改变玩家状态")
 	var close_in_place_event := InputEventKey.new()
 	close_in_place_event.pressed = true
 	close_in_place_event.keycode = KEY_ESCAPE
