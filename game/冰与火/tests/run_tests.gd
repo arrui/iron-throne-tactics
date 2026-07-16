@@ -1183,14 +1183,24 @@ func _test_settings_menu() -> void:
 	global_settings.fullscreen_enabled = old_fullscreen
 	global_settings.save_settings(false)
 
-	var opening := TestOpeningClass.new()
+	var opening_scene := load("res://scenes/Opening.tscn") as PackedScene
+	var opening := opening_scene.instantiate()
+	opening.set_script(TestOpeningClass)
 	root.add_child(opening)
 	await process_frame
+	opening._bind_main_menu()
 	_assert(opening.has_method("_open_settings_menu"), "Opening 提供设置菜单入口")
-	opening._open_settings_menu()
+	var opening_settings_button := opening.get_node_or_null(
+		"MainMenu/MenuPanel/MenuContent/SettingsButton") as Button
+	_assert(opening_settings_button != null, "主菜单正式场景包含设置按钮")
+	if opening_settings_button != null:
+		opening_settings_button.pressed.emit()
+		opening_settings_button.pressed.emit()
 	await process_frame
 	var opening_menu := opening.get_node_or_null("SettingsMenu") as SettingsMenu
 	_assert(opening_menu != null, "主菜单设置入口真实挂载设置弹窗")
+	_assert(opening.find_children("SettingsMenu", "SettingsMenu", true, false).size() == 1,
+		"重复点击主菜单设置按钮不会叠加弹窗")
 	if opening_menu != null:
 		var opening_close := opening_menu.get_node_or_null(
 			"Dimmer/Panel/Margin/Content/Buttons/Close") as Button
