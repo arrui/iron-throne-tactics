@@ -2020,6 +2020,13 @@ func _test_visual_style_unification() -> void:
 	var refreshed_result_style := runtime_result_panel.get_theme_stylebox("panel") as StyleBoxFlat
 	_assert_eq(refreshed_result_style.bg_color, BattleChromeThemeClass.PANEL_DANGER_BG,
 		"战斗结束后重新应用主题仍保持败北危险底色")
+	var runtime_restart := runtime_result_panel.get_node("VBox/RestartBtn") as Button
+	_assert(runtime_restart != null and runtime_restart.pressed.get_connections().size() == 1,
+		"战斗结果重新开始按钮仅连接一个重开目标")
+	if runtime_restart != null:
+		runtime_restart.pressed.emit()
+	_assert(runtime_battle.restart_requested,
+		"点击战斗结果重新开始按钮真实调用章节重开")
 	runtime_battle.queue_free()
 	await process_frame
 
