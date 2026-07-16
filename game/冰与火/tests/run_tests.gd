@@ -1429,6 +1429,19 @@ func _test_auto_camera_focus() -> void:
 	battle._focus_dialogue_speaker("旁白", 0.0)
 	_assert_eq(camera.position, before_narration, "旁白不会改变战场镜头")
 
+	var dialogue_scene := load("res://scenes/dialogue/DialogueBox.tscn") as PackedScene
+	var dialogue := dialogue_scene.instantiate() as DialogueSystem
+	battle.add_child(dialogue)
+	await process_frame
+	battle._bind_dialogue_camera(dialogue)
+	_assert(dialogue.line_changed.is_connected(battle._focus_dialogue_speaker),
+		"战场对话说话人信号真实绑定自动镜头")
+	camera.position = Vector2.ZERO
+	dialogue.line_changed.emit("测试发言者")
+	await create_timer(0.3).timeout
+	_assert_eq(camera.position, battle._g2p(ned.grid_pos),
+		"战场对话换行信号真实驱动镜头聚焦发言单位")
+
 	settings.auto_camera_enabled = old_enabled
 	battle.queue_free()
 	await process_frame
