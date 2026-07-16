@@ -1635,9 +1635,12 @@ func _input(event: InputEvent) -> void:
 				and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
 			if not (_action_menu and _action_menu.visible) \
 					and not (_predict_panel and _predict_panel.visible):
-				var clicked_ev := _p2g(to_local(get_global_mouse_position()))
+				var clicked_ev := _mouse_event_grid(event as InputEventMouseButton)
 				var enemy_ev   := _unit_at(clicked_ev, 1)
-				if enemy_ev != null and not enemy_ev.is_dead():
+				var choosing_attack_target := current_phase == Phase.PLAYER_TURN \
+					and player_state == PlayerState.UNIT_MOVED \
+					and selected_unit != null and clicked_ev in attack_tiles
+				if enemy_ev != null and not enemy_ev.is_dead() and not choosing_attack_target:
 					# 再次点击同一敌方单位 → 关闭预览
 					if _preview_enemy == enemy_ev:
 						_clear_enemy_preview(); _redraw_all(); _set_status("")
@@ -1658,7 +1661,7 @@ func _input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton and (event as InputEventMouseButton).pressed):
 		return
 	var me := event as InputEventMouseButton
-	var clicked: Vector2i = _p2g(to_local(get_global_mouse_position()))
+	var clicked: Vector2i = _mouse_event_grid(me)
 
 	if me.button_index == MOUSE_BUTTON_LEFT:
 		match player_state:
@@ -1690,6 +1693,10 @@ func _input(event: InputEvent) -> void:
 				_open_in_place_menu()
 			PlayerState.IDLE, PlayerState.UNIT_MOVED:
 				_deselect()
+
+func _mouse_event_grid(event: InputEventMouseButton) -> Vector2i:
+	var local_position := get_global_transform_with_canvas().affine_inverse() * event.position
+	return _p2g(local_position)
 
 func _handle_escape() -> void:
 	# ESC 同时关闭敌方预览

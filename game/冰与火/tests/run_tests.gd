@@ -899,8 +899,12 @@ func _test_battle_predict_full() -> void:
 
 	var second_defender := Unit.new()
 	second_defender.setup(_make_enemy_data({"name": "第二相邻敌军"}), 1, Vector2i(3, 4))
+	var distant_defender := Unit.new()
+	distant_defender.setup(_make_enemy_data({"name": "远处敌军"}), 1, Vector2i(7, 7))
 	battle.get_node("UnitLayer").add_child(second_defender)
+	battle.get_node("UnitLayer").add_child(distant_defender)
 	battle.enemy_units.append(second_defender)
+	battle.enemy_units.append(distant_defender)
 	attacker.reset_turn()
 	battle.selected_unit = attacker
 	battle.player_state = battle.PlayerState.UNIT_MOVED
@@ -917,6 +921,23 @@ func _test_battle_predict_full() -> void:
 		"多目标攻击按钮会新增一条选择目标提示")
 	_assert_eq(battle.recorded_statuses.back(), "点击红色格子选择攻击目标",
 		"存在多个目标时显示明确的目标选择引导")
+	var preview_click := InputEventMouseButton.new()
+	preview_click.button_index = MOUSE_BUTTON_LEFT
+	preview_click.pressed = true
+	preview_click.position = battle.get_global_transform_with_canvas() * battle._g2p(distant_defender.grid_pos)
+	battle._input(preview_click)
+	_assert(battle._preview_enemy == distant_defender and not predict_panel.visible,
+		"等待攻击目标时点击非红格敌军仍会通过正式输入链路显示安全距离预览")
+	var target_click := InputEventMouseButton.new()
+	target_click.button_index = MOUSE_BUTTON_LEFT
+	target_click.pressed = true
+	target_click.position = battle.get_global_transform_with_canvas() * battle._g2p(defender.grid_pos)
+	battle._input(target_click)
+	_assert(predict_panel.visible and battle.target_enemy == defender,
+		"多目标攻击时点击红色敌人格会通过正式输入链路打开对应战斗预测")
+	_assert(battle._preview_enemy == null, "选择红格攻击目标时会清理此前的敌军安全距离预览")
+	_assert_eq(battle.player_state, battle.PlayerState.PREDICT,
+		"正式鼠标选择攻击目标后进入预测状态")
 	settings.battle_animations_enabled = old_animation_enabled
 	settings.auto_camera_enabled = old_auto_camera
 	battle.queue_free()
