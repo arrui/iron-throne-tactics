@@ -67,16 +67,13 @@ func _setup_minimap() -> void:
 
 func _play_dialogue(path: String) -> void:
 	recorded_dialogues.append(path)
-	await get_tree().process_frame
 
 func _play_cutscene(path: String) -> void:
 	recorded_cutscenes.append(path)
-	await get_tree().process_frame
 
 func _advance_to(next_chapter: int) -> void:
 	recorded_advances.append(next_chapter)
 	GameState.current_chapter = 1 if next_chapter <= 0 else next_chapter
-	await get_tree().process_frame
 
 func _set_status(msg: String) -> void:
 	recorded_statuses.append(msg)

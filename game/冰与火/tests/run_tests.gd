@@ -1111,15 +1111,18 @@ func _test_settings_menu() -> void:
 		"设置菜单包含关闭按钮")
 	_assert(menu.has_signal("closed"), "设置菜单提供关闭信号")
 	menu.queue_free()
+	await process_frame
 
 	var opening := TestOpeningClass.new()
 	root.add_child(opening)
 	await process_frame
 	_assert(opening.has_method("_open_settings_menu"), "Opening 提供设置菜单入口")
 	opening.queue_free()
+	await process_frame
 
 	var battle_scene := load("res://scenes/battle/BattleMap.tscn") as PackedScene
 	var battle := battle_scene.instantiate()
+	battle.set_script(TestBootstrapClass)
 	_assert(battle.get_node_or_null("UI/SettingsBtn") is Button, "战斗 HUD 包含设置按钮")
 	root.add_child(battle)
 	await process_frame
@@ -1127,6 +1130,7 @@ func _test_settings_menu() -> void:
 	battle._open_settings_menu()
 	_assert(battle.get_node_or_null("SettingsMenu") == null, "战斗演出期间不能打开设置菜单破坏流程锁")
 	battle.queue_free()
+	await process_frame
 
 func _test_opening_main_menu() -> void:
 	const OPENING_PATH := "res://scenes/Opening.tscn"
@@ -1180,8 +1184,7 @@ func _test_opening_main_menu() -> void:
 	SaveSystem.delete_save()
 
 func _test_auto_camera_focus() -> void:
-	var battle_scene := load("res://scenes/battle/BattleMap.tscn") as PackedScene
-	var battle := battle_scene.instantiate()
+	var battle := TestBootstrapClass.new()
 	root.add_child(battle)
 	await process_frame
 	var camera := battle.get_node("Camera2D") as Camera2D
@@ -1212,10 +1215,10 @@ func _test_auto_camera_focus() -> void:
 
 	settings.auto_camera_enabled = old_enabled
 	battle.queue_free()
+	await process_frame
 
 func _test_combat_result_and_animation_setting() -> void:
-	var battle_scene := load("res://scenes/battle/BattleMap.tscn") as PackedScene
-	var battle := battle_scene.instantiate()
+	var battle := TestBootstrapClass.new()
 	root.add_child(battle)
 	await process_frame
 	var guaranteed := {
@@ -1252,6 +1255,7 @@ func _test_combat_result_and_animation_setting() -> void:
 		"武器轨迹使用双方全局位置计算舞台中心")
 	anim.queue_free()
 	battle.queue_free()
+	await process_frame
 
 # ══════════════════════════════════════════════════════════
 # 测试套件 11：Unit 状态机（含 undo_move）
@@ -1792,6 +1796,7 @@ func _test_visual_style_unification() -> void:
 	themed_battle.free()
 
 	var runtime_battle := battle_scene.instantiate()
+	runtime_battle.set_script(TestBootstrapClass)
 	root.add_child(runtime_battle)
 	await process_frame
 	runtime_battle._end_battle(false)
@@ -2699,7 +2704,7 @@ func _test_chapter_transition_metadata() -> void:
 		"决战章节 / 三桥争夺",
 		"目标：争夺三桥并稳住两翼，从中桥突破雷加本阵。"
 	)
-	await process_frame
+	await transition.transition_finished
 
 	var transition_ch_num := transition.get_node_or_null("ChapterNumber") as Label
 	var transition_title := transition.get_node_or_null("ChapterTitle") as Label
@@ -2813,6 +2818,7 @@ func _test_chapter_opening_configuration() -> void:
 		_assert_eq(opening._chapter_sub_label, spec["sub"], "%s 副标题正确" % spec["title"])
 		_assert_eq(opening._chapter_objective, spec["objective"], "%s 目标摘要正确" % spec["title"])
 		_assert(opening._chapter_objective.begins_with("目标："), "%s 目标摘要遵循 HUD 语义前缀" % spec["title"])
+		opening.free()
 
 	var ch2_opening_src := FileAccess.get_file_as_string("res://scripts/chapter/Opening_Ch2.gd")
 	var ch3_opening_src := FileAccess.get_file_as_string("res://scripts/chapter/Opening_Ch3.gd")
@@ -2820,6 +2826,13 @@ func _test_chapter_opening_configuration() -> void:
 	_assert("PrologueChapterBriefs" in ch2_opening_src, "Opening_Ch2 通过统一章节简报常量提供目标")
 	_assert("PrologueChapterBriefs" in ch3_opening_src, "Opening_Ch3 通过统一章节简报常量提供目标")
 	_assert("PrologueChapterBriefs" in ch4_opening_src, "Opening_Ch4 通过统一章节简报常量提供目标")
+	ch2_opening.free()
+	ch3_opening.free()
+	ch4_opening.free()
+	_assert(not is_instance_valid(ch2_opening)
+		and not is_instance_valid(ch3_opening)
+		and not is_instance_valid(ch4_opening),
+		"章节 Opening 配置测试释放临时节点实例")
 
 func _test_chapter_event_flow() -> void:
 	var opening_scene: PackedScene = load("res://scenes/Opening.tscn") as PackedScene
