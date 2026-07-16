@@ -2628,6 +2628,12 @@ func _test_font_setup() -> void:
 
 # ── 关键场景/脚本加载冒烟测试 ───────────────────────────
 func _test_scene_and_script_smoke() -> void:
+	var battle_script_uid := FileAccess.get_file_as_string(
+		"res://scripts/battle/BattleBootstrap.gd.uid").strip_edges()
+	var battle_scene_source := FileAccess.get_file_as_string("res://scenes/battle/BattleMap.tscn")
+	_assert(('uid="%s" path="res://scripts/battle/BattleBootstrap.gd"' % battle_script_uid) in battle_scene_source,
+		"BattleMap 引用 BattleBootstrap 的当前资源 UID")
+
 	var scene_paths: Array[String] = [
 		"res://scenes/Opening.tscn",
 		"res://scenes/battle/BattleMap.tscn",
