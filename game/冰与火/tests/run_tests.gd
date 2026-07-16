@@ -871,6 +871,18 @@ func _test_battle_predict_full() -> void:
 
 	battle._show_action_menu(attacker.grid_pos, true)
 	attack_button.pressed.emit()
+	var cancel_predict_event := InputEventKey.new()
+	cancel_predict_event.pressed = true
+	cancel_predict_event.keycode = KEY_ESCAPE
+	battle._input(cancel_predict_event)
+	_assert(not predict_panel.visible, "ESC 会通过正式输入链路关闭战斗预测面板")
+	_assert_eq(battle.player_state, battle.PlayerState.UNIT_MOVED,
+		"ESC 取消预测后返回单位已移动状态")
+	_assert(battle.target_enemy == null, "ESC 取消预测后清除旧攻击目标")
+	_assert(battle.attack_tiles.has(defender.grid_pos), "ESC 取消预测后保留相邻敌军供重新选择")
+
+	battle._show_action_menu(attacker.grid_pos, true)
+	attack_button.pressed.emit()
 	_assert(predict_panel.visible and battle.target_enemy == defender,
 		"取消后再次点击正式攻击按钮可重新锁定相邻目标")
 	var settings := root.get_node_or_null("GameSettings")
