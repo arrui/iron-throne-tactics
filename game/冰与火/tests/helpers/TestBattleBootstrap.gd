@@ -6,6 +6,7 @@ var recorded_advances: Array[int] = []
 var recorded_statuses: Array[String] = []
 var restart_requested: bool = false
 var return_to_opening_requested: bool = false
+var fixed_combat_result: Dictionary = {}
 
 func _enter_tree() -> void:
 	if get_node_or_null("HighlightLayer") == null:
@@ -103,3 +104,8 @@ func _restart() -> void:
 
 func _return_to_opening() -> void:
 	return_to_opening_requested = true
+
+func _build_combat_result(pred: Dictionary, attacker_hp: int, defender_hp: int) -> Dictionary:
+	if not fixed_combat_result.is_empty():
+		return fixed_combat_result.duplicate(true)
+	return super._build_combat_result(pred, attacker_hp, defender_hp)

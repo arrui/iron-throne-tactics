@@ -1485,6 +1485,7 @@ func _test_combat_result_and_animation_setting() -> void:
 	_assert(battle._battle_animations_enabled(), "默认开启战斗动画")
 	var settings := root.get_node_or_null("GameSettings")
 	var old_enabled: bool = settings.battle_animations_enabled
+	var old_auto_camera: bool = settings.auto_camera_enabled
 	settings.battle_animations_enabled = false
 	_assert(not battle._battle_animations_enabled(), "设置关闭后战斗流程跳过动画")
 	settings.battle_animations_enabled = old_enabled
@@ -1504,6 +1505,64 @@ func _test_combat_result_and_animation_setting() -> void:
 	_assert_eq(anim._slash_center(atk_icon, def_icon), expected_slash_center,
 		"武器轨迹使用双方全局位置计算舞台中心")
 	anim.queue_free()
+
+	var fixed_result := {
+		"atk_hit": true, "atk_crit": false, "atk_damage": 4,
+		"def_hit": false, "def_crit": false, "def_damage": 0,
+		"atk_double": false, "double_hit": false,
+		"double_crit": false, "double_damage": 0,
+	}
+	battle.fixed_combat_result = fixed_result
+	settings.auto_camera_enabled = false
+	var ui_layer := battle.get_node("UI") as CanvasLayer
+	var animation_nodes_added: Array[Node] = []
+	ui_layer.child_entered_tree.connect(func(child: Node) -> void:
+		if child is BattleAnimation:
+			animation_nodes_added.append(child)
+	)
+	var animated_attacker := Unit.new()
+	animated_attacker.setup(_make_unit_data({"name": "动画攻击方"}), 0, Vector2i(3, 3))
+	var animated_defender := Unit.new()
+	animated_defender.setup(_make_enemy_data({"name": "动画防守方"}), 1, Vector2i(4, 3))
+	battle.get_node("UnitLayer").add_child(animated_attacker)
+	battle.get_node("UnitLayer").add_child(animated_defender)
+	battle.player_units.append(animated_attacker)
+	battle.enemy_units.append(animated_defender)
+	settings.battle_animations_enabled = true
+	battle._start_battle_with_animation(animated_attacker, animated_defender)
+	await process_frame
+	_assert_eq(animation_nodes_added.size(), 1, "开启动画时真实战斗流程创建一次战斗动画")
+	_assert_eq(animated_defender.data.hp, animated_defender.data.max_hp,
+		"战斗动画播放期间不会提前结算伤害")
+	_assert(battle._animating_battle, "战斗动画播放期间保持操作锁")
+	if not animation_nodes_added.is_empty() and is_instance_valid(animation_nodes_added[0]):
+		await (animation_nodes_added[0] as BattleAnimation).animation_finished
+	await process_frame
+	_assert_eq(animated_defender.data.hp, animated_defender.data.max_hp - 4,
+		"开启动画时等待演出后按统一结果结算伤害")
+	_assert(not battle._animating_battle, "开启动画的战斗结算后解除操作锁")
+	_assert(ui_layer.get_children().filter(func(child: Node) -> bool:
+		return child is BattleAnimation).is_empty(), "战斗演出完成后释放动画节点")
+	_assert(not is_instance_valid(animation_nodes_added[0]), "战斗演出完成后动画实例已释放")
+
+	var instant_attacker := Unit.new()
+	instant_attacker.setup(_make_unit_data({"name": "即时攻击方"}), 0, Vector2i(5, 3))
+	var instant_defender := Unit.new()
+	instant_defender.setup(_make_enemy_data({"name": "即时防守方"}), 1, Vector2i(6, 3))
+	battle.get_node("UnitLayer").add_child(instant_attacker)
+	battle.get_node("UnitLayer").add_child(instant_defender)
+	battle.player_units.append(instant_attacker)
+	battle.enemy_units.append(instant_defender)
+	settings.battle_animations_enabled = false
+	var animation_count_before_disabled_combat := animation_nodes_added.size()
+	await battle._start_battle_with_animation(instant_attacker, instant_defender)
+	_assert_eq(animation_nodes_added.size(), animation_count_before_disabled_combat,
+		"关闭动画时真实战斗流程不会创建额外动画节点")
+	_assert_eq(instant_defender.data.hp, instant_defender.data.max_hp - 4,
+		"关闭动画仍使用同一统一结果结算伤害")
+	_assert(not battle._animating_battle, "关闭动画的即时结算后解除操作锁")
+	settings.auto_camera_enabled = old_auto_camera
+	settings.battle_animations_enabled = old_enabled
 	battle.queue_free()
 	await process_frame
 
