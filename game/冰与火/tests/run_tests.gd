@@ -1894,6 +1894,89 @@ func _test_unit_state_machine() -> void:
 
 	unit.free()
 
+	# 正式战场：等待与取消移动按钮的真实调用链
+	var battle_scene := load("res://scenes/battle/BattleMap.tscn") as PackedScene
+	var battle := battle_scene.instantiate()
+	battle.set_script(TestBootstrapClass)
+	root.add_child(battle)
+	await process_frame
+	for existing_unit: Unit in battle.player_units + battle.enemy_units:
+		if is_instance_valid(existing_unit):
+			existing_unit.queue_free()
+	await process_frame
+	battle.player_units.clear()
+	battle.enemy_units.clear()
+	battle._battle_over = false
+	battle.current_phase = battle.Phase.PLAYER_TURN
+
+	var waiter := Unit.new()
+	waiter.setup(_make_unit_data({"name": "等待测试员"}), 0, Vector2i(3, 3))
+	var mover := Unit.new()
+	mover.setup(_make_unit_data({"name": "移动测试员"}), 0, Vector2i(2, 3))
+	var distant_enemy := Unit.new()
+	distant_enemy.setup(_make_enemy_data({"name": "远处敌军"}), 1, Vector2i(8, 8))
+	battle.get_node("UnitLayer").add_child(waiter)
+	battle.get_node("UnitLayer").add_child(mover)
+	battle.get_node("UnitLayer").add_child(distant_enemy)
+	battle.player_units.assign([waiter, mover])
+	battle.enemy_units.assign([distant_enemy])
+
+	var action_menu := battle.get_node_or_null("UI/ActionMenu") as PanelContainer
+	var wait_button: Button = null
+	var cancel_move_button: Button = null
+	if action_menu != null:
+		wait_button = action_menu.get_node_or_null("VBox/WaitBtn") as Button
+		cancel_move_button = action_menu.get_node_or_null("VBox/CancelMoveBtn") as Button
+	_assert(action_menu != null and wait_button != null and cancel_move_button != null,
+		"正式战场行动菜单包含等待与取消移动按钮")
+	if action_menu == null or wait_button == null or cancel_move_button == null:
+		battle.queue_free()
+		await process_frame
+		return
+	_assert_eq(wait_button.pressed.get_connections().size(), 1,
+		"正式等待按钮仅连接一个处理目标")
+	_assert_eq(cancel_move_button.pressed.get_connections().size(), 1,
+		"正式取消移动按钮仅连接一个处理目标")
+
+	battle.selected_unit = waiter
+	battle.player_state = battle.PlayerState.UNIT_MOVED
+	battle._show_action_menu(waiter.grid_pos, false)
+	_assert(action_menu.visible and not cancel_move_button.visible,
+		"原地行动菜单显示且不提供取消移动")
+	wait_button.pressed.emit()
+	_assert(waiter.state == Unit.State.DONE, "点击正式等待按钮会结束单位行动")
+	_assert(battle.selected_unit == null and battle.player_state == battle.PlayerState.IDLE,
+		"点击等待后清除选中单位并返回空闲状态")
+	_assert(not action_menu.visible, "点击等待后关闭行动菜单")
+	_assert(mover.can_act(), "仍有友军可行动时等待不会提前切换敌方回合")
+	_assert(battle.current_phase == battle.Phase.PLAYER_TURN and not battle._turn_ending,
+		"仍有友军可行动时等待保持玩家回合且不启动回合切换")
+
+	var move_origin := Vector2i(2, 3)
+	var moved_pos := Vector2i(3, 4)
+	mover.mark_moved()
+	mover.grid_pos = moved_pos
+	mover.position = battle._g2p(moved_pos)
+	battle.selected_unit = mover
+	battle._pre_move_pos = move_origin
+	battle.player_state = battle.PlayerState.UNIT_MOVED
+	battle._show_action_menu(moved_pos, false)
+	_assert(action_menu.visible and cancel_move_button.visible,
+		"实际移动后的行动菜单显示取消移动按钮")
+	cancel_move_button.pressed.emit()
+	_assert_eq(mover.state, Unit.State.IDLE, "点击取消移动按钮恢复单位未行动状态")
+	_assert_eq(mover.grid_pos, move_origin, "点击取消移动按钮恢复原始格坐标")
+	_assert_eq(mover.position, battle._g2p(move_origin), "点击取消移动按钮恢复原始场景位置")
+	_assert_eq(battle._pre_move_pos, Vector2i(-1, -1), "取消移动后清理移动前坐标")
+	_assert(battle.selected_unit == mover and battle.player_state == battle.PlayerState.UNIT_SELECTED,
+		"取消移动后保留选中单位并返回单位选择状态")
+	_assert(not action_menu.visible, "取消移动后关闭行动菜单")
+	_assert(battle.recorded_statuses.any(func(msg: String) -> bool: return msg == "移动测试员 取消移动"),
+		"取消移动后显示明确状态反馈")
+
+	battle.queue_free()
+	await process_frame
+
 # ══════════════════════════════════════════════════════════
 # 测试套件 12：路径查找 Dijkstra 逻辑（无需场景，纯算法）
 # ══════════════════════════════════════════════════════════
