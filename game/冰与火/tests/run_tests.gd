@@ -961,6 +961,28 @@ func _test_battle_predict_full() -> void:
 			and not action_menu.visible \
 			and not predict_panel.visible,
 		"正式攻击按钮遇到已释放攻击方时清理选择态且不打开预测")
+
+	var removed_target_click_unit := Unit.new()
+	removed_target_click_unit.setup(_make_unit_data({"name": "选择目标前被移除单位"}),
+		0, Vector2i(5, 3))
+	battle.get_node("UnitLayer").add_child(removed_target_click_unit)
+	battle.player_units.append(removed_target_click_unit)
+	battle.selected_unit = removed_target_click_unit
+	battle.player_state = battle.PlayerState.UNIT_MOVED
+	battle.attack_tiles.assign([defender.grid_pos])
+	battle.player_units.erase(removed_target_click_unit)
+	removed_target_click_unit.free()
+	var removed_attacker_target_click := InputEventMouseButton.new()
+	removed_attacker_target_click.button_index = MOUSE_BUTTON_LEFT
+	removed_attacker_target_click.pressed = true
+	removed_attacker_target_click.position = battle.get_global_transform_with_canvas() \
+		* battle._g2p(defender.grid_pos)
+	battle._input(removed_attacker_target_click)
+	_assert(not is_instance_valid(battle.selected_unit) \
+			and battle.player_state == battle.PlayerState.IDLE \
+			and battle.target_enemy == null \
+			and not predict_panel.visible,
+		"正式鼠标选择攻击目标遇到已释放攻击方时清理选择态且不打开预测")
 	battle.selected_unit = attacker
 	battle.player_state = battle.PlayerState.UNIT_MOVED
 	battle.attack_tiles = battle._adj_enemies(attacker.grid_pos)

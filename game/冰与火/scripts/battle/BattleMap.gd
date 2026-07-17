@@ -1659,6 +1659,11 @@ func _input(event: InputEvent) -> void:
 	if not _battle_over and not _animating_battle:
 		if event is InputEventMouseButton and (event as InputEventMouseButton).pressed \
 				and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
+			if current_phase == Phase.PLAYER_TURN \
+					and player_state == PlayerState.UNIT_MOVED \
+					and not is_instance_valid(selected_unit):
+				_deselect()
+				return
 			if not (_action_menu and _action_menu.visible) \
 					and not (_predict_panel and _predict_panel.visible):
 				var clicked_ev := _mouse_event_grid(event as InputEventMouseButton)
