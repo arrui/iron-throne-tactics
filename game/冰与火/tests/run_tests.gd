@@ -2231,6 +2231,35 @@ func _test_unit_state_machine() -> void:
 	stale_turn_battle.queue_free()
 	await process_frame
 
+	# 自动结束回合判定应越过已释放玩家，并识别后续仍可行动的单位。
+	var stale_acted_battle := TestBootstrapClass.new()
+	root.add_child(stale_acted_battle)
+	await process_frame
+	for existing_unit: Variant in (stale_acted_battle.player_units + stale_acted_battle.enemy_units):
+		if is_instance_valid(existing_unit):
+			existing_unit.queue_free()
+	await process_frame
+	stale_acted_battle.player_units.clear()
+	stale_acted_battle.enemy_units.clear()
+	var stale_acted_unit := Unit.new()
+	stale_acted_unit.setup(_make_unit_data({"name": "已释放行动判定单位"}),
+		0, Vector2i(2, 2))
+	var actionable_unit := Unit.new()
+	actionable_unit.setup(_make_unit_data({"name": "仍可行动单位"}),
+		0, Vector2i(3, 2))
+	stale_acted_battle.get_node("UnitLayer").add_child(stale_acted_unit)
+	stale_acted_battle.get_node("UnitLayer").add_child(actionable_unit)
+	stale_acted_battle.player_units.assign([stale_acted_unit, actionable_unit])
+	stale_acted_unit.free()
+	stale_acted_battle._battle_over = false
+	stale_acted_battle._turn_ending = false
+	stale_acted_battle.current_phase = stale_acted_battle.Phase.PLAYER_TURN
+	stale_acted_battle._check_all_acted()
+	_assert(not stale_acted_battle._turn_ending,
+		"自动结束回合判定忽略已释放玩家且保留仍可行动单位的回合")
+	stale_acted_battle.queue_free()
+	await process_frame
+
 	# 危险区刷新也必须跳过尚未从敌军数组移除的已释放单位。
 	var stale_danger_battle := TestBootstrapClass.new()
 	root.add_child(stale_danger_battle)

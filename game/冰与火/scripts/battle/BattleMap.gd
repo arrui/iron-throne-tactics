@@ -2118,7 +2118,15 @@ func _check_all_acted() -> void:
 	# 只在我方回合且没有正在进行的回合切换时才检查
 	if _battle_over or _turn_ending: return
 	if current_phase != Phase.PLAYER_TURN: return   # ← 关键：敌方回合绝不重入
-	if not player_units.any(func(u: Unit) -> bool: return not u.is_dead() and u.can_act()):
+	var has_actionable_unit := false
+	for candidate: Variant in player_units:
+		if not is_instance_valid(candidate):
+			continue
+		var u := candidate as Unit
+		if u != null and not u.is_dead() and u.can_act():
+			has_actionable_unit = true
+			break
+	if not has_actionable_unit:
 		_turn_ending = true
 		_update_support_adjacency()   # 回合结束时统计支援相邻
 		await get_tree().create_timer(0.5).timeout
