@@ -4382,6 +4382,29 @@ func _test_ch1_save_and_deploy_flow() -> void:
 	await process_frame
 
 func _test_overlay_runtime_flow() -> void:
+	var tutorial := TutorialManager.new()
+	root.add_child(tutorial)
+	await process_frame
+	tutorial.show_steps(["第一条提示", "第二条提示"])
+	var first_step_timer: SceneTreeTimer = tutorial._auto_timer
+	var tutorial_click := InputEventMouseButton.new()
+	tutorial_click.button_index = MOUSE_BUTTON_LEFT
+	tutorial_click.pressed = true
+	tutorial._input(tutorial_click)
+	await create_timer(0.2).timeout
+	_assert(tutorial._showing and tutorial._text_lbl.text == "第二条提示",
+		"手动关闭第一条教程提示后会显示下一条")
+	first_step_timer.timeout.emit()
+	await process_frame
+	_assert(tutorial._showing and tutorial._current_index == 1,
+		"第一条提示遗留的自动计时器不会误关第二条提示")
+	(tutorial._auto_timer as SceneTreeTimer).timeout.emit()
+	await create_timer(0.2).timeout
+	_assert(not tutorial._showing and tutorial._current_index == 2,
+		"当前教程提示的自动计时器仍会正常关闭本条提示")
+	tutorial.queue_free()
+	await process_frame
+
 	GameState.current_chapter = 1
 	var support_battle := TestBootstrapClass.new()
 	root.add_child(support_battle)

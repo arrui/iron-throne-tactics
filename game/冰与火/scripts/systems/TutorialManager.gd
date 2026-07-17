@@ -73,8 +73,9 @@ func _show_next() -> void:
 
 	# 3秒自动关闭
 	_auto_timer = get_tree().create_timer(3.0)
-	await _auto_timer.timeout
-	if _showing:
+	var step_timer := _auto_timer
+	await step_timer.timeout
+	if _showing and _auto_timer == step_timer:
 		_close_current()
 
 func _display(text: String) -> void:
@@ -104,7 +105,7 @@ func _close_current() -> void:
 func _input(event: InputEvent) -> void:
 	if not _showing: return
 	if event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
-		# 取消自动计时器（通过将其设为 null，timeout 时 _showing 已为 false）
+		# 当前提示先关闭；下一条会换用新计时器，旧计时器将因身份不匹配而失效。
 		_showing = false
 		if _panel: _panel.visible = false
 		var done_idx := _current_index
