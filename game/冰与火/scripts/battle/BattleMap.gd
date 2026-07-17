@@ -1756,7 +1756,9 @@ func _handle_escape() -> void:
 
 # 原地行动菜单（未移动时也可等待/攻击）
 func _open_in_place_menu() -> void:
-	if selected_unit == null: return
+	if not is_instance_valid(selected_unit):
+		_deselect()
+		return
 	attack_tiles = _adj_enemies(selected_unit.grid_pos)
 	move_range.clear()
 	_path_preview.clear()

@@ -2927,6 +2927,27 @@ func _test_unit_state_machine() -> void:
 			and not action_menu.visible,
 		"取消移动回调遇到已释放选中单位时清理移动与选择态")
 
+	var removed_in_place_unit := Unit.new()
+	removed_in_place_unit.setup(_make_unit_data({"name": "原地菜单前被移除单位"}),
+		0, Vector2i(5, 5))
+	battle.get_node("UnitLayer").add_child(removed_in_place_unit)
+	battle.player_units.append(removed_in_place_unit)
+	battle.selected_unit = removed_in_place_unit
+	battle.player_state = battle.PlayerState.UNIT_SELECTED
+	battle.move_range.clear()
+	battle.move_range.append(removed_in_place_unit.grid_pos)
+	battle.attack_tiles.clear()
+	battle.attack_tiles.append(Vector2i(6, 5))
+	battle.player_units.erase(removed_in_place_unit)
+	removed_in_place_unit.free()
+	battle._open_in_place_menu()
+	_assert(not is_instance_valid(battle.selected_unit) \
+			and battle.player_state == battle.PlayerState.IDLE \
+			and battle.move_range.is_empty() \
+			and battle.attack_tiles.is_empty() \
+			and not action_menu.visible,
+		"原地行动菜单遇到已释放选中单位时清理选择与行动范围")
+
 	var move_origin := Vector2i(2, 3)
 	var moved_pos := Vector2i(3, 4)
 	var settings := root.get_node_or_null("GameSettings")
