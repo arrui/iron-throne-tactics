@@ -1613,6 +1613,8 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 		if key == KEY_A:
+			if _animating_battle:
+				return
 			_toggle_autopilot()
 			get_viewport().set_input_as_handled()
 			return

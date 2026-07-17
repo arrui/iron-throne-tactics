@@ -2178,6 +2178,11 @@ func _test_unit_state_machine() -> void:
 		"ESC 会通过正式输入链路中止自动托管")
 	_assert(battle.recorded_statuses.back().contains("自动托管已中止"),
 		"ESC 中止自动托管会显示明确状态反馈")
+	battle._animating_battle = true
+	battle._input(autopilot_toggle_event)
+	_assert(not battle._autopilot and not battle._autopilot_running,
+		"战斗演出锁定期间按 A 不会启动自动托管")
+	battle._animating_battle = false
 	battle.current_phase = battle.Phase.PLAYER_TURN
 
 	var restart_release_event := InputEventKey.new()
