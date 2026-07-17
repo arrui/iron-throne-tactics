@@ -5507,6 +5507,14 @@ func _test_ch1_save_and_deploy_flow() -> void:
 	root.add_child(ch1_kill)
 	await process_frame
 	_assert(ch1_kill._ch1_enemies_spawned, "Ch1 初始化后敌人生成标记为 true")
+	var ch1_kill_enemy: Unit = ch1_kill.enemy_units[0]
+	ch1_kill.selected_unit = ch1_kill._ned_unit
+	ch1_kill.target_enemy = ch1_kill_enemy
+	ch1_kill.player_state = ch1_kill.PlayerState.PREDICT
+	ch1_kill.move_range.assign([ch1_kill._ned_unit.grid_pos])
+	ch1_kill.attack_tiles.assign([ch1_kill_enemy.grid_pos])
+	ch1_kill._path_preview.assign([ch1_kill._ned_unit.grid_pos])
+	ch1_kill._show_enemy_preview(ch1_kill_enemy)
 	for enemy: Unit in ch1_kill.enemy_units:
 		if enemy != null and enemy.data != null:
 			enemy.data.hp = 0
@@ -5519,6 +5527,14 @@ func _test_ch1_save_and_deploy_flow() -> void:
 	_assert(ch1_kill.recorded_advances.has(2), "Ch1 敌军全灭后推进到第2章")
 	_assert_eq(SaveSystem.load_current_chapter(), 2, "Ch1 敌军全灭同步保存 Ch2 检查点")
 	_assert(SaveSystem.get_completed_chapters().has(1), "Ch1 敌军全灭同步记录 Ch1 已完成")
+	_assert(ch1_kill.selected_unit == null \
+			and ch1_kill.target_enemy == null \
+			and ch1_kill.player_state == ch1_kill.PlayerState.IDLE \
+			and ch1_kill.move_range.is_empty() \
+			and ch1_kill.attack_tiles.is_empty() \
+			and ch1_kill._path_preview.is_empty() \
+			and ch1_kill._preview_enemy == null,
+		"Ch1 胜利进入章节落幕时清理战场交互状态")
 	if is_instance_valid(ch1_kill):
 		ch1_kill.queue_free()
 	await process_frame

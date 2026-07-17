@@ -340,7 +340,7 @@ func _check_ch1_victory_loop() -> void:
 func _on_won_ch1() -> void:
 	if _battle_over: return   # 防止敌全灭 + 到达胜利格 双重触发
 	_battle_over = true
-	_hide_all_panels()
+	_deselect()
 	if _result_panel: _result_panel.visible = false
 	_set_battle_status(PrologueChapterBriefs.CH1_BATTLE_RESOLUTION)
 	await _play_dialogue("res://data/dialogues/prologue_1_post.json")
