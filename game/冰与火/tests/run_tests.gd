@@ -2169,6 +2169,37 @@ func _test_combat_result_and_animation_setting() -> void:
 # 测试套件 11：Unit 状态机（含 undo_move）
 # ══════════════════════════════════════════════════════════
 func _test_unit_state_machine() -> void:
+	# 回合切换时，剧情事件可能已释放单位但尚未同步清理权威数组。
+	var stale_turn_battle := TestBootstrapClass.new()
+	root.add_child(stale_turn_battle)
+	await process_frame
+	for existing_unit: Variant in (stale_turn_battle.player_units + stale_turn_battle.enemy_units):
+		if is_instance_valid(existing_unit):
+			existing_unit.queue_free()
+	await process_frame
+	stale_turn_battle.player_units.clear()
+	stale_turn_battle.enemy_units.clear()
+	var stale_turn_unit := Unit.new()
+	stale_turn_unit.setup(_make_unit_data({"name": "已释放回合单位"}),
+		0, Vector2i(2, 2))
+	var valid_turn_unit := Unit.new()
+	valid_turn_unit.setup(_make_unit_data({"name": "有效回合单位"}),
+		0, Vector2i(3, 2))
+	stale_turn_battle.get_node("UnitLayer").add_child(stale_turn_unit)
+	stale_turn_battle.get_node("UnitLayer").add_child(valid_turn_unit)
+	stale_turn_battle.player_units.assign([stale_turn_unit, valid_turn_unit])
+	valid_turn_unit.mark_acted()
+	stale_turn_unit.queue_free()
+	await process_frame
+	stale_turn_battle._battle_over = false
+	stale_turn_battle._start_player_turn()
+	_assert(valid_turn_unit.can_act(),
+		"玩家回合开始会忽略残留的已释放引用并重置有效单位")
+	_assert(not stale_turn_battle._battle_over,
+		"玩家回合开始在仍有有效单位时不会因已释放引用误判战败")
+	stale_turn_battle.queue_free()
+	await process_frame
+
 	var data := _make_unit_data()
 	var unit := Unit.new()
 	unit.setup(data, 0, Vector2i(3, 3))

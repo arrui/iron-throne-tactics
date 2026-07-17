@@ -2061,8 +2061,13 @@ func _check_victory() -> void:
 
 func _check_defeat() -> void:
 	if _battle_over: return
-	if player_units.filter(func(u: Unit) -> bool: return not u.is_dead()).is_empty():
-		_end_battle(false)
+	for candidate: Variant in player_units:
+		if not is_instance_valid(candidate):
+			continue
+		var unit := candidate as Unit
+		if unit != null and not unit.is_dead():
+			return
+	_end_battle(false)
 
 func _end_battle(won: bool) -> void:
 	_battle_over = true
@@ -2161,8 +2166,11 @@ func _start_enemy_turn() -> void:
 func _start_player_turn() -> void:
 	_turn_ending = false
 	_turn_count += 1
-	for u: Unit in player_units:
-		if is_instance_valid(u) and not u.is_dead():
+	for candidate: Variant in player_units:
+		if not is_instance_valid(candidate):
+			continue
+		var u := candidate as Unit
+		if u != null and not u.is_dead():
 			u.reset_turn()
 			_restore_unit_color(u)
 	current_phase = Phase.PLAYER_TURN
