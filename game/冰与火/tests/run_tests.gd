@@ -1031,6 +1031,23 @@ func _test_battle_predict_full() -> void:
 	battle.player_state = battle.PlayerState.UNIT_MOVED
 	battle.attack_tiles = battle._adj_enemies(attacker.grid_pos)
 
+	var removed_confirm_defender := Unit.new()
+	removed_confirm_defender.setup(_make_enemy_data({"name": "预测确认前被移除目标"}),
+		1, Vector2i(3, 2))
+	battle.get_node("UnitLayer").add_child(removed_confirm_defender)
+	battle.enemy_units.append(removed_confirm_defender)
+	battle._open_predict(attacker, removed_confirm_defender)
+	battle.enemy_units.erase(removed_confirm_defender)
+	removed_confirm_defender.free()
+	battle._on_confirm_attack()
+	_assert(battle.selected_unit == attacker \
+			and battle.target_enemy == null \
+			and battle.player_state == battle.PlayerState.UNIT_MOVED \
+			and not predict_panel.visible,
+		"确认战斗预测遇到已释放防守方时返回目标选择态")
+	_assert(battle.attack_tiles.has(defender.grid_pos),
+		"确认战斗预测遇到已释放防守方时重算可选攻击目标")
+
 	battle._show_action_menu(attacker.grid_pos, true)
 	attack_button.pressed.emit()
 	var cancel_predict_event := InputEventKey.new()
