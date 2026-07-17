@@ -2510,7 +2510,9 @@ func _return_to_opening() -> void:
 # ── 道具系统 ─────────────────────────────────────────────
 func _on_items_pressed() -> void:
 	_hide_all_panels()
-	if selected_unit == null: return
+	if not is_instance_valid(selected_unit):
+		_deselect()
+		return
 	_show_items_panel(selected_unit)
 
 func _show_items_panel(unit: Unit) -> void:
