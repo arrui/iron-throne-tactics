@@ -2128,6 +2128,39 @@ func _test_unit_state_machine() -> void:
 	battle._input(danger_toggle_event)
 	_assert_eq(battle._show_danger, danger_before, "再次按 D 键会恢复危险区显示状态")
 
+	# 测试替身为避免异步 UI 初始化会跳过小地图，这里按正式初始化逻辑挂载真实 MiniMap。
+	battle._minimap = MiniMap.new()
+	battle.add_child(battle._minimap)
+	battle._minimap.setup(battle)
+	var minimap_toggle_event := InputEventKey.new()
+	minimap_toggle_event.pressed = true
+	minimap_toggle_event.keycode = KEY_M
+	_assert(not battle._minimap.visible, "正式小地图初始化后默认隐藏")
+	battle._input(minimap_toggle_event)
+	_assert(battle._minimap.visible, "M 键会通过正式输入链路打开小地图")
+	battle._input(minimap_toggle_event)
+	_assert(not battle._minimap.visible, "再次按 M 键会通过正式输入链路关闭小地图")
+
+	# 在敌方回合启用，避免自动协程立即接管单位，以隔离验证快捷键状态机。
+	battle.current_phase = battle.Phase.ENEMY_TURN
+	var autopilot_toggle_event := InputEventKey.new()
+	autopilot_toggle_event.pressed = true
+	autopilot_toggle_event.keycode = KEY_A
+	battle._input(autopilot_toggle_event)
+	_assert(battle._autopilot and not battle._autopilot_running,
+		"敌方回合按 A 会启用自动托管并等待下一玩家回合")
+	_assert(battle.recorded_statuses.back().contains("自动托管已启动"),
+		"启用自动托管会显示明确状态反馈")
+	var stop_autopilot_event := InputEventKey.new()
+	stop_autopilot_event.pressed = true
+	stop_autopilot_event.keycode = KEY_ESCAPE
+	battle._input(stop_autopilot_event)
+	_assert(not battle._autopilot and not battle._autopilot_running,
+		"ESC 会通过正式输入链路中止自动托管")
+	_assert(battle.recorded_statuses.back().contains("自动托管已中止"),
+		"ESC 中止自动托管会显示明确状态反馈")
+	battle.current_phase = battle.Phase.PLAYER_TURN
+
 	battle._input(preview_enemy_click)
 	_assert(battle._preview_enemy == distant_enemy, "快捷键输入验证后仍可重新打开敌军安全距离预览")
 	var select_mover_click := InputEventMouseButton.new()
