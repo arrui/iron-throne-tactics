@@ -4488,6 +4488,38 @@ func _test_overlay_runtime_flow() -> void:
 	mouse_cutscene_skip.button_index = MOUSE_BUTTON_LEFT
 	cutscene._input(mouse_cutscene_skip)
 	_assert(cutscene._skip_requested, "鼠标左键仍可正常跳过当前过场")
+	cutscene._skip_requested = false
+	var cutscene_finish_events: Array[bool] = []
+	cutscene.cutscene_finished.connect(func() -> void: cutscene_finish_events.append(true))
+	cutscene._is_playing = false
+	cutscene.play("res://data/cutscenes/not_found.json")
+	_assert_eq(cutscene_finish_events.size(), 1,
+		"无效过场数据仍会立即发送一次完成信号")
+
+	cutscene.play("res://data/cutscenes/ch2_opening.json")
+	await create_timer(0.1).timeout
+	var scene_art_alpha_before_reentry: float = cutscene._scene_art.alpha
+	cutscene.play("res://data/cutscenes/prologue_opening.json")
+	var max_scene_art_alpha_after_reentry := scene_art_alpha_before_reentry
+	for frame in range(10):
+		await process_frame
+		max_scene_art_alpha_after_reentry = maxf(
+			max_scene_art_alpha_after_reentry, cutscene._scene_art.alpha)
+	_assert(max_scene_art_alpha_after_reentry <= scene_art_alpha_before_reentry + 0.05,
+		"重入到无场景艺术的过场时不会先闪亮旧场景艺术")
+	await create_timer(0.5).timeout
+	_assert_eq(cutscene._scene_art.scene_type, "",
+		"重入播放后旧场景艺术不会覆盖新过场")
+	_assert(is_equal_approx(cutscene._scene_art.alpha, 0.0),
+		"重入播放后旧场景艺术 Tween 不会重新显示")
+
+	cutscene.play("res://data/cutscenes/prologue_opening.json")
+	await process_frame
+	cutscene.play("res://data/cutscenes/ch2_opening.json")
+	cutscene._input(mouse_cutscene_skip)
+	await create_timer(1.0).timeout
+	_assert_eq(cutscene_finish_events.size(), 2,
+		"重入播放后一次跳过只会结束最新过场一次")
 	cutscene.queue_free()
 	await process_frame
 
