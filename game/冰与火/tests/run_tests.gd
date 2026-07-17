@@ -1162,6 +1162,16 @@ func _test_battle_predict_full() -> void:
 		"预测目标通过正式死亡信号移除时返回目标选择态")
 	_assert(battle.attack_tiles.has(second_defender.grid_pos),
 		"预测目标死亡后重算剩余可选攻击目标")
+	battle._show_enemy_preview(distant_defender)
+	_assert(battle._preview_enemy == distant_defender, "死亡清理测试已打开敌军安全距离预览")
+	distant_defender.unit_died.connect(battle._on_unit_died)
+	distant_defender.take_damage(distant_defender.data.hp)
+	distant_defender.resolve_death()
+	await process_frame
+	_assert(battle._preview_enemy == null \
+			and battle._preview_move_range.is_empty() \
+			and battle._preview_attack_tiles.is_empty(),
+		"预览敌军通过正式死亡信号移除时清理安全距离预览")
 	settings.battle_animations_enabled = old_animation_enabled
 	settings.auto_camera_enabled = old_auto_camera
 	battle.queue_free()

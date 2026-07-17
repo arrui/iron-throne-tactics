@@ -2506,6 +2506,9 @@ func _on_unit_died(unit: Unit) -> void:
 		return
 	var was_selected := unit == selected_unit
 	var was_target := unit == target_enemy
+	var was_previewed := unit == _preview_enemy
+	if was_previewed:
+		_clear_enemy_preview()
 	player_units.erase(unit)
 	enemy_units.erase(unit)
 	if was_selected:
