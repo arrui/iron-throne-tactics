@@ -943,6 +943,27 @@ func _test_battle_predict_full() -> void:
 	_assert(battle.target_enemy == null, "取消预测后清除旧攻击目标")
 	_assert(battle.attack_tiles.has(defender.grid_pos), "取消预测后保留相邻敌军供重新选择")
 
+	var removed_predict_attacker := Unit.new()
+	removed_predict_attacker.setup(_make_unit_data({"name": "预测取消前被移除单位"}),
+		0, Vector2i(5, 3))
+	battle.get_node("UnitLayer").add_child(removed_predict_attacker)
+	battle.player_units.append(removed_predict_attacker)
+	battle.selected_unit = removed_predict_attacker
+	battle.target_enemy = defender
+	battle.player_state = battle.PlayerState.PREDICT
+	battle._open_predict(removed_predict_attacker, defender)
+	battle.player_units.erase(removed_predict_attacker)
+	removed_predict_attacker.free()
+	battle._on_cancel_attack()
+	_assert(not is_instance_valid(battle.selected_unit) \
+			and battle.target_enemy == null \
+			and battle.player_state == battle.PlayerState.IDLE \
+			and not predict_panel.visible,
+		"取消战斗预测遇到已释放攻击方时清理预测与选择态")
+	battle.selected_unit = attacker
+	battle.player_state = battle.PlayerState.UNIT_MOVED
+	battle.attack_tiles = battle._adj_enemies(attacker.grid_pos)
+
 	battle._show_action_menu(attacker.grid_pos, true)
 	attack_button.pressed.emit()
 	var cancel_predict_event := InputEventKey.new()

@@ -1932,6 +1932,9 @@ func _on_confirm_attack() -> void:
 func _on_cancel_attack() -> void:
 	_hide_all_panels()
 	target_enemy = null
+	if not is_instance_valid(selected_unit):
+		_deselect()
+		return
 	player_state = PlayerState.UNIT_MOVED
 	attack_tiles = _adj_enemies(selected_unit.grid_pos)
 	_redraw_all()
