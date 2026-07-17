@@ -487,7 +487,7 @@ func _on_won_ch2() -> void:
 		return
 	_ch2_victory_started = true
 	_battle_over = true
-	_hide_all_panels()
+	_deselect()
 	if _end_turn_btn:
 		_end_turn_btn.disabled = true
 	if _result_panel: _result_panel.visible = false

@@ -5382,6 +5382,14 @@ func _test_chapter_event_flow() -> void:
 	_assert(ch2._rhaegar_unit != null, "Ch2 初始化后雷加已生成")
 	_assert(ch2.enemy_units.size() >= 1, "Ch2 初始化后敌军存在")
 	if ch2._rhaegar_unit != null:
+		var ch2_player: Unit = ch2.player_units[0]
+		ch2.selected_unit = ch2_player
+		ch2.target_enemy = ch2._rhaegar_unit
+		ch2.player_state = ch2.PlayerState.PREDICT
+		ch2.move_range.assign([ch2_player.grid_pos])
+		ch2.attack_tiles.assign([ch2._rhaegar_unit.grid_pos])
+		ch2._path_preview.assign([ch2_player.grid_pos])
+		ch2._show_enemy_preview(ch2._rhaegar_unit)
 		ch2._on_unit_died(ch2._rhaegar_unit)
 		await process_frame
 		await process_frame
@@ -5404,6 +5412,14 @@ func _test_chapter_event_flow() -> void:
 		_assert_eq(GameState.current_chapter, 3, "Ch2 事件后当前章节=3")
 		_assert_eq(SaveSystem.load_current_chapter(), 3, "Ch2 胜利事件同步保存 Ch3 检查点")
 		_assert(SaveSystem.get_completed_chapters().has(2), "Ch2 胜利事件同步记录 Ch2 已完成")
+		_assert(ch2.selected_unit == null \
+				and ch2.target_enemy == null \
+				and ch2.player_state == ch2.PlayerState.IDLE \
+				and ch2.move_range.is_empty() \
+				and ch2.attack_tiles.is_empty() \
+				and ch2._path_preview.is_empty() \
+				and ch2._preview_enemy == null,
+			"Ch2 胜利进入章节落幕时清理战场交互状态")
 	if is_instance_valid(ch2):
 		ch2.queue_free()
 	await process_frame
