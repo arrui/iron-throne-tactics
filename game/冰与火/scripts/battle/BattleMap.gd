@@ -2528,7 +2528,7 @@ func _on_unit_died(unit: Unit) -> void:
 # ── Game Over（主角阵亡）────────────────────────────────
 func _trigger_game_over(unit: Unit) -> void:
 	_battle_over = true
-	_hide_all_panels()
+	_deselect()
 	if _end_turn_btn: _end_turn_btn.disabled = true
 	if ResourceLoader.exists(GAME_OVER_PATH):
 		var go: Node = load(GAME_OVER_PATH).instantiate()

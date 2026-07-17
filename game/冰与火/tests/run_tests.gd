@@ -5973,10 +5973,33 @@ func _test_overlay_runtime_flow() -> void:
 	var fallen := Unit.new()
 	fallen.setup(_make_unit_data({"name": "奈德", "is_protagonist": true}), 0, Vector2i(2, 2))
 	game_over_battle.add_child(fallen)
+	var surviving_enemy := Unit.new()
+	surviving_enemy.setup(_make_enemy_data({"name": "幸存敌军"}), 1, Vector2i(3, 2))
+	game_over_battle.add_child(surviving_enemy)
+	game_over_battle.selected_unit = fallen
+	game_over_battle.target_enemy = surviving_enemy
+	game_over_battle.player_state = game_over_battle.PlayerState.PREDICT
+	game_over_battle.move_range.assign([fallen.grid_pos])
+	game_over_battle.attack_tiles.assign([surviving_enemy.grid_pos])
+	game_over_battle._path_preview.assign([fallen.grid_pos])
+	game_over_battle._preview_enemy = surviving_enemy
+	game_over_battle._preview_move_range.assign([surviving_enemy.grid_pos])
+	game_over_battle._preview_attack_tiles.assign([fallen.grid_pos])
 	game_over_battle._on_unit_died(fallen)
 	await process_frame
 	var game_over := game_over_battle.get_node_or_null("UI/GameOver") as CanvasLayer
 	_assert(game_over_battle._battle_over, "主角死亡时真实战斗流程进入战斗结束态")
+	_assert(game_over_battle.selected_unit == null \
+			and game_over_battle.target_enemy == null \
+			and game_over_battle.player_state == game_over_battle.PlayerState.IDLE,
+		"主角死亡时清理单位选择与攻击目标状态")
+	_assert(game_over_battle.move_range.is_empty() \
+			and game_over_battle.attack_tiles.is_empty() \
+			and game_over_battle._path_preview.is_empty() \
+			and game_over_battle._preview_enemy == null \
+			and game_over_battle._preview_move_range.is_empty() \
+			and game_over_battle._preview_attack_tiles.is_empty(),
+		"主角死亡时清理战场高亮与敌军预览")
 	_assert(game_over != null, "主角死亡时真实挂载 GameOver")
 	if game_over != null:
 		_assert(game_over.visible, "GameOver 挂载后可见")
