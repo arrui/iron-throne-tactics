@@ -37,6 +37,10 @@ class TestCh3Bootstrap extends Ch3BootstrapClass:
 	func _play_dialogue(_path: String) -> void:
 		pass
 
+class TestCh4Bootstrap extends Ch4BootstrapClass:
+	func _ready() -> void:
+		pass
+
 var _pass_count: int = 0
 var _fail_count: int = 0
 var _current_suite: String = ""
@@ -2459,6 +2463,29 @@ func _test_unit_state_machine() -> void:
 			and stale_betrayal_battle.enemy_units.has(surviving_golden_cloak),
 		"独立序章三背叛流程忽略已释放金袍且转换后续存活单位")
 	stale_betrayal_battle.free()
+
+	# 正式序章四兰军归降流程应越过已释放兰军，继续撤走后续存活单位。
+	var stale_lannister_join_battle := TestCh4Bootstrap.new()
+	root.add_child(stale_lannister_join_battle)
+	var stale_lannister := Unit.new()
+	stale_lannister.setup(_make_enemy_data({"name": "已释放兰军"}),
+		1, Vector2i(4, 4))
+	var surviving_lannister := Unit.new()
+	surviving_lannister.setup(_make_enemy_data({"name": "存活兰军"}),
+		1, Vector2i(6, 6))
+	stale_lannister_join_battle.add_child(stale_lannister)
+	stale_lannister_join_battle.add_child(surviving_lannister)
+	stale_lannister_join_battle.enemy_units.assign([
+		stale_lannister, surviving_lannister])
+	stale_lannister_join_battle._lannister_units.assign([
+		stale_lannister, surviving_lannister])
+	stale_lannister.free()
+	await stale_lannister_join_battle._trigger_lannister_join()
+	_assert(not stale_lannister_join_battle.enemy_units.has(surviving_lannister) \
+			and surviving_lannister.is_queued_for_deletion(),
+		"独立序章四兰军归降流程忽略已释放兰军且撤走后续存活单位")
+	stale_lannister_join_battle.queue_free()
+	await process_frame
 
 	# 序章四中途提示不能因已释放引用而漏掉仍存活的普通王军。
 	var previous_ch4_victory_chapter: int = GameState.current_chapter

@@ -169,10 +169,14 @@ func _on_unit_died(unit: Unit) -> void:
 func _trigger_lannister_join() -> void:
 	await get_tree().create_timer(0.5).timeout
 	# 兰军撤入红堡——从地图移除（叙事：他们"加入"了）
-	for u: Unit in _lannister_units.duplicate():
-		if is_instance_valid(u) and not u.is_dead():
-			enemy_units.erase(u)
-			u.queue_free()
+	for candidate: Variant in _lannister_units.duplicate():
+		if not is_instance_valid(candidate):
+			continue
+		var u := candidate as Unit
+		if u == null or u.is_dead():
+			continue
+		enemy_units.erase(u)
+		u.queue_free()
 	_lannister_units.clear()
 	_redraw_all()
 	_set_status("兰尼斯特军已归降，道路畅通——")
