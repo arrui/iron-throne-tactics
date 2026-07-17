@@ -1824,7 +1824,6 @@ func _show_enemy_preview(unit: Unit) -> void:
 		unit.data.move, _preview_attack_tiles.size(), t_name])
 
 func _clear_enemy_preview() -> void:
-	if _preview_enemy == null: return
 	_preview_enemy = null
 	_preview_move_range.clear()
 	_preview_attack_tiles.clear()

@@ -3525,6 +3525,19 @@ func _test_unit_state_machine() -> void:
 		"敌方回合点击非敌军格会关闭安全距离预览")
 	_assert(battle.selected_unit == null and battle.player_state == battle.PlayerState.IDLE,
 		"敌方回合关闭敌军预览时不会穿透并选择我方单位")
+	var removed_preview_enemy := Unit.new()
+	removed_preview_enemy.setup(_make_enemy_data({"name": "预览后被直接移除敌军"}),
+		1, Vector2i(8, 7))
+	battle.get_node("UnitLayer").add_child(removed_preview_enemy)
+	battle.enemy_units.append(removed_preview_enemy)
+	battle._show_enemy_preview(removed_preview_enemy)
+	battle.enemy_units.erase(removed_preview_enemy)
+	removed_preview_enemy.free()
+	battle._deselect()
+	_assert(battle._preview_enemy == null \
+			and battle._preview_move_range.is_empty() \
+			and battle._preview_attack_tiles.is_empty(),
+		"取消选择遇到已释放预览敌军时仍清理安全距离覆盖范围")
 
 	battle._battle_over = true
 	battle._input(preview_enemy_click)
