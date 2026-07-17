@@ -20,6 +20,7 @@ var _queue:          Array[String]  = []
 var _current_index:  int            = 0
 var _showing:        bool           = false
 var _auto_timer:     SceneTreeTimer = null
+var _sequence_id:    int            = 0
 
 # ── 弹窗节点引用 ──────────────────────────────────────────
 var _panel:      PanelContainer = null
@@ -42,12 +43,14 @@ func show_step(text: String) -> void:
 
 ## 显示多条提示序列（清空旧队列后批量加入）
 func show_steps(steps: Array) -> void:
+	_sequence_id += 1
 	_queue.clear()
 	_current_index = 0
+	_showing = false
+	_auto_timer = null
 	for s: String in steps:
 		_queue.append(s)
-	if not _showing:
-		_show_next()
+	_show_next()
 
 ## 等待指定步骤（0-based）完成后返回
 ## 用法：await tutorial_mgr.wait_for_step(2)
@@ -74,8 +77,9 @@ func _show_next() -> void:
 	# 3秒自动关闭
 	_auto_timer = get_tree().create_timer(3.0)
 	var step_timer := _auto_timer
+	var sequence_id := _sequence_id
 	await step_timer.timeout
-	if _showing and _auto_timer == step_timer:
+	if _showing and _auto_timer == step_timer and _sequence_id == sequence_id:
 		_close_current()
 
 func _display(text: String) -> void:
@@ -91,6 +95,7 @@ func _display(text: String) -> void:
 		)
 
 func _close_current() -> void:
+	var sequence_id := _sequence_id
 	_showing = false
 	if _panel:
 		_panel.visible = false
@@ -99,13 +104,15 @@ func _close_current() -> void:
 	_step_done.emit(done_idx)
 	# 稍微延迟后显示下一条，避免连续闪烁
 	await get_tree().create_timer(0.18).timeout
-	_show_next()
+	if _sequence_id == sequence_id:
+		_show_next()
 
 # ── 点击任意位置关闭 ──────────────────────────────────────
 func _input(event: InputEvent) -> void:
 	if not _showing: return
 	if event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
 		# 当前提示先关闭；下一条会换用新计时器，旧计时器将因身份不匹配而失效。
+		var sequence_id := _sequence_id
 		_showing = false
 		if _panel: _panel.visible = false
 		var done_idx := _current_index
@@ -113,7 +120,8 @@ func _input(event: InputEvent) -> void:
 		_step_done.emit(done_idx)
 		get_viewport().set_input_as_handled()
 		await get_tree().create_timer(0.18).timeout
-		_show_next()
+		if _sequence_id == sequence_id:
+			_show_next()
 
 # ════════════════════════════════════════════════════════
 # 弹窗构建（纯代码，无需 .tscn）

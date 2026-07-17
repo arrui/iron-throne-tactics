@@ -4499,6 +4499,30 @@ func _test_overlay_runtime_flow() -> void:
 	tutorial.queue_free()
 	await process_frame
 
+	var replacement_tutorial := TutorialManager.new()
+	root.add_child(replacement_tutorial)
+	await process_frame
+	var replacement_done_indices: Array[int] = []
+	replacement_tutorial._step_done.connect(func(index: int) -> void:
+		replacement_done_indices.append(index)
+	)
+	replacement_tutorial.show_steps(["旧提示"])
+	var replaced_old_timer := replacement_tutorial._auto_timer
+	replacement_tutorial.show_steps(["新提示一", "新提示二"])
+	var replacement_first_timer := replacement_tutorial._auto_timer
+	_assert_eq(replacement_tutorial._text_lbl.text, "新提示一",
+		"显示中的教程序列被替换时立即展示新序列第一条")
+	replacement_tutorial._input(tutorial_click)
+	_assert_eq(replacement_done_indices, [0],
+		"替换教程序列后关闭新提示才记录新序列第一步完成")
+	replaced_old_timer.timeout.emit()
+	replacement_first_timer.timeout.emit()
+	await create_timer(0.2).timeout
+	(replacement_tutorial._auto_timer as SceneTreeTimer).timeout.emit()
+	await create_timer(0.2).timeout
+	replacement_tutorial.queue_free()
+	await process_frame
+
 	GameState.current_chapter = 1
 	var support_battle := TestBootstrapClass.new()
 	root.add_child(support_battle)
