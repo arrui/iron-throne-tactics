@@ -1508,6 +1508,24 @@ func _test_item_system() -> void:
 			and not action_menu.visible,
 		"取消道具面板遇到已释放单位时关闭面板并清理选择态")
 
+	var dying_item_user := Unit.new()
+	dying_item_user.setup(_make_unit_data({
+		"name": "道具面板中阵亡单位", "hp": 1, "max_hp": 1,
+		"items": [{"name": "急救药", "type": "heal", "heal_amount": 10, "uses": 1}],
+	}), 0, Vector2i(4, 6))
+	battle.get_node("UnitLayer").add_child(dying_item_user)
+	battle.player_units.append(dying_item_user)
+	battle.selected_unit = dying_item_user
+	battle.player_state = battle.PlayerState.UNIT_MOVED
+	battle._show_items_panel(dying_item_user)
+	var dying_item_panel := battle._active_items_panel as PanelContainer
+	dying_item_user.unit_died.connect(battle._on_unit_died)
+	dying_item_user.take_damage(dying_item_user.data.hp)
+	dying_item_user.resolve_death()
+	await process_frame
+	_assert(battle._active_items_panel == null and not is_instance_valid(dying_item_panel),
+		"道具面板中的选中单位正式死亡时关闭动态面板")
+
 	var removed_items_entry_unit := Unit.new()
 	removed_items_entry_unit.setup(_make_unit_data({
 		"name": "打开道具前被移除单位",

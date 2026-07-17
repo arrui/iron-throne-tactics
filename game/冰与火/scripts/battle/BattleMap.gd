@@ -1803,6 +1803,9 @@ func _deselect() -> void:
 	_path_preview.clear()
 	player_state = PlayerState.IDLE
 	_hide_all_panels()
+	if _active_items_panel:
+		_active_items_panel.queue_free()
+		_active_items_panel = null
 	_clear_enemy_preview()
 	_redraw_all()
 	_set_status("")
