@@ -3303,6 +3303,22 @@ func _test_unit_state_machine() -> void:
 	_assert(battle.move_range.is_empty() and battle.attack_tiles.is_empty(),
 		"点击不可移动空格取消选择后会清理行动范围")
 
+	var removed_selected_unit := Unit.new()
+	removed_selected_unit.setup(_make_unit_data({"name": "输入前被移除单位"}),
+		0, Vector2i(4, 4))
+	battle.get_node("UnitLayer").add_child(removed_selected_unit)
+	battle.player_units.append(removed_selected_unit)
+	battle.selected_unit = removed_selected_unit
+	battle.player_state = battle.PlayerState.UNIT_SELECTED
+	battle.move_range.assign([removed_selected_unit.grid_pos])
+	battle.player_units.erase(removed_selected_unit)
+	removed_selected_unit.free()
+	battle._input(invalid_tile_click)
+	_assert(not is_instance_valid(battle.selected_unit) \
+			and battle.player_state == battle.PlayerState.IDLE \
+			and battle.move_range.is_empty(),
+		"单位选择态输入遇到已释放选中单位时清理选择与行动范围")
+
 	battle._input(select_mover_click)
 	_assert(battle.selected_unit == mover and battle.player_state == battle.PlayerState.UNIT_SELECTED,
 		"测试已行动友军切换前会重新选中当前可行动单位")

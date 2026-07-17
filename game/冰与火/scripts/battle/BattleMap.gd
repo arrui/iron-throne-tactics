@@ -1702,6 +1702,9 @@ func _input(event: InputEvent) -> void:
 			PlayerState.IDLE:
 				_try_select(clicked)
 			PlayerState.UNIT_SELECTED:
+				if not is_instance_valid(selected_unit):
+					_deselect()
+					return
 				if clicked == selected_unit.grid_pos:
 					# 左键点击已选单位格 = 原地行动菜单
 					_open_in_place_menu()
