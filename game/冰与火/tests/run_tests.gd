@@ -1048,6 +1048,28 @@ func _test_battle_predict_full() -> void:
 	_assert(battle.attack_tiles.has(defender.grid_pos),
 		"确认战斗预测遇到已释放防守方时重算可选攻击目标")
 
+	var protected_defender := Unit.new()
+	protected_defender.setup(_make_enemy_data({
+		"name": "预测后进入保护状态目标", "min_hp": 1, "hp": 2, "max_hp": 2,
+	}), 1, Vector2i(3, 2))
+	attacker.data.is_protagonist = true
+	battle.get_node("UnitLayer").add_child(protected_defender)
+	battle.enemy_units.append(protected_defender)
+	battle._open_predict(attacker, protected_defender)
+	protected_defender.data.hp = protected_defender.data.min_hp
+	battle._on_confirm_attack()
+	_assert(battle.selected_unit == attacker \
+			and battle.target_enemy == null \
+			and battle.player_state == battle.PlayerState.UNIT_MOVED \
+			and not predict_panel.visible,
+		"二次荣耀检查阻止攻击时返回目标选择态")
+	_assert_eq(protected_defender.data.hp, protected_defender.data.min_hp,
+		"二次荣耀检查阻止攻击时不会伤害受保护目标")
+	battle.enemy_units.erase(protected_defender)
+	protected_defender.free()
+	attacker.data.is_protagonist = false
+	battle.attack_tiles = battle._adj_enemies(attacker.grid_pos)
+
 	battle._show_action_menu(attacker.grid_pos, true)
 	attack_button.pressed.emit()
 	var cancel_predict_event := InputEventKey.new()

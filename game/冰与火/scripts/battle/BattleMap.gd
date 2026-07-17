@@ -1949,6 +1949,9 @@ func _on_confirm_attack() -> void:
 		# 二次荣耀检查：防止快速点击绕过
 		if not _honor_check_attack(selected_unit, target_enemy):
 			target_enemy = null
+			player_state = PlayerState.UNIT_MOVED
+			attack_tiles = _adj_enemies(selected_unit.grid_pos)
+			_redraw_all()
 			return
 		await _start_battle_with_animation(selected_unit, target_enemy)
 		if not is_instance_valid(selected_unit):
