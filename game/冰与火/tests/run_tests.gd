@@ -2670,6 +2670,24 @@ func _test_unit_state_machine() -> void:
 # 测试套件 12：路径查找 Dijkstra 逻辑（无需场景，纯算法）
 # ══════════════════════════════════════════════════════════
 func _test_pathfinding_logic() -> void:
+	# 正式单位查询应容忍事件清理与数组同步之间短暂存在的已释放引用。
+	var stale_unit_battle := TestBootstrapClass.new()
+	root.add_child(stale_unit_battle)
+	await process_frame
+	stale_unit_battle.player_units.clear()
+	stale_unit_battle.enemy_units.clear()
+	var stale_unit := Unit.new()
+	stale_unit.setup(_make_enemy_data({"name": "已释放查询单位"}),
+		1, Vector2i(2, 2))
+	stale_unit_battle.get_node("UnitLayer").add_child(stale_unit)
+	stale_unit_battle.enemy_units.append(stale_unit)
+	stale_unit.queue_free()
+	await process_frame
+	_assert(stale_unit_battle._unit_at(Vector2i(2, 2), 1) == null,
+		"正式单位查询会忽略权威数组中残留的已释放引用")
+	stale_unit_battle.queue_free()
+	await process_frame
+
 	# 复现 BattleMap._find_path_to 的核心 Dijkstra 逻辑
 	# 用简单 3×3 无障碍平原进行测试
 	var move_budget := 5

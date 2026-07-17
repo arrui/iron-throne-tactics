@@ -2358,7 +2358,12 @@ func _modal_overlay_open() -> bool:
 
 # ── 工具 ─────────────────────────────────────────────────
 func _unit_at(pos: Vector2i, team: int) -> Unit:
-	for u: Unit in (player_units + enemy_units):
+	for candidate: Variant in (player_units + enemy_units):
+		if not is_instance_valid(candidate):
+			continue
+		var u := candidate as Unit
+		if u == null:
+			continue
 		if u.grid_pos == pos and u.team == team and not u.is_dead():
 			return u
 	return null
