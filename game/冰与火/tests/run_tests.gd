@@ -3909,6 +3909,18 @@ func _test_chapter_transition_metadata() -> void:
 			"目标：争夺三桥并稳住两翼，从中桥突破雷加本阵。", "标题卡显示战术目标摘要")
 		_assert(transition_objective.visible, "标题卡目标摘要在传入内容时可见")
 
+	var reentry_finish_events: Array[bool] = []
+	transition.transition_finished.connect(
+		func() -> void: reentry_finish_events.append(true))
+	transition.show_chapter("旧章节", "旧标题", "旧时间")
+	await process_frame
+	transition.show_chapter("新章节", "新标题", "新时间")
+	await create_timer(4.3).timeout
+	_assert_eq(reentry_finish_events.size(), 1,
+		"章节标题卡重入后只完成最新一次播放")
+	_assert_eq(transition_ch_num.text, "新章节",
+		"章节标题卡重入后保留最新章节内容")
+
 	if is_instance_valid(transition):
 		transition.queue_free()
 	await process_frame

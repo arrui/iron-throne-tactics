@@ -12,6 +12,8 @@ const BattleChromeTheme := preload("res://scripts/ui/BattleChromeTheme.gd")
 @onready var _sub_label:       Label     = $SubLabel
 @onready var _objective_label: Label     = $ObjectiveLabel
 
+var _transition_id: int = 0
+
 func _ready() -> void:
 	# 为章节转场标签应用中文字体
 	var font := _get_cjk_font()
@@ -32,6 +34,8 @@ func _get_cjk_font() -> Font:
 
 func show_chapter(number: String, title: String,
 		time_label: String, sub_label: String = "", objective_label: String = "") -> void:
+	_transition_id += 1
+	var transition_id := _transition_id
 	_chapter_number.text = number
 	_chapter_title.text  = title
 	_time_label.text     = time_label
@@ -49,16 +53,26 @@ func show_chapter(number: String, title: String,
 	# 淡入
 	var tw_in := create_tween().set_parallel(true)
 	for item: CanvasItem in items:
-		tw_in.tween_property(item, "modulate:a", 1.0, 0.8)
+		tw_in.tween_method(func(alpha: float) -> void:
+			if transition_id == _transition_id: item.modulate.a = alpha,
+			0.0, 1.0, 0.8)
 	await tw_in.finished
+	if transition_id != _transition_id:
+		return
 
 	await get_tree().create_timer(2.5).timeout
+	if transition_id != _transition_id:
+		return
 
 	# 淡出
 	var tw_out := create_tween().set_parallel(true)
 	for item: CanvasItem in items:
-		tw_out.tween_property(item, "modulate:a", 0.0, 0.8)
+		tw_out.tween_method(func(alpha: float) -> void:
+			if transition_id == _transition_id: item.modulate.a = alpha,
+			1.0, 0.0, 0.8)
 	await tw_out.finished
+	if transition_id != _transition_id:
+		return
 
 	visible = false
 	transition_finished.emit()
