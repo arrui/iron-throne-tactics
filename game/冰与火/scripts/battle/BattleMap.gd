@@ -1920,6 +1920,9 @@ func _open_predict(attacker: Unit, defender: Unit) -> void:
 
 func _on_confirm_attack() -> void:
 	_hide_all_panels()
+	if not is_instance_valid(selected_unit):
+		_deselect()
+		return
 	if selected_unit != null and target_enemy != null:
 		# 二次荣耀检查：防止快速点击绕过
 		if not _honor_check_attack(selected_unit, target_enemy):

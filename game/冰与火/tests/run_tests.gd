@@ -964,6 +964,29 @@ func _test_battle_predict_full() -> void:
 	battle.player_state = battle.PlayerState.UNIT_MOVED
 	battle.attack_tiles = battle._adj_enemies(attacker.grid_pos)
 
+	var removed_confirm_attacker := Unit.new()
+	removed_confirm_attacker.setup(_make_unit_data({"name": "预测确认前被移除单位"}),
+		0, Vector2i(5, 3))
+	battle.get_node("UnitLayer").add_child(removed_confirm_attacker)
+	battle.player_units.append(removed_confirm_attacker)
+	battle.selected_unit = removed_confirm_attacker
+	battle.player_state = battle.PlayerState.PREDICT
+	battle._open_predict(removed_confirm_attacker, defender)
+	var defender_hp_before_removed_confirm: int = defender.data.hp
+	battle.player_units.erase(removed_confirm_attacker)
+	removed_confirm_attacker.free()
+	battle._on_confirm_attack()
+	_assert(not is_instance_valid(battle.selected_unit) \
+			and battle.target_enemy == null \
+			and battle.player_state == battle.PlayerState.IDLE \
+			and not predict_panel.visible,
+		"确认战斗预测遇到已释放攻击方时清理预测与选择态")
+	_assert_eq(defender.data.hp, defender_hp_before_removed_confirm,
+		"确认战斗预测遇到已释放攻击方时不会误伤防守方")
+	battle.selected_unit = attacker
+	battle.player_state = battle.PlayerState.UNIT_MOVED
+	battle.attack_tiles = battle._adj_enemies(attacker.grid_pos)
+
 	battle._show_action_menu(attacker.grid_pos, true)
 	attack_button.pressed.emit()
 	var cancel_predict_event := InputEventKey.new()
