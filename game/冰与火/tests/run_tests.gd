@@ -2364,6 +2364,27 @@ func _test_unit_state_machine() -> void:
 		"独立序章二胜利判定忽略已释放引用且不会漏掉后续可击杀敌军")
 	stale_legacy_ch2_battle.free()
 
+	# 正式序章三独立脚本不能因已释放敌军引用而提前触发塔楼事件。
+	var stale_legacy_ch3_battle := Ch3BootstrapClass.new()
+	var stale_legacy_ch3_enemy := Unit.new()
+	stale_legacy_ch3_enemy.setup(_make_enemy_data({"name": "已释放独立序章三敌军"}),
+		1, Vector2i(4, 4))
+	var surviving_legacy_ch3_enemy := Unit.new()
+	surviving_legacy_ch3_enemy.setup(
+		_make_enemy_data({"name": "存活独立序章三敌军", "min_hp": 0}),
+		1, Vector2i(6, 6))
+	stale_legacy_ch3_battle.add_child(stale_legacy_ch3_enemy)
+	stale_legacy_ch3_battle.add_child(surviving_legacy_ch3_enemy)
+	stale_legacy_ch3_battle.enemy_units.assign([
+		stale_legacy_ch3_enemy, surviving_legacy_ch3_enemy])
+	stale_legacy_ch3_enemy.free()
+	stale_legacy_ch3_battle._battle_over = false
+	stale_legacy_ch3_battle._tower_reached = false
+	stale_legacy_ch3_battle._check_victory()
+	_assert(not stale_legacy_ch3_battle._tower_reached,
+		"独立序章三胜利判定忽略已释放引用且不会提前触发塔楼事件")
+	stale_legacy_ch3_battle.free()
+
 	# 序章四中途提示不能因已释放引用而漏掉仍存活的普通王军。
 	var previous_ch4_victory_chapter: int = GameState.current_chapter
 	GameState.current_chapter = 4

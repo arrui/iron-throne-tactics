@@ -109,9 +109,15 @@ func _check_victory() -> void:
 			_trigger_tower_sequence()
 			return
 	# 如果所有敌军都被歼灭（排除无敌）也算胜利
-	var mortal := enemy_units.filter(func(e: Unit) -> bool:
-		return not e.is_dead() and e.data.min_hp == 0)
-	if mortal.is_empty() and not enemy_units.is_empty():
+	var has_mortal_enemy := false
+	for candidate: Variant in enemy_units:
+		if not is_instance_valid(candidate):
+			continue
+		var enemy := candidate as Unit
+		if enemy != null and not enemy.is_dead() and enemy.data.min_hp == 0:
+			has_mortal_enemy = true
+			break
+	if not has_mortal_enemy and not enemy_units.is_empty():
 		_tower_reached = true
 		_trigger_tower_sequence()
 
