@@ -2125,6 +2125,12 @@ func _test_unit_state_machine() -> void:
 	var danger_before: bool = battle._show_danger
 	battle._input(danger_toggle_event)
 	_assert_eq(battle._show_danger, not danger_before, "D 键会通过正式输入链路切换危险区")
+	var repeated_danger_event := InputEventKey.new()
+	repeated_danger_event.pressed = true
+	repeated_danger_event.echo = true
+	repeated_danger_event.keycode = KEY_D
+	battle._input(repeated_danger_event)
+	_assert_eq(battle._show_danger, not danger_before, "长按 D 产生的重复事件不会连续切换危险区")
 	battle._input(danger_toggle_event)
 	_assert_eq(battle._show_danger, danger_before, "再次按 D 键会恢复危险区显示状态")
 
@@ -2138,6 +2144,12 @@ func _test_unit_state_machine() -> void:
 	_assert(not battle._minimap.visible, "正式小地图初始化后默认隐藏")
 	battle._input(minimap_toggle_event)
 	_assert(battle._minimap.visible, "M 键会通过正式输入链路打开小地图")
+	var repeated_minimap_event := InputEventKey.new()
+	repeated_minimap_event.pressed = true
+	repeated_minimap_event.echo = true
+	repeated_minimap_event.keycode = KEY_M
+	battle._input(repeated_minimap_event)
+	_assert(battle._minimap.visible, "长按 M 产生的重复事件不会立即关闭小地图")
 	battle._input(minimap_toggle_event)
 	_assert(not battle._minimap.visible, "再次按 M 键会通过正式输入链路关闭小地图")
 
@@ -2151,6 +2163,13 @@ func _test_unit_state_machine() -> void:
 		"敌方回合按 A 会启用自动托管并等待下一玩家回合")
 	_assert(battle.recorded_statuses.back().contains("自动托管已启动"),
 		"启用自动托管会显示明确状态反馈")
+	var repeated_autopilot_event := InputEventKey.new()
+	repeated_autopilot_event.pressed = true
+	repeated_autopilot_event.echo = true
+	repeated_autopilot_event.keycode = KEY_A
+	battle._input(repeated_autopilot_event)
+	_assert(battle._autopilot and not battle._autopilot_running,
+		"长按 A 产生的重复事件不会立即关闭自动托管")
 	var stop_autopilot_event := InputEventKey.new()
 	stop_autopilot_event.pressed = true
 	stop_autopilot_event.keycode = KEY_ESCAPE
@@ -2160,6 +2179,17 @@ func _test_unit_state_machine() -> void:
 	_assert(battle.recorded_statuses.back().contains("自动托管已中止"),
 		"ESC 中止自动托管会显示明确状态反馈")
 	battle.current_phase = battle.Phase.PLAYER_TURN
+
+	var restart_release_event := InputEventKey.new()
+	restart_release_event.keycode = KEY_R
+	battle._unhandled_input(restart_release_event)
+	_assert(not battle.restart_requested, "松开 R 不会触发章节重开")
+	var restart_press_event := InputEventKey.new()
+	restart_press_event.pressed = true
+	restart_press_event.keycode = KEY_R
+	battle._unhandled_input(restart_press_event)
+	_assert(battle.restart_requested, "正常状态按 R 会通过正式输入链路触发章节重开")
+	battle.restart_requested = false
 
 	battle._input(preview_enemy_click)
 	_assert(battle._preview_enemy == distant_enemy, "快捷键输入验证后仍可重新打开敌军安全距离预览")

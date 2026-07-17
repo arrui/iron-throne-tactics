@@ -1599,7 +1599,8 @@ func _input(event: InputEvent) -> void:
 	if _settings_menu_open():
 		return
 	# D键：危险区切换
-	if event is InputEventKey and (event as InputEventKey).pressed:
+	if event is InputEventKey and (event as InputEventKey).pressed \
+			and not (event as InputEventKey).echo:
 		var key := (event as InputEventKey).keycode
 		if key == KEY_D:
 			_show_danger = not _show_danger
