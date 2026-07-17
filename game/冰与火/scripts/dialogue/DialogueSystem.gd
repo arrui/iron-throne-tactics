@@ -37,6 +37,7 @@ var _current_idx: int    = 0
 var _full_text:   String = ""
 var _is_typing:   bool   = false
 var _tween:       Tween  = null
+var _prompt_tween: Tween = null
 var _active:      bool   = false
 var _typing_token: int   = 0
 
@@ -96,6 +97,7 @@ func _show_line(idx: int) -> void:
 	line_changed.emit(_speaker_label.text)
 	_full_text           = line.get("text", "")
 	_text_label.text     = ""
+	_stop_prompt_blink()
 	_prompt_icon.visible = false
 	_update_portrait(_speaker_label.text)
 	_typing_token += 1
@@ -126,15 +128,17 @@ func _type_text(text: String) -> void:
 
 func _on_typing_finished() -> void:
 	_is_typing = false
+	_stop_prompt_blink()
 	_prompt_icon.visible = true
-	var blink := create_tween().set_loops()
-	blink.tween_property(_prompt_icon, "modulate:a", 0.0, 0.5)
-	blink.tween_property(_prompt_icon, "modulate:a", 1.0, 0.5)
+	_prompt_tween = create_tween().set_loops()
+	_prompt_tween.tween_property(_prompt_icon, "modulate:a", 0.0, 0.5)
+	_prompt_tween.tween_property(_prompt_icon, "modulate:a", 1.0, 0.5)
 
 func _skip_typing() -> void:
 	_typing_token += 1
 	if _tween != null and _tween.is_valid():
 		_tween.kill()
+	_stop_prompt_blink()
 	_text_label.text     = _full_text
 	_is_typing           = false
 	_prompt_icon.visible = true
@@ -156,10 +160,18 @@ func _finish() -> void:
 	_typing_token += 1
 	if _tween != null and _tween.is_valid():
 		_tween.kill()
+	_stop_prompt_blink()
 	visible = false
 	if _portrait_rect:
 		_portrait_rect.texture = null
 	dialogue_finished.emit()
+
+func _stop_prompt_blink() -> void:
+	if _prompt_tween != null and _prompt_tween.is_valid():
+		_prompt_tween.kill()
+	_prompt_tween = null
+	if _prompt_icon:
+		_prompt_icon.modulate.a = 1.0
 
 func _update_portrait(speaker: String) -> void:
 	if _portrait_panel == null or _portrait_rect == null:

@@ -4725,6 +4725,20 @@ func _test_overlay_runtime_flow() -> void:
 	dialogue._advance()
 	_assert_eq(dialogue._speaker_label.text, "奈德", "DialogueSystem 推进到第二句后切换说话人")
 	_assert_eq(changed_speakers, ["旁白", "奈德"], "DialogueSystem 每次换行都会通知说话人")
+	dialogue._on_typing_finished()
+	var old_prompt_tween: Tween = dialogue._prompt_tween
+	await create_timer(0.55).timeout
+	_assert(old_prompt_tween != null and old_prompt_tween.is_valid(),
+		"DialogueSystem 打字结束后启动继续提示闪烁")
+	_assert(dialogue._prompt_icon.modulate.a < 0.9,
+		"DialogueSystem 继续提示闪烁会实际改变透明度")
+	dialogue._advance()
+	dialogue._skip_typing()
+	await create_timer(0.55).timeout
+	_assert(not old_prompt_tween.is_valid() and dialogue._prompt_tween == null,
+		"DialogueSystem 切换行后停止旧提示 Tween")
+	_assert(is_equal_approx(dialogue._prompt_icon.modulate.a, 1.0),
+		"DialogueSystem 切换行后继续提示恢复为完整可见")
 	dialogue._skip_typing()
 	_assert(dialogue._portrait_panel.visible, "DialogueSystem 进入角色发言后显示立绘")
 	_assert(dialogue._portrait_rect.texture != null, "DialogueSystem 角色发言时加载立绘纹理")
@@ -4735,6 +4749,14 @@ func _test_overlay_runtime_flow() -> void:
 	_assert(dialogue_finished_state["done"], "DialogueSystem 最后一行后发出完成信号")
 	_assert(not dialogue.visible, "DialogueSystem 完成后隐藏对话框")
 	_assert(dialogue._portrait_rect.texture == null, "DialogueSystem 完成后清理立绘纹理")
+	dialogue._on_typing_finished()
+	var finishing_prompt_tween: Tween = dialogue._prompt_tween
+	dialogue._finish()
+	await create_timer(0.55).timeout
+	_assert(not finishing_prompt_tween.is_valid() and dialogue._prompt_tween == null,
+		"DialogueSystem 完成时停止继续提示 Tween")
+	_assert(is_equal_approx(dialogue._prompt_icon.modulate.a, 1.0),
+		"DialogueSystem 完成后继续提示保持完整透明度")
 	dialogue.queue_free()
 	await process_frame
 
