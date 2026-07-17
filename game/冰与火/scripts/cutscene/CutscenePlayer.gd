@@ -69,6 +69,7 @@ func _input(event: InputEvent) -> void:
 		return
 	var key_skip: bool = (event is InputEventKey) and \
 		(event as InputEventKey).pressed and \
+		not (event as InputEventKey).echo and \
 		((event as InputEventKey).keycode == KEY_SPACE or
 		 (event as InputEventKey).keycode == KEY_ENTER)
 	var mouse_skip: bool = (event is InputEventMouseButton) and \

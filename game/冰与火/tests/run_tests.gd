@@ -4382,6 +4382,38 @@ func _test_ch1_save_and_deploy_flow() -> void:
 	await process_frame
 
 func _test_overlay_runtime_flow() -> void:
+	var cutscene_scene := load("res://scenes/cutscene/CutscenePlayer.tscn") as PackedScene
+	var cutscene := cutscene_scene.instantiate() as CutscenePlayer
+	root.add_child(cutscene)
+	await process_frame
+	cutscene._is_playing = true
+	cutscene._skip_requested = false
+	var cutscene_skip := InputEventKey.new()
+	cutscene_skip.pressed = true
+	cutscene_skip.keycode = KEY_SPACE
+	cutscene._input(cutscene_skip)
+	_assert(cutscene._skip_requested, "正常按下空格仍会跳过当前过场")
+	cutscene._skip_requested = false
+	var repeated_cutscene_skip := InputEventKey.new()
+	repeated_cutscene_skip.pressed = true
+	repeated_cutscene_skip.echo = true
+	repeated_cutscene_skip.keycode = KEY_SPACE
+	cutscene._input(repeated_cutscene_skip)
+	_assert(not cutscene._skip_requested,
+		"长按跳过键产生的重复事件不会连续跳过下一段过场")
+	var released_cutscene_skip := InputEventKey.new()
+	released_cutscene_skip.pressed = false
+	released_cutscene_skip.keycode = KEY_ENTER
+	cutscene._input(released_cutscene_skip)
+	_assert(not cutscene._skip_requested, "松开过场跳过键不会触发跳过")
+	var mouse_cutscene_skip := InputEventMouseButton.new()
+	mouse_cutscene_skip.pressed = true
+	mouse_cutscene_skip.button_index = MOUSE_BUTTON_LEFT
+	cutscene._input(mouse_cutscene_skip)
+	_assert(cutscene._skip_requested, "鼠标左键仍可正常跳过当前过场")
+	cutscene.queue_free()
+	await process_frame
+
 	var tutorial := TutorialManager.new()
 	root.add_child(tutorial)
 	await process_frame
