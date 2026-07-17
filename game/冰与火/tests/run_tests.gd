@@ -44,6 +44,19 @@ class TestCh4Bootstrap extends Ch4BootstrapClass:
 	func _ready() -> void:
 		pass
 
+class TestCh3EndingBootstrap extends Ch3BootstrapClass:
+	func _ready() -> void:
+		pass
+
+	func _play_cutscene(_path: String) -> void:
+		pass
+
+	func _play_dialogue(_path: String) -> void:
+		pass
+
+	func _advance_chapter() -> void:
+		pass
+
 var _pass_count: int = 0
 var _fail_count: int = 0
 var _current_suite: String = ""
@@ -2772,6 +2785,36 @@ func _test_unit_state_machine() -> void:
 	_assert(stale_player_legacy_ch3_battle._tower_reached,
 		"独立序章三胜利判定忽略已释放玩家且识别后续抵达塔门的奈德")
 	stale_player_legacy_ch3_battle.free()
+
+	# 独立序章三进入永久塔楼落幕时必须清理完整战场交互状态。
+	var legacy_ch3_ending := TestCh3EndingBootstrap.new()
+	root.add_child(legacy_ch3_ending)
+	var legacy_ch3_player := Unit.new()
+	legacy_ch3_player.setup(_make_unit_data({"name": "独立序章三奈德"}),
+		0, Vector2i(4, 4))
+	var legacy_ch3_target := Unit.new()
+	legacy_ch3_target.setup(_make_enemy_data({"name": "独立序章三目标"}),
+		1, Vector2i(6, 6))
+	legacy_ch3_ending.add_child(legacy_ch3_player)
+	legacy_ch3_ending.add_child(legacy_ch3_target)
+	legacy_ch3_ending.selected_unit = legacy_ch3_player
+	legacy_ch3_ending.target_enemy = legacy_ch3_target
+	legacy_ch3_ending.player_state = legacy_ch3_ending.PlayerState.PREDICT
+	legacy_ch3_ending.move_range.assign([legacy_ch3_player.grid_pos])
+	legacy_ch3_ending.attack_tiles.assign([legacy_ch3_target.grid_pos])
+	legacy_ch3_ending._path_preview.assign([legacy_ch3_player.grid_pos])
+	legacy_ch3_ending._show_enemy_preview(legacy_ch3_target)
+	await legacy_ch3_ending._trigger_tower_sequence()
+	_assert(legacy_ch3_ending.selected_unit == null \
+			and legacy_ch3_ending.target_enemy == null \
+			and legacy_ch3_ending.player_state == legacy_ch3_ending.PlayerState.IDLE \
+			and legacy_ch3_ending.move_range.is_empty() \
+			and legacy_ch3_ending.attack_tiles.is_empty() \
+			and legacy_ch3_ending._path_preview.is_empty() \
+			and legacy_ch3_ending._preview_enemy == null,
+		"独立序章三塔楼落幕清理战场交互状态")
+	legacy_ch3_ending.queue_free()
+	await process_frame
 
 	# 正式序章四独立脚本不能把可能残留已释放引用的数组交给强类型 filter。
 	var stale_legacy_ch4_battle := Ch4BootstrapClass.new()

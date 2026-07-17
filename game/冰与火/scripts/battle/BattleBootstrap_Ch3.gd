@@ -126,7 +126,7 @@ func _check_victory() -> void:
 
 func _trigger_tower_sequence() -> void:
 	_battle_over = true
-	_hide_all_panels()
+	_deselect()
 	# 霍兰刺杀戴恩过场
 	await _play_cutscene("res://data/cutscenes/ch3_dayne_trigger.json")
 	# 手动移除戴恩（霍兰的侧翼行动，非玩家操作）
