@@ -2133,7 +2133,7 @@ func _check_defeat() -> void:
 
 func _end_battle(won: bool) -> void:
 	_battle_over = true
-	_hide_all_panels()
+	_deselect()
 	_update_turn_label()
 	if _end_turn_btn: _end_turn_btn.disabled = true
 

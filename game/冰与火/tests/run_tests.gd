@@ -4227,6 +4227,15 @@ func _test_visual_style_unification() -> void:
 	runtime_battle._autopilot = true
 	runtime_battle._autopilot_running = true
 	runtime_battle._update_autopilot_label()
+	var ending_selected := runtime_battle.player_units[0] as Unit
+	var ending_target := runtime_battle.enemy_units[0] as Unit
+	runtime_battle.selected_unit = ending_selected
+	runtime_battle.target_enemy = ending_target
+	runtime_battle.player_state = runtime_battle.PlayerState.PREDICT
+	runtime_battle.move_range.assign([ending_selected.grid_pos])
+	runtime_battle.attack_tiles.assign([ending_target.grid_pos])
+	runtime_battle._path_preview.assign([ending_selected.grid_pos])
+	runtime_battle._show_enemy_preview(ending_target)
 	runtime_battle._end_battle(false)
 	await process_frame
 	var runtime_result_panel := runtime_battle.get_node("UI/ResultPanel") as PanelContainer
@@ -4236,6 +4245,18 @@ func _test_visual_style_unification() -> void:
 	_assert(not runtime_battle._autopilot and not runtime_battle._autopilot_running,
 		"战斗结束会中止自动托管")
 	_assert_eq(runtime_battle._autopilot_label.text, "", "战斗结束会清除自动托管状态标签")
+	_assert(runtime_battle.selected_unit == null \
+			and runtime_battle.target_enemy == null \
+			and runtime_battle.player_state == runtime_battle.PlayerState.IDLE,
+		"战斗结束会清理单位选择与攻击目标状态")
+	_assert(runtime_battle.move_range.is_empty() \
+			and runtime_battle.attack_tiles.is_empty() \
+			and runtime_battle._path_preview.is_empty(),
+		"战斗结束会清理移动、攻击与路径高亮")
+	_assert(runtime_battle._preview_enemy == null \
+			and runtime_battle._preview_move_range.is_empty() \
+			and runtime_battle._preview_attack_tiles.is_empty(),
+		"战斗结束会清理敌军安全距离预览")
 	var ended_autopilot_event := InputEventKey.new()
 	ended_autopilot_event.pressed = true
 	ended_autopilot_event.keycode = KEY_A
