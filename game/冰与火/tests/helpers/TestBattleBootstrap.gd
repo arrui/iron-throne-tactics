@@ -12,6 +12,7 @@ var intercept_enemy_turn_start: bool = false
 var recorded_player_turn_starts: int = 0
 var record_autopilot_range_calculations: bool = false
 var recorded_autopilot_range_calculations: int = 0
+var recorded_move_result: Variant = null
 
 func _enter_tree() -> void:
 	if get_node_or_null("HighlightLayer") == null:
@@ -129,3 +130,6 @@ func _build_combat_result(pred: Dictionary, attacker_hp: int, defender_hp: int) 
 	if not fixed_combat_result.is_empty():
 		return fixed_combat_result.duplicate(true)
 	return super._build_combat_result(pred, attacker_hp, defender_hp)
+
+func record_move_result(unit: Unit, target: Vector2i) -> void:
+	recorded_move_result = await _do_move_animated(unit, target)

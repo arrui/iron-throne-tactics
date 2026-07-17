@@ -2096,6 +2096,70 @@ func _test_unit_state_machine() -> void:
 
 	unit.free()
 
+	# 使用独立战场分别覆盖镜头聚焦与步行动画的异步恢复点，避免污染下方输入状态机。
+	var interruption_settings := root.get_node_or_null("GameSettings")
+	var old_interruption_auto_camera: bool = interruption_settings.auto_camera_enabled
+	interruption_settings.auto_camera_enabled = true
+	var focus_interrupted_battle := TestBootstrapClass.new()
+	root.add_child(focus_interrupted_battle)
+	await process_frame
+	var freed_during_focus := Unit.new()
+	freed_during_focus.setup(_make_unit_data({"name": "聚焦期间释放单位"}),
+		0, Vector2i(6, 5))
+	focus_interrupted_battle.get_node("UnitLayer").add_child(freed_during_focus)
+	focus_interrupted_battle.player_units.append(freed_during_focus)
+	focus_interrupted_battle.record_move_result.call_deferred(freed_during_focus, Vector2i(6, 4))
+	await process_frame
+	_assert(focus_interrupted_battle._animating_battle and freed_during_focus.state == Unit.State.IDLE,
+		"单位释放前移动流程正停留在镜头聚焦阶段")
+	freed_during_focus.queue_free()
+	for frame: int in range(60):
+		if focus_interrupted_battle.recorded_move_result != null:
+			break
+		await process_frame
+	_assert_eq(focus_interrupted_battle.recorded_move_result, false,
+		"镜头聚焦期间单位释放时向调用方返回失败")
+	_assert(not focus_interrupted_battle._animating_battle,
+		"镜头聚焦期间单位释放时解除共享操作锁")
+	_assert_eq(focus_interrupted_battle._pre_move_pos, Vector2i(-1, -1),
+		"镜头聚焦期间单位释放时清理取消移动坐标")
+	focus_interrupted_battle.queue_free()
+	await process_frame
+
+	interruption_settings.auto_camera_enabled = false
+	var movement_interrupted_battle := TestBootstrapClass.new()
+	root.add_child(movement_interrupted_battle)
+	await process_frame
+	var movement_origin := Vector2i(6, 5)
+	var freed_during_movement := Unit.new()
+	freed_during_movement.setup(_make_unit_data({"name": "步行期间释放单位"}),
+		0, movement_origin)
+	movement_interrupted_battle.get_node("UnitLayer").add_child(freed_during_movement)
+	movement_interrupted_battle.player_units.append(freed_during_movement)
+	movement_interrupted_battle.record_move_result.call_deferred(
+		freed_during_movement, Vector2i(6, 3))
+	for frame: int in range(10):
+		await process_frame
+		if freed_during_movement.grid_pos != movement_origin:
+			break
+	_assert(freed_during_movement.grid_pos != movement_origin and
+		movement_interrupted_battle._animating_battle,
+		"单位释放前移动流程已进入步行动画阶段")
+	freed_during_movement.queue_free()
+	for frame: int in range(60):
+		if movement_interrupted_battle.recorded_move_result != null:
+			break
+		await process_frame
+	_assert_eq(movement_interrupted_battle.recorded_move_result, false,
+		"步行动画期间单位释放时向调用方返回失败")
+	_assert(not movement_interrupted_battle._animating_battle,
+		"步行动画期间单位释放时解除共享操作锁")
+	_assert_eq(movement_interrupted_battle._pre_move_pos, Vector2i(-1, -1),
+		"步行动画期间单位释放时清理取消移动坐标")
+	movement_interrupted_battle.queue_free()
+	await process_frame
+	interruption_settings.auto_camera_enabled = old_interruption_auto_camera
+
 	# 正式战场：等待与取消移动按钮的真实调用链
 	var battle_scene := load("res://scenes/battle/BattleMap.tscn") as PackedScene
 	var battle := battle_scene.instantiate()
@@ -2308,6 +2372,7 @@ func _test_unit_state_machine() -> void:
 	_assert(not action_menu.visible, "取消移动后关闭行动菜单")
 	_assert(battle.recorded_statuses.any(func(msg: String) -> bool: return msg == "移动测试员 取消移动"),
 		"取消移动后显示明确状态反馈")
+
 	var deselect_event := InputEventKey.new()
 	deselect_event.pressed = true
 	deselect_event.keycode = KEY_ESCAPE

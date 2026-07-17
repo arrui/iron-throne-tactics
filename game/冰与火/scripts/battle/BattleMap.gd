@@ -1568,6 +1568,10 @@ func _do_move_animated(unit: Unit, target: Vector2i) -> bool:
 	var path       := _find_path_to(unit, target)
 	_animating_battle = true
 	await focus_unit(unit, 0.18)
+	if not is_instance_valid(unit):
+		_animating_battle = false
+		_pre_move_pos = Vector2i(-1, -1)
+		return false
 	unit.mark_moved()
 	move_range.clear()
 	_path_preview.clear()
@@ -1589,6 +1593,10 @@ func _do_move_animated(unit: Unit, target: Vector2i) -> bool:
 		await tw.finished
 		if is_instance_valid(unit): _redraw_all()
 
+	if not is_instance_valid(unit):
+		_animating_battle = false
+		_pre_move_pos = Vector2i(-1, -1)
+		return false
 	_animating_battle = false
 	attack_tiles = _adj_enemies(target)
 	player_state = PlayerState.UNIT_MOVED
