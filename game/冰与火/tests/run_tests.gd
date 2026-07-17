@@ -5480,6 +5480,16 @@ func _test_chapter_event_flow() -> void:
 	_assert(ch4._royal_commander != null, "Ch4 初始化后王军指挥官已生成")
 	_assert(ch4._lannister_units.size() > 0, "Ch4 初始化后兰军中立单位存在")
 	var lann_before := ch4._lannister_units.size()
+	var ch4_preview_enemy: Unit = ch4.enemy_units.filter(
+		func(unit: Unit) -> bool: return unit != ch4._royal_commander and unit.team == 1
+	)[0]
+	ch4.selected_unit = ch4._ned_unit
+	ch4.target_enemy = ch4_preview_enemy
+	ch4.player_state = ch4.PlayerState.PREDICT
+	ch4.move_range.assign([ch4._ned_unit.grid_pos])
+	ch4.attack_tiles.assign([ch4_preview_enemy.grid_pos])
+	ch4._path_preview.assign([ch4._ned_unit.grid_pos])
+	ch4._show_enemy_preview(ch4_preview_enemy)
 	ch4._on_unit_died(ch4._royal_commander)
 	await create_timer(2.4).timeout
 	await process_frame
@@ -5510,6 +5520,14 @@ func _test_chapter_event_flow() -> void:
 	_assert_eq(GameState.current_chapter, 1, "Ch4 事件后章节重置到1")
 	_assert_eq(SaveSystem.load_current_chapter(), 5, "Ch4 结局同步保存序章完成态")
 	_assert(SaveSystem.get_completed_chapters().has(4), "Ch4 结局同步记录 Ch4 已完成")
+	_assert(ch4.selected_unit == null \
+			and ch4.target_enemy == null \
+			and ch4.player_state == ch4.PlayerState.IDLE \
+			and ch4.move_range.is_empty() \
+			and ch4.attack_tiles.is_empty() \
+			and ch4._path_preview.is_empty() \
+			and ch4._preview_enemy == null,
+		"Ch4 结局进入章节落幕时清理战场交互状态")
 	if is_instance_valid(ch4):
 		ch4.queue_free()
 	await process_frame

@@ -858,7 +858,7 @@ func _trigger_ch4_lannister_join() -> void:
 func _trigger_ch4_throne() -> void:
 	if _battle_over: return   # 防止重复触发
 	_battle_over = true
-	_hide_all_panels()
+	_deselect()
 	if _end_turn_btn: _end_turn_btn.disabled = true
 	_set_phase_badge(Ch4BattleBrief.get_stage_badge(4))
 	_set_battle_status(Ch4BattleBrief.THRONE_SECURED_STATUS)
