@@ -2534,8 +2534,11 @@ func _on_item_used(unit: Unit, item_idx: int) -> void:
 			_set_status("%s 使用【%s】，恢复 %d HP" % [unit.data.name, item.get("name", "道具"), amount])
 		"offensive":
 			var burn_dmg: int = int(item.get("burn_damage", 5))
-			for enemy: Unit in enemy_units:
-				if _manhattan_dist(unit.grid_pos, enemy.grid_pos) == 1:
+			for candidate: Variant in enemy_units:
+				if not is_instance_valid(candidate):
+					continue
+				var enemy := candidate as Unit
+				if enemy != null and _manhattan_dist(unit.grid_pos, enemy.grid_pos) == 1:
 					enemy.take_damage(burn_dmg)
 					enemy.resolve_death()
 					_set_status("%s 使用【%s】，对周围敌人造成 %d 伤" % [

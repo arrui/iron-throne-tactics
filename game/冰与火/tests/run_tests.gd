@@ -1276,6 +1276,13 @@ func _test_item_system() -> void:
 		battle.queue_free()
 		await process_frame
 		return
+	var stale_item_enemy := Unit.new()
+	stale_item_enemy.setup(_make_enemy_data({"name": "已释放道具目标"}),
+		1, Vector2i(4, 5))
+	battle.get_node("UnitLayer").add_child(stale_item_enemy)
+	battle.enemy_units.assign([stale_item_enemy, adjacent_enemy, distant_enemy])
+	stale_item_enemy.queue_free()
+	await process_frame
 	var adjacent_hp_before: int = adjacent_enemy.data.hp
 	var distant_hp_before: int = distant_enemy.data.hp
 	offensive_button.pressed.emit()
@@ -1283,7 +1290,7 @@ func _test_item_system() -> void:
 	_assert(battle._active_items_panel == null and not is_instance_valid(offensive_panel),
 		"点击攻击型道具后释放动态道具面板")
 	_assert_eq(adjacent_enemy.data.hp, adjacent_hp_before - 6,
-		"点击野火瓶按钮真实伤害第一个相邻敌军")
+		"攻击型道具忽略已释放引用并伤害后续相邻敌军")
 	_assert_eq(distant_enemy.data.hp, distant_hp_before, "攻击型道具不会伤害非相邻敌军")
 	_assert_eq(bomber.data.items.size(), 0, "攻击型道具次数耗尽后从背包移除")
 	_assert(bomber.state == Unit.State.DONE and battle.selected_unit == null,
