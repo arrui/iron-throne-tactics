@@ -12,8 +12,11 @@ var intercept_enemy_turn_start: bool = false
 var recorded_player_turn_starts: int = 0
 var record_autopilot_range_calculations: bool = false
 var recorded_autopilot_range_calculations: int = 0
+var autopilot_walkable_overrides: Dictionary = {}
 var recorded_move_result: Variant = null
 var recorded_battle_completion: bool = false
+var remove_unit_after_autopilot_move: bool = false
+var removed_unit_after_autopilot_move: bool = false
 
 func _enter_tree() -> void:
 	if get_node_or_null("HighlightLayer") == null:
@@ -125,6 +128,11 @@ func _calc_move_range(unit: Unit) -> Array[Vector2i]:
 	if record_autopilot_range_calculations:
 		recorded_autopilot_range_calculations += 1
 		return [unit.grid_pos]
+	var override: Variant = autopilot_walkable_overrides.get(unit.get_instance_id())
+	if override is Array:
+		var walkable: Array[Vector2i] = []
+		walkable.assign(override)
+		return walkable
 	return super._calc_move_range(unit)
 
 func _build_combat_result(pred: Dictionary, attacker_hp: int, defender_hp: int) -> Dictionary:
@@ -134,6 +142,14 @@ func _build_combat_result(pred: Dictionary, attacker_hp: int, defender_hp: int) 
 
 func record_move_result(unit: Unit, target: Vector2i) -> void:
 	recorded_move_result = await _do_move_animated(unit, target)
+
+func _do_move_animated(unit: Unit, target: Vector2i) -> bool:
+	var completed := await super._do_move_animated(unit, target)
+	if completed and remove_unit_after_autopilot_move and is_instance_valid(unit):
+		remove_unit_after_autopilot_move = false
+		removed_unit_after_autopilot_move = true
+		unit.queue_free()
+	return completed
 
 func record_battle_completion(attacker: Unit, defender: Unit) -> void:
 	await _start_battle_with_animation(attacker, defender)

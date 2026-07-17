@@ -2267,6 +2267,8 @@ func _run_autopilot_turn() -> void:
 			if not is_inside_tree() or not _autopilot: break
 			await get_tree().create_timer(0.15).timeout
 			if run_id != _autopilot_run_id: return
+			if not is_instance_valid(acting) or acting not in player_units:
+				continue
 
 		# ── 执行攻击 ──────────────────────────────────────────
 		var attack_target: Unit = action.get("attack") as Unit

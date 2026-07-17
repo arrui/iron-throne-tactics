@@ -2698,6 +2698,64 @@ func _test_unit_state_machine() -> void:
 	stale_autopilot_battle.queue_free()
 	await process_frame
 
+	# 自动托管完成移动后的观察停顿期间，行动单位也可能被战场事件移除。
+	var removed_after_move_battle := TestBootstrapClass.new()
+	root.add_child(removed_after_move_battle)
+	await process_frame
+	for existing_unit: Variant in (removed_after_move_battle.player_units + removed_after_move_battle.enemy_units):
+		if is_instance_valid(existing_unit):
+			existing_unit.queue_free()
+	await process_frame
+	removed_after_move_battle.player_units.clear()
+	removed_after_move_battle.enemy_units.clear()
+	var removed_after_move_unit := Unit.new()
+	removed_after_move_unit.setup(_make_unit_data({
+		"name": "移动后移除单位", "move": 1,
+	}), 0, Vector2i(2, 2))
+	var adjacent_after_move_enemy := Unit.new()
+	adjacent_after_move_enemy.setup(_make_enemy_data({"name": "移动后目标"}),
+		1, Vector2i(4, 2))
+	var next_autopilot_unit := Unit.new()
+	next_autopilot_unit.setup(_make_unit_data({"name": "后续托管单位"}),
+		0, Vector2i(2, 5))
+	removed_after_move_battle.get_node("UnitLayer").add_child(removed_after_move_unit)
+	removed_after_move_battle.get_node("UnitLayer").add_child(adjacent_after_move_enemy)
+	removed_after_move_battle.get_node("UnitLayer").add_child(next_autopilot_unit)
+	removed_after_move_unit.position = removed_after_move_battle._g2p(removed_after_move_unit.grid_pos)
+	adjacent_after_move_enemy.position = removed_after_move_battle._g2p(adjacent_after_move_enemy.grid_pos)
+	next_autopilot_unit.position = removed_after_move_battle._g2p(next_autopilot_unit.grid_pos)
+	removed_after_move_battle.player_units.assign([
+		removed_after_move_unit, next_autopilot_unit,
+	])
+	removed_after_move_battle.enemy_units.append(adjacent_after_move_enemy)
+	removed_after_move_battle.autopilot_walkable_overrides[
+		removed_after_move_unit.get_instance_id()] = [
+		Vector2i(2, 2), Vector2i(3, 2),
+	]
+	removed_after_move_battle.autopilot_walkable_overrides[
+		next_autopilot_unit.get_instance_id()] = [Vector2i(2, 5)]
+	removed_after_move_battle.remove_unit_after_autopilot_move = true
+	removed_after_move_battle._battle_over = false
+	removed_after_move_battle.current_phase = removed_after_move_battle.Phase.PLAYER_TURN
+	removed_after_move_battle._autopilot = true
+	removed_after_move_battle._run_autopilot_turn()
+	for attempt in 40:
+		if removed_after_move_battle.removed_unit_after_autopilot_move \
+				and not next_autopilot_unit.can_act():
+			break
+		await create_timer(0.05).timeout
+	_assert(removed_after_move_battle.removed_unit_after_autopilot_move,
+		"自动托管测试单位在正式移动成功后由事件移除")
+	_assert(not next_autopilot_unit.can_act(),
+		"当前单位移动后被移除时自动托管会继续处理下一名可行动友军")
+	removed_after_move_battle._cancel_autopilot()
+	await process_frame
+	_assert(not removed_after_move_battle._autopilot_running,
+		"自动托管会在移动后停顿期间单位被移除时解除运行锁")
+	await create_timer(0.35).timeout
+	removed_after_move_battle.queue_free()
+	await process_frame
+
 # ══════════════════════════════════════════════════════════
 # 测试套件 12：路径查找 Dijkstra 逻辑（无需场景，纯算法）
 # ══════════════════════════════════════════════════════════
