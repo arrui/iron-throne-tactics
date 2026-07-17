@@ -831,10 +831,14 @@ func _trigger_ch4_lannister_join() -> void:
 	if not is_inside_tree() or _battle_over: return
 
 	# 兰军单位从地图上消失
-	for u: Unit in _lannister_units.duplicate():
-		if is_instance_valid(u) and not u.is_dead():
-			enemy_units.erase(u)
-			u.queue_free()
+	for candidate: Variant in _lannister_units.duplicate():
+		if not is_instance_valid(candidate):
+			continue
+		var u := candidate as Unit
+		if u == null or u.is_dead():
+			continue
+		enemy_units.erase(u)
+		u.queue_free()
 	_lannister_units.clear()
 	_redraw_all()
 

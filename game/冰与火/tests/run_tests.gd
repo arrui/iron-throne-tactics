@@ -2523,6 +2523,25 @@ func _test_unit_state_machine() -> void:
 	stale_ch4_victory_battle._check_victory()
 	_assert(not stale_ch4_victory_battle._ch4_midway_hint_shown,
 		"序章四中途判定会忽略已释放引用且不会漏掉后续存活普通王军")
+
+	# 统一序章四兰军归降流程也应越过已释放兰军，继续撤走后续存活单位。
+	var stale_unified_lannister := Unit.new()
+	stale_unified_lannister.setup(_make_enemy_data({"name": "已释放统一兰军"}),
+		1, Vector2i(8, 8))
+	var surviving_unified_lannister := Unit.new()
+	surviving_unified_lannister.setup(_make_enemy_data({"name": "存活统一兰军"}),
+		1, Vector2i(10, 8))
+	stale_ch4_victory_battle.get_node("UnitLayer").add_child(stale_unified_lannister)
+	stale_ch4_victory_battle.get_node("UnitLayer").add_child(surviving_unified_lannister)
+	stale_ch4_victory_battle.enemy_units.append(stale_unified_lannister)
+	stale_ch4_victory_battle.enemy_units.append(surviving_unified_lannister)
+	stale_ch4_victory_battle._lannister_units.assign([
+		stale_unified_lannister, surviving_unified_lannister])
+	stale_unified_lannister.free()
+	await stale_ch4_victory_battle._trigger_ch4_lannister_join()
+	_assert(not stale_ch4_victory_battle.enemy_units.has(surviving_unified_lannister) \
+			and surviving_unified_lannister.is_queued_for_deletion(),
+		"统一序章四兰军归降流程忽略已释放兰军且撤走后续存活单位")
 	GameState.current_chapter = previous_ch4_victory_chapter
 	stale_ch4_victory_battle.queue_free()
 	await process_frame
