@@ -2415,6 +2415,28 @@ func _test_unit_state_machine() -> void:
 		"独立序章三胜利判定忽略已释放玩家且识别后续抵达塔门的奈德")
 	stale_player_legacy_ch3_battle.free()
 
+	# 正式序章四独立脚本不能把可能残留已释放引用的数组交给强类型 filter。
+	var stale_legacy_ch4_battle := Ch4BootstrapClass.new()
+	var stale_legacy_ch4_enemy := Unit.new()
+	stale_legacy_ch4_enemy.setup(_make_enemy_data({"name": "已释放独立序章四敌军"}),
+		1, Vector2i(4, 4))
+	var surviving_legacy_ch4_enemy := Unit.new()
+	surviving_legacy_ch4_enemy.setup(
+		_make_enemy_data({"name": "存活独立序章四敌军", "min_hp": 0}),
+		1, Vector2i(6, 6))
+	stale_legacy_ch4_battle.add_child(stale_legacy_ch4_enemy)
+	stale_legacy_ch4_battle.add_child(surviving_legacy_ch4_enemy)
+	stale_legacy_ch4_battle.enemy_units.assign([
+		stale_legacy_ch4_enemy, surviving_legacy_ch4_enemy])
+	stale_legacy_ch4_enemy.free()
+	stale_legacy_ch4_battle._battle_over = false
+	stale_legacy_ch4_battle._check_victory()
+	var ch4_bootstrap_source := _read_repo_root_text(
+		"game/冰与火/scripts/battle/BattleBootstrap_Ch4.gd")
+	_assert(not ch4_bootstrap_source.contains("enemy_units.filter(func(u: Unit)"),
+		"独立序章四胜利判定不会使用无法接收已释放引用的强类型 filter")
+	stale_legacy_ch4_battle.free()
+
 	# 序章四中途提示不能因已释放引用而漏掉仍存活的普通王军。
 	var previous_ch4_victory_chapter: int = GameState.current_chapter
 	GameState.current_chapter = 4

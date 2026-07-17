@@ -133,11 +133,18 @@ func _check_victory() -> void:
 		_trigger_throne_arrival()
 		return
 	# 或：击败所有非兰军、非无敌敌军
-	var mortal := enemy_units.filter(func(u: Unit) -> bool:
-		return not u.is_dead() and u.data.min_hp == 0 \
-			and not (_lannister_units.has(u)))
-	if mortal.is_empty() and not enemy_units.filter(func(u: Unit) -> bool:
-			return not u.is_dead() and not _lannister_units.has(u)).is_empty() == false:
+	var has_mortal_enemy := false
+	var has_alive_non_lannister := false
+	for candidate: Variant in enemy_units:
+		if not is_instance_valid(candidate):
+			continue
+		var enemy := candidate as Unit
+		if enemy == null or enemy.is_dead() or _lannister_units.has(enemy):
+			continue
+		has_alive_non_lannister = true
+		if enemy.data.min_hp == 0:
+			has_mortal_enemy = true
+	if not has_mortal_enemy and not has_alive_non_lannister:
 		pass  # 还有非兰军敌人存活，继续
 
 # 詹姆过场触发（奈德接近红堡入口）
