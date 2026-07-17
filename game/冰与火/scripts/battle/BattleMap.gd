@@ -1917,6 +1917,8 @@ func _hide_all_panels() -> void:
 
 # ── 战斗动画 ─────────────────────────────────────────────
 func _start_battle_with_animation(attacker: Unit, defender: Unit) -> void:
+	if _animating_battle:
+		return
 	if not is_instance_valid(attacker) or not is_instance_valid(defender):
 		_animating_battle = false
 		return

@@ -1948,8 +1948,10 @@ func _test_combat_result_and_animation_setting() -> void:
 	battle.enemy_units.append(animated_defender)
 	settings.battle_animations_enabled = true
 	battle._start_battle_with_animation(animated_attacker, animated_defender)
+	battle._start_battle_with_animation(animated_attacker, animated_defender)
 	await process_frame
-	_assert_eq(animation_nodes_added.size(), 1, "开启动画时真实战斗流程创建一次战斗动画")
+	_assert_eq(animation_nodes_added.size(), 1,
+		"战斗流程重入时只创建一次战斗动画")
 	_assert_eq(animated_defender.data.hp, animated_defender.data.max_hp,
 		"战斗动画播放期间不会提前结算伤害")
 	_assert(battle._animating_battle, "战斗动画播放期间保持操作锁")
