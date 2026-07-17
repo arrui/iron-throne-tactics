@@ -1856,6 +1856,10 @@ func _on_attack_pressed() -> void:
 func _on_wait_pressed() -> void:
 	_hide_all_panels()
 	_pre_move_pos = Vector2i(-1, -1)
+	if not is_instance_valid(selected_unit):
+		_deselect()
+		_check_all_acted()
+		return
 	selected_unit.mark_acted()
 	_refresh_unit_color(selected_unit)
 	_deselect()

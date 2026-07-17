@@ -2848,6 +2848,23 @@ func _test_unit_state_machine() -> void:
 	_assert(battle.current_phase == battle.Phase.PLAYER_TURN and not battle._turn_ending,
 		"仍有友军可行动时等待保持玩家回合且不启动回合切换")
 
+	# 行动菜单显示后，选中单位可能被其他战场事件移除，等待回调仍需安全收尾。
+	var removed_waiter := Unit.new()
+	removed_waiter.setup(_make_unit_data({"name": "等待前被移除单位"}),
+		0, Vector2i(4, 4))
+	battle.get_node("UnitLayer").add_child(removed_waiter)
+	battle.player_units.append(removed_waiter)
+	battle.selected_unit = removed_waiter
+	battle.player_state = battle.PlayerState.UNIT_MOVED
+	battle._show_action_menu(removed_waiter.grid_pos, false)
+	battle.player_units.erase(removed_waiter)
+	removed_waiter.free()
+	battle._on_wait_pressed()
+	_assert(not is_instance_valid(battle.selected_unit) \
+			and battle.player_state == battle.PlayerState.IDLE \
+			and not action_menu.visible,
+		"等待回调遇到已释放选中单位时清理选择态并关闭行动菜单")
+
 	var move_origin := Vector2i(2, 3)
 	var moved_pos := Vector2i(3, 4)
 	var settings := root.get_node_or_null("GameSettings")
