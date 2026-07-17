@@ -2418,6 +2418,40 @@ func _test_combat_result_and_animation_setting() -> void:
 	interrupted_battle.queue_free()
 	await process_frame
 
+	var removed_attacker_battle := TestBootstrapClass.new()
+	root.add_child(removed_attacker_battle)
+	await process_frame
+	var freed_attacker := Unit.new()
+	freed_attacker.setup(_make_unit_data({"name": "聚焦期间释放攻击方"}),
+		0, Vector2i(7, 5))
+	var interrupted_defender := Unit.new()
+	interrupted_defender.setup(_make_enemy_data({"name": "聚焦防守方"}),
+		1, Vector2i(8, 5))
+	removed_attacker_battle.get_node("UnitLayer").add_child(freed_attacker)
+	removed_attacker_battle.get_node("UnitLayer").add_child(interrupted_defender)
+	removed_attacker_battle.player_units.append(freed_attacker)
+	removed_attacker_battle.enemy_units.append(interrupted_defender)
+	removed_attacker_battle.selected_unit = freed_attacker
+	removed_attacker_battle.target_enemy = interrupted_defender
+	removed_attacker_battle.player_state = removed_attacker_battle.PlayerState.PREDICT
+	removed_attacker_battle._on_confirm_attack.call_deferred()
+	await process_frame
+	_assert(removed_attacker_battle._animating_battle,
+		"攻击方释放前战斗流程正停留在镜头聚焦阶段")
+	freed_attacker.queue_free()
+	for frame: int in range(60):
+		if not removed_attacker_battle._animating_battle:
+			break
+		await process_frame
+	_assert(not removed_attacker_battle._animating_battle,
+		"镜头聚焦期间攻击方释放时解除共享操作锁")
+	_assert(not is_instance_valid(removed_attacker_battle.selected_unit) \
+			and removed_attacker_battle.target_enemy == null \
+			and removed_attacker_battle.player_state == removed_attacker_battle.PlayerState.IDLE,
+		"镜头聚焦期间攻击方释放时清理预测与选择态")
+	removed_attacker_battle.queue_free()
+	await process_frame
+
 	settings.auto_camera_enabled = old_auto_camera
 	settings.battle_animations_enabled = old_enabled
 	battle.queue_free()

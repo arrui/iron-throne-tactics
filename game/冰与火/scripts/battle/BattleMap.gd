@@ -1951,6 +1951,9 @@ func _on_confirm_attack() -> void:
 			target_enemy = null
 			return
 		await _start_battle_with_animation(selected_unit, target_enemy)
+		if not is_instance_valid(selected_unit):
+			_deselect()
+			return
 		if is_instance_valid(selected_unit) and not is_instance_valid(target_enemy):
 			_on_cancel_attack()
 			return
