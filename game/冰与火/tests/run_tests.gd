@@ -5415,6 +5415,13 @@ func _test_chapter_event_flow() -> void:
 	await process_frame
 	_assert(ch3._ned_unit != null, "Ch3 初始化后奈德已生成")
 	_assert(ch3._dayne_unit != null, "Ch3 初始化后亚瑟·戴恩已生成")
+	ch3.selected_unit = ch3._ned_unit
+	ch3.target_enemy = ch3._dayne_unit
+	ch3.player_state = ch3.PlayerState.PREDICT
+	ch3.move_range.assign([ch3._ned_unit.grid_pos])
+	ch3.attack_tiles.assign([ch3._dayne_unit.grid_pos])
+	ch3._path_preview.assign([ch3._ned_unit.grid_pos])
+	ch3._show_enemy_preview(ch3._dayne_unit)
 	ch3._trigger_ch3_tower()
 	await process_frame
 	await process_frame
@@ -5436,6 +5443,14 @@ func _test_chapter_event_flow() -> void:
 	_assert_eq(SaveSystem.load_current_chapter(), 4, "Ch3 塔事件同步保存 Ch4 检查点")
 	_assert(SaveSystem.get_completed_chapters().has(3), "Ch3 塔事件同步记录 Ch3 已完成")
 	_assert(ch3._battle_over, "Ch3 塔事件过程中战斗已结束")
+	_assert(ch3.selected_unit == null \
+			and ch3.target_enemy == null \
+			and ch3.player_state == ch3.PlayerState.IDLE \
+			and ch3.move_range.is_empty() \
+			and ch3.attack_tiles.is_empty() \
+			and ch3._path_preview.is_empty() \
+			and ch3._preview_enemy == null,
+		"Ch3 塔事件进入章节落幕时清理战场交互状态")
 	if is_instance_valid(ch3):
 		ch3.queue_free()
 	await process_frame

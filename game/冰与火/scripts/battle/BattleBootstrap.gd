@@ -812,6 +812,7 @@ func _trigger_ch2_rhaegar() -> void:
 
 func _trigger_ch3_tower() -> void:
 	_battle_over = true
+	_deselect()
 	_set_battle_status(PrologueChapterBriefs.CH3_BATTLE_RESOLUTION)
 	await _play_cutscene("res://data/cutscenes/ch3_dayne_trigger.json")
 	if is_instance_valid(_dayne_unit):
