@@ -354,8 +354,15 @@ func _check_victory() -> void:
 		1:
 			# 双胜利条件：敌全灭 OR 奈德到达胜利格（由_check_ch1_victory_loop处理）
 			# 注意：enemy_units在单位死亡后会erase，不能用is_empty()判断"曾生成过"
-			var alive_enemies := enemy_units.filter(func(u: Unit) -> bool: return not u.is_dead())
-			if alive_enemies.is_empty() and _ch1_enemies_spawned:
+			var has_alive_enemy := false
+			for candidate: Variant in enemy_units:
+				if not is_instance_valid(candidate):
+					continue
+				var enemy := candidate as Unit
+				if enemy != null and not enemy.is_dead():
+					has_alive_enemy = true
+					break
+			if not has_alive_enemy and _ch1_enemies_spawned:
 				_on_won_ch1()
 		2:
 			var mortal := enemy_units.filter(func(u: Unit) -> bool:

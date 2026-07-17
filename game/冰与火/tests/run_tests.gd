@@ -2227,6 +2227,37 @@ func _test_unit_state_machine() -> void:
 	stale_danger_battle.queue_free()
 	await process_frame
 
+	# 胜利判定不能把敌军数组中的已释放引用当作全灭信号。
+	var previous_victory_chapter: int = GameState.current_chapter
+	GameState.current_chapter = 1
+	var stale_victory_battle := TestBootstrapClass.new()
+	root.add_child(stale_victory_battle)
+	await process_frame
+	for existing_unit: Variant in (stale_victory_battle.player_units + stale_victory_battle.enemy_units):
+		if is_instance_valid(existing_unit):
+			existing_unit.queue_free()
+	await process_frame
+	stale_victory_battle.player_units.clear()
+	stale_victory_battle.enemy_units.clear()
+	var stale_victory_enemy := Unit.new()
+	stale_victory_enemy.setup(_make_enemy_data({"name": "已释放胜利判定敌军"}),
+		1, Vector2i(4, 4))
+	var surviving_enemy := Unit.new()
+	surviving_enemy.setup(_make_enemy_data({"name": "存活胜利判定敌军"}),
+		1, Vector2i(6, 6))
+	stale_victory_battle.get_node("UnitLayer").add_child(stale_victory_enemy)
+	stale_victory_battle.get_node("UnitLayer").add_child(surviving_enemy)
+	stale_victory_battle.enemy_units.assign([stale_victory_enemy, surviving_enemy])
+	stale_victory_enemy.queue_free()
+	await process_frame
+	stale_victory_battle._battle_over = false
+	stale_victory_battle._check_victory()
+	_assert(not stale_victory_battle._battle_over,
+		"胜利判定会忽略残留的已释放引用且不会在仍有存活敌军时误判胜利")
+	GameState.current_chapter = previous_victory_chapter
+	stale_victory_battle.queue_free()
+	await process_frame
+
 	var data := _make_unit_data()
 	var unit := Unit.new()
 	unit.setup(data, 0, Vector2i(3, 3))
