@@ -3284,6 +3284,26 @@ func _test_unit_state_machine() -> void:
 	_assert(not action_menu.visible, "ESC 会通过正式输入链路关闭左键原地行动菜单")
 	_assert(battle.selected_unit == mover and battle.player_state == battle.PlayerState.UNIT_SELECTED,
 		"ESC 关闭左键原地行动菜单后保留单位选中态")
+
+	var removed_menu_unit := Unit.new()
+	removed_menu_unit.setup(_make_unit_data({"name": "关闭菜单前被移除单位"}),
+		0, Vector2i(4, 4))
+	battle.get_node("UnitLayer").add_child(removed_menu_unit)
+	battle.player_units.append(removed_menu_unit)
+	battle.selected_unit = removed_menu_unit
+	battle.player_state = battle.PlayerState.UNIT_MOVED
+	battle.move_range.assign([removed_menu_unit.grid_pos])
+	battle.attack_tiles.assign([Vector2i(4, 3)])
+	battle._show_action_menu(removed_menu_unit.grid_pos, true)
+	battle.player_units.erase(removed_menu_unit)
+	removed_menu_unit.free()
+	battle._input(close_in_place_event)
+	_assert(not is_instance_valid(battle.selected_unit) \
+			and battle.player_state == battle.PlayerState.IDLE \
+			and battle.move_range.is_empty() \
+			and battle.attack_tiles.is_empty() \
+			and not action_menu.visible,
+		"ESC 关闭菜单遇到已释放单位时清理选择态与行动范围")
 	waiter.reset_turn()
 	var switch_unit_click := InputEventMouseButton.new()
 	switch_unit_click.button_index = MOUSE_BUTTON_LEFT

@@ -1748,8 +1748,11 @@ func _handle_escape() -> void:
 		if _pre_move_pos != Vector2i(-1, -1):
 			_on_cancel_move_pressed()
 		else:
+			if not is_instance_valid(selected_unit):
+				_deselect()
+				return
 			_hide_all_panels()
-			player_state = PlayerState.IDLE if selected_unit == null else PlayerState.UNIT_SELECTED
+			player_state = PlayerState.UNIT_SELECTED
 		return
 	if player_state == PlayerState.UNIT_SELECTED or player_state == PlayerState.UNIT_MOVED:
 		if _pre_move_pos != Vector2i(-1, -1):
