@@ -2200,6 +2200,33 @@ func _test_unit_state_machine() -> void:
 	stale_turn_battle.queue_free()
 	await process_frame
 
+	# 危险区刷新也必须跳过尚未从敌军数组移除的已释放单位。
+	var stale_danger_battle := TestBootstrapClass.new()
+	root.add_child(stale_danger_battle)
+	await process_frame
+	for existing_unit: Variant in (stale_danger_battle.player_units + stale_danger_battle.enemy_units):
+		if is_instance_valid(existing_unit):
+			existing_unit.queue_free()
+	await process_frame
+	stale_danger_battle.player_units.clear()
+	stale_danger_battle.enemy_units.clear()
+	var stale_danger_enemy := Unit.new()
+	stale_danger_enemy.setup(_make_enemy_data({"name": "已释放危险区敌军"}),
+		1, Vector2i(4, 4))
+	var valid_danger_enemy := Unit.new()
+	valid_danger_enemy.setup(_make_enemy_data({"name": "有效危险区敌军"}),
+		1, Vector2i(6, 6))
+	stale_danger_battle.get_node("UnitLayer").add_child(stale_danger_enemy)
+	stale_danger_battle.get_node("UnitLayer").add_child(valid_danger_enemy)
+	stale_danger_battle.enemy_units.assign([stale_danger_enemy, valid_danger_enemy])
+	stale_danger_enemy.queue_free()
+	await process_frame
+	stale_danger_battle._update_danger_zone()
+	_assert(not stale_danger_battle._danger_tiles.is_empty(),
+		"危险区刷新会忽略残留的已释放引用并计算后续有效敌军")
+	stale_danger_battle.queue_free()
+	await process_frame
+
 	var data := _make_unit_data()
 	var unit := Unit.new()
 	unit.setup(data, 0, Vector2i(3, 3))

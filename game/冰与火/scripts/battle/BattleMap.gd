@@ -1431,8 +1431,10 @@ func get_terrain_name(pos: Vector2i) -> String:
 # ── 危险区 ───────────────────────────────────────────────
 func _update_danger_zone() -> void:
 	_danger_tiles.clear()
-	for enemy: Unit in enemy_units:
-		if not is_instance_valid(enemy) or enemy.is_dead(): continue
+	for candidate: Variant in enemy_units:
+		if not is_instance_valid(candidate): continue
+		var enemy := candidate as Unit
+		if enemy == null or enemy.is_dead(): continue
 		if enemy.team == 2: continue   # 跳过中立单位（不产生危险区）
 		for pos: Vector2i in _calc_move_range(enemy):
 			for d: Vector2i in [Vector2i(1,0), Vector2i(-1,0), Vector2i(0,1), Vector2i(0,-1)]:
