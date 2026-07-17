@@ -30,6 +30,10 @@ const TestBootstrapClass     := preload("res://tests/helpers/TestBattleBootstrap
 const TestOpeningClass       := preload("res://tests/helpers/TestOpening.gd")
 const TestDeployScreenClass  := preload("res://tests/helpers/TestDeployScreen.gd")
 
+class TestCh3Bootstrap extends Ch3BootstrapClass:
+	func _trigger_tower_sequence() -> void:
+		pass
+
 var _pass_count: int = 0
 var _fail_count: int = 0
 var _current_suite: String = ""
@@ -2384,6 +2388,32 @@ func _test_unit_state_machine() -> void:
 	_assert(not stale_legacy_ch3_battle._tower_reached,
 		"独立序章三胜利判定忽略已释放引用且不会提前触发塔楼事件")
 	stale_legacy_ch3_battle.free()
+
+	# 正式序章三独立脚本应越过已释放玩家，识别后续抵达塔门的奈德。
+	var stale_player_legacy_ch3_battle := TestCh3Bootstrap.new()
+	var stale_legacy_ch3_player := Unit.new()
+	stale_legacy_ch3_player.setup(_make_unit_data({"name": "已释放独立序章三玩家"}),
+		0, Vector2i(4, 4))
+	var arriving_legacy_ch3_ned := Unit.new()
+	arriving_legacy_ch3_ned.setup(_make_unit_data({"name": "奈德"}),
+		0, stale_player_legacy_ch3_battle.victory_pos)
+	var blocking_legacy_ch3_enemy := Unit.new()
+	blocking_legacy_ch3_enemy.setup(
+		_make_enemy_data({"name": "独立序章三存活守军", "min_hp": 0}),
+		1, Vector2i(6, 6))
+	stale_player_legacy_ch3_battle.add_child(stale_legacy_ch3_player)
+	stale_player_legacy_ch3_battle.add_child(arriving_legacy_ch3_ned)
+	stale_player_legacy_ch3_battle.add_child(blocking_legacy_ch3_enemy)
+	stale_player_legacy_ch3_battle.player_units.assign([
+		stale_legacy_ch3_player, arriving_legacy_ch3_ned])
+	stale_player_legacy_ch3_battle.enemy_units.assign([blocking_legacy_ch3_enemy])
+	stale_legacy_ch3_player.free()
+	stale_player_legacy_ch3_battle._battle_over = false
+	stale_player_legacy_ch3_battle._tower_reached = false
+	stale_player_legacy_ch3_battle._check_victory()
+	_assert(stale_player_legacy_ch3_battle._tower_reached,
+		"独立序章三胜利判定忽略已释放玩家且识别后续抵达塔门的奈德")
+	stale_player_legacy_ch3_battle.free()
 
 	# 序章四中途提示不能因已释放引用而漏掉仍存活的普通王军。
 	var previous_ch4_victory_chapter: int = GameState.current_chapter

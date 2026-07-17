@@ -102,9 +102,12 @@ func is_passable(pos: Vector2i) -> bool:
 # ── 胜利条件（奈德抵达塔门）─────────────────────────────
 func _check_victory() -> void:
 	if _battle_over or _tower_reached: return
-	for u: Unit in player_units:
-		if is_instance_valid(u) and not u.is_dead() and \
-				u.data.name == "奈德" and u.grid_pos == victory_pos:
+	for candidate: Variant in player_units:
+		if not is_instance_valid(candidate):
+			continue
+		var player := candidate as Unit
+		if player != null and not player.is_dead() and \
+				player.data.name == "奈德" and player.grid_pos == victory_pos:
 			_tower_reached = true
 			_trigger_tower_sequence()
 			return
