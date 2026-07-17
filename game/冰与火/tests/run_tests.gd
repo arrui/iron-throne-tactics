@@ -2239,6 +2239,41 @@ func _test_unit_state_machine() -> void:
 	stale_danger_battle.queue_free()
 	await process_frame
 
+	# 鼠标悬停扫描必须跳过已释放引用，并继续显示后续有效单位。
+	var stale_hover_battle := TestBootstrapClass.new()
+	root.add_child(stale_hover_battle)
+	await process_frame
+	for existing_unit: Variant in (stale_hover_battle.player_units + stale_hover_battle.enemy_units):
+		if is_instance_valid(existing_unit):
+			existing_unit.queue_free()
+	await process_frame
+	stale_hover_battle.player_units.clear()
+	stale_hover_battle.enemy_units.clear()
+	var stale_hover_unit := Unit.new()
+	stale_hover_unit.setup(_make_unit_data({"name": "已释放悬停单位"}),
+		0, Vector2i(5, 5))
+	var valid_hover_unit := Unit.new()
+	valid_hover_unit.setup(_make_enemy_data({"name": "有效悬停单位"}),
+		1, Vector2i(5, 5))
+	stale_hover_battle.get_node("UnitLayer").add_child(stale_hover_unit)
+	stale_hover_battle.get_node("UnitLayer").add_child(valid_hover_unit)
+	stale_hover_battle.player_units.assign([stale_hover_unit])
+	stale_hover_battle.enemy_units.assign([valid_hover_unit])
+	var hover_terrain_label := Label.new()
+	stale_hover_battle.add_child(hover_terrain_label)
+	stale_hover_battle._terrain_label = hover_terrain_label
+	stale_hover_battle.fixed_hover_grid = Vector2i(5, 5)
+	stale_hover_battle.player_state = stale_hover_battle.PlayerState.IDLE
+	stale_hover_battle.current_phase = stale_hover_battle.Phase.PLAYER_TURN
+	stale_hover_unit.queue_free()
+	await process_frame
+	stale_hover_battle._last_hover = Vector2i(-1, -1)
+	stale_hover_battle._update_hover()
+	_assert(hover_terrain_label.text.contains("有效悬停单位"),
+		"鼠标悬停会忽略残留的已释放引用并显示后续有效单位")
+	stale_hover_battle.queue_free()
+	await process_frame
+
 	# 胜利判定不能把敌军数组中的已释放引用当作全灭信号。
 	var previous_victory_chapter: int = GameState.current_chapter
 	GameState.current_chapter = 1

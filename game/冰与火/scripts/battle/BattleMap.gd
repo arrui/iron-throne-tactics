@@ -1468,8 +1468,11 @@ func _update_hover() -> void:
 				info += "  防御%+d%%" % bonus["defense"]
 			if bonus["avoid"] != 0:
 				info += "  回避+%d%%" % bonus["avoid"]
-			for u: Unit in (player_units + enemy_units):
-				if is_instance_valid(u) and u.grid_pos == hovered and not u.is_dead():
+			for candidate: Variant in (player_units + enemy_units):
+				if not is_instance_valid(candidate):
+					continue
+				var u := candidate as Unit
+				if u != null and u.grid_pos == hovered and not u.is_dead():
 					var tag := "我" if u.team == 0 else ("中立" if u.team == 2 else "敌")
 					info = "[%s] %s  HP:%d/%d    %s" % [
 						tag, u.data.name, u.data.hp, u.data.max_hp, info]

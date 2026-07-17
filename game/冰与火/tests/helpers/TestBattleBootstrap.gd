@@ -17,6 +17,7 @@ var recorded_move_result: Variant = null
 var recorded_battle_completion: bool = false
 var remove_unit_after_autopilot_move: bool = false
 var removed_unit_after_autopilot_move: bool = false
+var fixed_hover_grid: Vector2i = Vector2i(-1, -1)
 
 func _enter_tree() -> void:
 	if get_node_or_null("HighlightLayer") == null:
@@ -68,6 +69,11 @@ func _paint_from(_terrain: Array) -> void:
 
 func _paint_from_ch4(_terrain: Array) -> void:
 	pass
+
+func _p2g(px: Vector2) -> Vector2i:
+	if fixed_hover_grid != Vector2i(-1, -1):
+		return fixed_hover_grid
+	return super._p2g(px)
 
 func _run_ch1_tutorial() -> void:
 	pass
