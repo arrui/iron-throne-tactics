@@ -2195,6 +2195,12 @@ func _test_unit_state_machine() -> void:
 	battle._unhandled_input(restart_press_event)
 	_assert(battle.restart_requested, "正常状态按 R 会通过正式输入链路触发章节重开")
 	battle.restart_requested = false
+	var repeated_restart_event := InputEventKey.new()
+	repeated_restart_event.pressed = true
+	repeated_restart_event.echo = true
+	repeated_restart_event.keycode = KEY_R
+	battle._unhandled_input(repeated_restart_event)
+	_assert(not battle.restart_requested, "长按 R 产生的重复事件不会再次触发章节重开")
 
 	battle._input(preview_enemy_click)
 	_assert(battle._preview_enemy == distant_enemy, "快捷键输入验证后仍可重新打开敌军安全距离预览")

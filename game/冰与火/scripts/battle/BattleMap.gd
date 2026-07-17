@@ -2293,7 +2293,7 @@ func _set_terrain_info(msg: String) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if _settings_menu_open():
 		return
-	if event is InputEventKey and event.pressed and event.keycode == KEY_R:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_R:
 		_restart()
 
 func _settings_menu_open() -> bool:
