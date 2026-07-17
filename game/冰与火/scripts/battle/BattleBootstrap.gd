@@ -365,9 +365,15 @@ func _check_victory() -> void:
 			if not has_alive_enemy and _ch1_enemies_spawned:
 				_on_won_ch1()
 		2:
-			var mortal := enemy_units.filter(func(u: Unit) -> bool:
-				return not u.is_dead() and u.data.min_hp == 0)
-			if mortal.is_empty():
+			var has_mortal_enemy := false
+			for candidate: Variant in enemy_units:
+				if not is_instance_valid(candidate):
+					continue
+				var enemy := candidate as Unit
+				if enemy != null and not enemy.is_dead() and enemy.data.min_hp == 0:
+					has_mortal_enemy = true
+					break
+			if not has_mortal_enemy:
 				_on_won_ch2()
 		3:
 			if _tower_reached: return

@@ -2270,6 +2270,37 @@ func _test_unit_state_machine() -> void:
 	stale_victory_battle.queue_free()
 	await process_frame
 
+	# 序章二按可击杀敌军判胜时也必须跳过已释放引用。
+	var previous_ch2_victory_chapter: int = GameState.current_chapter
+	GameState.current_chapter = 2
+	var stale_ch2_victory_battle := TestBootstrapClass.new()
+	root.add_child(stale_ch2_victory_battle)
+	await process_frame
+	for existing_unit: Variant in (stale_ch2_victory_battle.player_units + stale_ch2_victory_battle.enemy_units):
+		if is_instance_valid(existing_unit):
+			existing_unit.queue_free()
+	await process_frame
+	stale_ch2_victory_battle.player_units.clear()
+	stale_ch2_victory_battle.enemy_units.clear()
+	var stale_ch2_enemy := Unit.new()
+	stale_ch2_enemy.setup(_make_enemy_data({"name": "已释放序章二敌军"}),
+		1, Vector2i(4, 4))
+	var surviving_mortal_enemy := Unit.new()
+	surviving_mortal_enemy.setup(_make_enemy_data({"name": "存活可击杀敌军", "min_hp": 0}),
+		1, Vector2i(6, 6))
+	stale_ch2_victory_battle.get_node("UnitLayer").add_child(stale_ch2_enemy)
+	stale_ch2_victory_battle.get_node("UnitLayer").add_child(surviving_mortal_enemy)
+	stale_ch2_victory_battle.enemy_units.assign([stale_ch2_enemy, surviving_mortal_enemy])
+	stale_ch2_enemy.queue_free()
+	await process_frame
+	stale_ch2_victory_battle._battle_over = false
+	stale_ch2_victory_battle._check_victory()
+	_assert(not stale_ch2_victory_battle._battle_over,
+		"序章二胜利判定会忽略已释放引用且不会漏掉后续可击杀敌军")
+	GameState.current_chapter = previous_ch2_victory_chapter
+	stale_ch2_victory_battle.queue_free()
+	await process_frame
+
 	var data := _make_unit_data()
 	var unit := Unit.new()
 	unit.setup(data, 0, Vector2i(3, 3))
