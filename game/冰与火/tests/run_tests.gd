@@ -2397,20 +2397,24 @@ func _test_combat_result_and_animation_setting() -> void:
 	interrupted_battle.get_node("UnitLayer").add_child(freed_defender)
 	interrupted_battle.player_units.append(interrupted_attacker)
 	interrupted_battle.enemy_units.append(freed_defender)
-	interrupted_battle.record_battle_completion.call_deferred(
-		interrupted_attacker, freed_defender)
+	interrupted_battle.selected_unit = interrupted_attacker
+	interrupted_battle.target_enemy = freed_defender
+	interrupted_battle.player_state = interrupted_battle.PlayerState.PREDICT
+	interrupted_battle._on_confirm_attack.call_deferred()
 	await process_frame
 	_assert(interrupted_battle._animating_battle,
 		"单位释放前战斗流程正停留在镜头聚焦阶段")
 	freed_defender.queue_free()
 	for frame: int in range(60):
-		if interrupted_battle.recorded_battle_completion:
+		if not interrupted_battle._animating_battle:
 			break
 		await process_frame
-	_assert(interrupted_battle.recorded_battle_completion,
-		"镜头聚焦期间防守方释放时战斗流程安全结束")
 	_assert(not interrupted_battle._animating_battle,
 		"镜头聚焦期间防守方释放时解除共享操作锁")
+	_assert(interrupted_battle.selected_unit == interrupted_attacker \
+			and interrupted_battle.target_enemy == null \
+			and interrupted_battle.player_state == interrupted_battle.PlayerState.UNIT_MOVED,
+		"镜头聚焦期间防守方释放时返回目标选择态")
 	interrupted_battle.queue_free()
 	await process_frame
 
