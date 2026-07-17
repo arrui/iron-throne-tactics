@@ -102,9 +102,15 @@ func is_passable(pos: Vector2i) -> bool:
 func _check_victory() -> void:
 	if _battle_over: return
 	# 只统计可被击杀的敌军
-	var mortal := enemy_units.filter(func(u: Unit) -> bool:
-		return not u.is_dead() and u.data.min_hp == 0)
-	if mortal.is_empty() and not enemy_units.is_empty():
+	var has_mortal_enemy := false
+	for candidate: Variant in enemy_units:
+		if not is_instance_valid(candidate):
+			continue
+		var enemy := candidate as Unit
+		if enemy != null and not enemy.is_dead() and enemy.data.min_hp == 0:
+			has_mortal_enemy = true
+			break
+	if not has_mortal_enemy and not enemy_units.is_empty():
 		_end_battle(true)
 
 # ── 雷加阵亡拦截（全屏过场）──────────────────────────────

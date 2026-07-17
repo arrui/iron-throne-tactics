@@ -2344,6 +2344,26 @@ func _test_unit_state_machine() -> void:
 	stale_ch2_victory_battle.queue_free()
 	await process_frame
 
+	# 正式序章二场景使用独立脚本，其胜利判定也必须安全扫描已释放引用。
+	var stale_legacy_ch2_battle := Ch2BootstrapClass.new()
+	var stale_legacy_ch2_enemy := Unit.new()
+	stale_legacy_ch2_enemy.setup(_make_enemy_data({"name": "已释放独立序章二敌军"}),
+		1, Vector2i(4, 4))
+	var surviving_legacy_ch2_enemy := Unit.new()
+	surviving_legacy_ch2_enemy.setup(
+		_make_enemy_data({"name": "存活独立序章二敌军", "min_hp": 0}),
+		1, Vector2i(6, 6))
+	stale_legacy_ch2_battle.add_child(stale_legacy_ch2_enemy)
+	stale_legacy_ch2_battle.add_child(surviving_legacy_ch2_enemy)
+	stale_legacy_ch2_battle.enemy_units.assign([
+		stale_legacy_ch2_enemy, surviving_legacy_ch2_enemy])
+	stale_legacy_ch2_enemy.free()
+	stale_legacy_ch2_battle._battle_over = false
+	stale_legacy_ch2_battle._check_victory()
+	_assert(not stale_legacy_ch2_battle._battle_over,
+		"独立序章二胜利判定忽略已释放引用且不会漏掉后续可击杀敌军")
+	stale_legacy_ch2_battle.free()
+
 	# 序章四中途提示不能因已释放引用而漏掉仍存活的普通王军。
 	var previous_ch4_victory_chapter: int = GameState.current_chapter
 	GameState.current_chapter = 4
