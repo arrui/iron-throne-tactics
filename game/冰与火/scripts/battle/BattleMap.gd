@@ -1866,7 +1866,9 @@ func _on_wait_pressed() -> void:
 	_check_all_acted()
 
 func _on_cancel_move_pressed() -> void:
-	if selected_unit == null: return
+	if not is_instance_valid(selected_unit):
+		_deselect()
+		return
 	if _pre_move_pos != Vector2i(-1, -1):
 		selected_unit.undo_move()
 		selected_unit.grid_pos = _pre_move_pos
