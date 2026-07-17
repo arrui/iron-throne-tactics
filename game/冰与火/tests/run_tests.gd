@@ -57,6 +57,19 @@ class TestCh3EndingBootstrap extends Ch3BootstrapClass:
 	func _advance_chapter() -> void:
 		pass
 
+class TestCh4EndingBootstrap extends Ch4BootstrapClass:
+	func _ready() -> void:
+		pass
+
+	func _play_cutscene(_path: String) -> void:
+		pass
+
+	func _play_dialogue(_path: String) -> void:
+		pass
+
+	func _advance_chapter() -> void:
+		pass
+
 var _pass_count: int = 0
 var _fail_count: int = 0
 var _current_suite: String = ""
@@ -2837,6 +2850,36 @@ func _test_unit_state_machine() -> void:
 	_assert(not ch4_bootstrap_source.contains("enemy_units.filter(func(u: Unit)"),
 		"独立序章四胜利判定不会使用无法接收已释放引用的强类型 filter")
 	stale_legacy_ch4_battle.free()
+
+	# 独立序章四进入永久铁王座落幕时必须清理完整战场交互状态。
+	var legacy_ch4_ending := TestCh4EndingBootstrap.new()
+	root.add_child(legacy_ch4_ending)
+	var legacy_ch4_player := Unit.new()
+	legacy_ch4_player.setup(_make_unit_data({"name": "独立序章四奈德"}),
+		0, Vector2i(4, 4))
+	var legacy_ch4_target := Unit.new()
+	legacy_ch4_target.setup(_make_enemy_data({"name": "独立序章四目标"}),
+		1, Vector2i(6, 6))
+	legacy_ch4_ending.add_child(legacy_ch4_player)
+	legacy_ch4_ending.add_child(legacy_ch4_target)
+	legacy_ch4_ending.selected_unit = legacy_ch4_player
+	legacy_ch4_ending.target_enemy = legacy_ch4_target
+	legacy_ch4_ending.player_state = legacy_ch4_ending.PlayerState.PREDICT
+	legacy_ch4_ending.move_range.assign([legacy_ch4_player.grid_pos])
+	legacy_ch4_ending.attack_tiles.assign([legacy_ch4_target.grid_pos])
+	legacy_ch4_ending._path_preview.assign([legacy_ch4_player.grid_pos])
+	legacy_ch4_ending._show_enemy_preview(legacy_ch4_target)
+	await legacy_ch4_ending._trigger_throne_arrival()
+	_assert(legacy_ch4_ending.selected_unit == null \
+			and legacy_ch4_ending.target_enemy == null \
+			and legacy_ch4_ending.player_state == legacy_ch4_ending.PlayerState.IDLE \
+			and legacy_ch4_ending.move_range.is_empty() \
+			and legacy_ch4_ending.attack_tiles.is_empty() \
+			and legacy_ch4_ending._path_preview.is_empty() \
+			and legacy_ch4_ending._preview_enemy == null,
+		"独立序章四铁王座落幕清理战场交互状态")
+	legacy_ch4_ending.queue_free()
+	await process_frame
 
 	# 正式序章三背叛流程应越过已释放金袍，继续转换后续存活单位。
 	var stale_betrayal_battle := TestCh3Bootstrap.new()

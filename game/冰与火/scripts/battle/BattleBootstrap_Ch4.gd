@@ -191,7 +191,7 @@ func _trigger_jaime_scene() -> void:
 # ── 奈德抵达铁王座 → 结局 ────────────────────────────────
 func _trigger_throne_arrival() -> void:
 	_battle_over = true
-	_hide_all_panels()
+	_deselect()
 	if _end_turn_btn: _end_turn_btn.disabled = true
 	await _play_dialogue(POST_DIALOGUE_PATH)
 	await _play_cutscene("res://data/cutscenes/ch4_ending.json")
