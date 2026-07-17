@@ -2516,6 +2516,7 @@ func _on_items_pressed() -> void:
 func _show_items_panel(unit: Unit) -> void:
 	if _active_items_panel != null:
 		_active_items_panel.queue_free()
+	var unit_id := unit.get_instance_id()
 	var panel := PanelContainer.new()
 	var vbox  := VBoxContainer.new()
 	panel.add_child(vbox)
@@ -2534,7 +2535,7 @@ func _show_items_panel(unit: Unit) -> void:
 		btn.custom_minimum_size = Vector2(180, 32)
 		btn.add_theme_font_override("font", _get_cjk_font())
 		var ci := i
-		btn.pressed.connect(func() -> void: _on_item_used(unit, ci))
+		btn.pressed.connect(func() -> void: _on_item_used(unit_id, ci))
 		vbox.add_child(btn)
 	if not has_items:
 		var lbl := Label.new()
@@ -2556,10 +2557,14 @@ func _show_items_panel(unit: Unit) -> void:
 	panel.position = Vector2(vs.x * 0.5 - 90.0, vs.y * 0.5 - 100.0)
 	_active_items_panel = panel
 
-func _on_item_used(unit: Unit, item_idx: int) -> void:
+func _on_item_used(unit_id: int, item_idx: int) -> void:
 	if _active_items_panel:
 		_active_items_panel.queue_free()
 		_active_items_panel = null
+	var unit := instance_from_id(unit_id) as Unit
+	if not is_instance_valid(unit):
+		_deselect()
+		return
 	var item := unit.data.use_item(item_idx)
 	if item.is_empty(): return
 	match item.get("type", ""):

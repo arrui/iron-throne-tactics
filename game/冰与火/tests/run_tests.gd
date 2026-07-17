@@ -1358,6 +1358,28 @@ func _test_item_system() -> void:
 		return "使用【野火瓶】" in msg and "造成 6 伤" in msg),
 		"使用攻击型道具后显示名称与伤害反馈")
 
+	var removed_item_user := Unit.new()
+	removed_item_user.setup(_make_unit_data({
+		"name": "道具使用前被移除单位",
+		"items": [{"name": "急救药", "type": "heal", "heal_amount": 10, "uses": 1}],
+	}), 0, Vector2i(4, 4))
+	battle.get_node("UnitLayer").add_child(removed_item_user)
+	battle.player_units.append(removed_item_user)
+	battle.selected_unit = removed_item_user
+	battle.player_state = battle.PlayerState.UNIT_MOVED
+	battle._show_items_panel(removed_item_user)
+	var removed_user_panel := battle._active_items_panel as PanelContainer
+	var removed_user_button := removed_user_panel.get_child(0).get_child(1) as Button
+	battle.player_units.erase(removed_item_user)
+	removed_item_user.free()
+	removed_user_button.pressed.emit()
+	await process_frame
+	_assert(not is_instance_valid(battle.selected_unit) \
+			and battle.player_state == battle.PlayerState.IDLE \
+			and battle._active_items_panel == null \
+			and not is_instance_valid(removed_user_panel),
+		"道具使用回调遇到已释放单位时关闭面板并清理选择态")
+
 	battle.selected_unit = reserve
 	battle.player_state = battle.PlayerState.UNIT_MOVED
 	battle._show_action_menu(reserve.grid_pos, false)
