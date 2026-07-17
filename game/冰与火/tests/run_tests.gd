@@ -1151,6 +1151,17 @@ func _test_battle_predict_full() -> void:
 	_assert(battle._preview_enemy == null, "选择红格攻击目标时会清理此前的敌军安全距离预览")
 	_assert_eq(battle.player_state, battle.PlayerState.PREDICT,
 		"正式鼠标选择攻击目标后进入预测状态")
+	defender.unit_died.connect(battle._on_unit_died)
+	defender.take_damage(defender.data.hp)
+	defender.resolve_death()
+	await process_frame
+	_assert(not predict_panel.visible \
+			and battle.target_enemy == null \
+			and battle.selected_unit == attacker \
+			and battle.player_state == battle.PlayerState.UNIT_MOVED,
+		"预测目标通过正式死亡信号移除时返回目标选择态")
+	_assert(battle.attack_tiles.has(second_defender.grid_pos),
+		"预测目标死亡后重算剩余可选攻击目标")
 	settings.battle_animations_enabled = old_animation_enabled
 	settings.auto_camera_enabled = old_auto_camera
 	battle.queue_free()

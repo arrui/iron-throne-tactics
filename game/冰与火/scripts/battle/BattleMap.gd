@@ -2504,8 +2504,20 @@ func _on_unit_died(unit: Unit) -> void:
 	if unit.data.is_protagonist:
 		_trigger_game_over(unit)
 		return
+	var was_selected := unit == selected_unit
+	var was_target := unit == target_enemy
 	player_units.erase(unit)
 	enemy_units.erase(unit)
+	if was_selected:
+		_deselect()
+	elif was_target:
+		target_enemy = null
+		_hide_all_panels()
+		if is_instance_valid(selected_unit):
+			player_state = PlayerState.UNIT_MOVED
+			attack_tiles = _adj_enemies(selected_unit.grid_pos)
+		else:
+			_deselect()
 	unit.queue_free()
 	_redraw_all()
 	_check_defeat()
