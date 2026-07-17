@@ -244,13 +244,19 @@ func _trigger_betrayal() -> void:
 			for _i: int in 3:
 				sprite.modulate = Color(1, 0.2, 0.2, 1)
 				await get_tree().create_timer(0.2).timeout
+				if not is_instance_valid(u) or not is_instance_valid(sprite):
+					break
 				sprite.modulate = Color(1, 1, 1, 1)
 				await get_tree().create_timer(0.2).timeout
+				if not is_instance_valid(u) or not is_instance_valid(sprite):
+					break
+		if not is_instance_valid(u) or u.is_dead():
+			continue
 		# 从友军转为敌方
 		player_units.erase(u)
 		u.team = 1
 		enemy_units.append(u)
-		if sprite:
+		if is_instance_valid(sprite):
 			sprite.modulate = Color(1, 0.4, 0.4, 1)
 
 	_golden_cloak_units.clear()

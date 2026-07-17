@@ -31,6 +31,9 @@ const TestOpeningClass       := preload("res://tests/helpers/TestOpening.gd")
 const TestDeployScreenClass  := preload("res://tests/helpers/TestDeployScreen.gd")
 
 class TestCh3Bootstrap extends Ch3BootstrapClass:
+	func _ready() -> void:
+		pass
+
 	func _trigger_tower_sequence() -> void:
 		pass
 
@@ -2522,6 +2525,35 @@ func _test_unit_state_machine() -> void:
 			and stale_betrayal_battle.enemy_units.has(surviving_golden_cloak),
 		"独立序章三背叛流程忽略已释放金袍且转换后续存活单位")
 	stale_betrayal_battle.free()
+
+	# 金袍也可能在背叛闪烁动画的等待期间被其他战场流程移除。
+	var interrupted_betrayal_battle := TestCh3Bootstrap.new()
+	root.add_child(interrupted_betrayal_battle)
+	var animated_golden_cloak := Unit.new()
+	animated_golden_cloak.setup(_make_unit_data({"name": "动画中被移除的金袍"}),
+		0, Vector2i(4, 4))
+	var animated_cloak_sprite := Sprite2D.new()
+	animated_cloak_sprite.name = "Sprite"
+	animated_golden_cloak.add_child(animated_cloak_sprite)
+	var following_golden_cloak := Unit.new()
+	following_golden_cloak.setup(_make_unit_data({"name": "后续存活金袍"}),
+		0, Vector2i(6, 6))
+	interrupted_betrayal_battle.add_child(animated_golden_cloak)
+	interrupted_betrayal_battle.add_child(following_golden_cloak)
+	interrupted_betrayal_battle.player_units.assign([
+		animated_golden_cloak, following_golden_cloak])
+	interrupted_betrayal_battle._golden_cloak_units.assign([
+		animated_golden_cloak, following_golden_cloak])
+	interrupted_betrayal_battle._trigger_betrayal()
+	await process_frame
+	animated_golden_cloak.queue_free()
+	await process_frame
+	await create_timer(0.3).timeout
+	_assert(following_golden_cloak.team == 1 \
+			and interrupted_betrayal_battle.enemy_units.has(following_golden_cloak),
+		"独立序章三背叛动画等待期间金袍被移除后仍转换后续存活单位")
+	interrupted_betrayal_battle.queue_free()
+	await process_frame
 
 	# 正式序章四兰军归降流程应越过已释放兰军，继续撤走后续存活单位。
 	var stale_lannister_join_battle := TestCh4Bootstrap.new()
