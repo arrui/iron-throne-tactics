@@ -41,7 +41,11 @@ func show_support(unit_a: String, unit_b: String, rank: String, bonus: Dictionar
 
 	# 自动关闭计时器
 	_auto_timer = get_tree().create_timer(AUTO_CLOSE_SEC)
-	_auto_timer.timeout.connect(_on_close_pressed)
+	var support_timer := _auto_timer
+	support_timer.timeout.connect(func() -> void:
+		if _auto_timer == support_timer:
+			_on_close_pressed()
+	)
 
 # 点击任意位置关闭（包括弹窗外区域）
 func _input(event: InputEvent) -> void:

@@ -3067,6 +3067,21 @@ func _test_visual_style_unification() -> void:
 		"支援弹窗关闭按钮保持中性文字色")
 	_assert_eq(support_close_style.bg_color, BattleChromeThemeClass.BUTTON_NORMAL_BG,
 		"支援弹窗关闭按钮使用中性按钮底色")
+	var support_close_events: Array[bool] = []
+	themed_support.popup_closed.connect(func() -> void: support_close_events.append(true))
+	themed_support.show_support("奈德", "劳勃", "C", {"hit": 5, "avoid": 5})
+	var first_support_timer: SceneTreeTimer = themed_support._auto_timer
+	themed_support.show_support("奈德", "琼恩·艾林", "C", {"hit": 7, "avoid": 6})
+	var second_support_timer: SceneTreeTimer = themed_support._auto_timer
+	first_support_timer.timeout.emit()
+	await process_frame
+	_assert(themed_support.visible, "旧支援计时器不会关闭新展示内容")
+	_assert("奈德 ↔ 琼恩·艾林" in support_rank.text, "旧支援计时器不会替换新展示文案")
+	_assert_eq(support_close_events.size(), 0, "旧支援计时器不会发出新展示的关闭信号")
+	second_support_timer.timeout.emit()
+	await process_frame
+	_assert(not themed_support.visible and support_close_events.size() == 1,
+		"当前支援计时器仍会正常关闭当前展示一次")
 	themed_support.queue_free()
 	await process_frame
 
