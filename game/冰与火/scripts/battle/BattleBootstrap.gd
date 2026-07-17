@@ -384,10 +384,16 @@ func _check_victory() -> void:
 		4:
 			# 中途提示：普通王军全灭但指挥官仍在
 			if not _ch4_midway_hint_shown and not _commander_killed:
-				var royal_alive := enemy_units.filter(func(u: Unit) -> bool:
-					return not u.is_dead() and u.team == 1 \
-						and u != _royal_commander and not _lannister_units.has(u))
-				if royal_alive.is_empty() and is_instance_valid(_royal_commander) \
+				var has_alive_royal := false
+				for candidate: Variant in enemy_units:
+					if not is_instance_valid(candidate):
+						continue
+					var enemy := candidate as Unit
+					if enemy != null and not enemy.is_dead() and enemy.team == 1 \
+							and enemy != _royal_commander and not _lannister_units.has(enemy):
+						has_alive_royal = true
+						break
+				if not has_alive_royal and is_instance_valid(_royal_commander) \
 						and not _royal_commander.is_dead():
 					_ch4_midway_hint_shown = true
 					_set_phase_badge(Ch4BattleBrief.get_stage_badge(4))

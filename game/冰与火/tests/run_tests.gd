@@ -2301,6 +2301,46 @@ func _test_unit_state_machine() -> void:
 	stale_ch2_victory_battle.queue_free()
 	await process_frame
 
+	# 序章四中途提示不能因已释放引用而漏掉仍存活的普通王军。
+	var previous_ch4_victory_chapter: int = GameState.current_chapter
+	GameState.current_chapter = 4
+	var stale_ch4_victory_battle := TestBootstrapClass.new()
+	root.add_child(stale_ch4_victory_battle)
+	await process_frame
+	for existing_unit: Variant in (stale_ch4_victory_battle.player_units + stale_ch4_victory_battle.enemy_units):
+		if is_instance_valid(existing_unit):
+			existing_unit.queue_free()
+	await process_frame
+	stale_ch4_victory_battle.player_units.clear()
+	stale_ch4_victory_battle.enemy_units.clear()
+	stale_ch4_victory_battle._lannister_units.clear()
+	var stale_ch4_enemy := Unit.new()
+	stale_ch4_enemy.setup(_make_enemy_data({"name": "已释放序章四王军"}),
+		1, Vector2i(12, 12))
+	var surviving_royal_enemy := Unit.new()
+	surviving_royal_enemy.setup(_make_enemy_data({"name": "存活普通王军"}),
+		1, Vector2i(14, 12))
+	var surviving_commander := Unit.new()
+	surviving_commander.setup(_make_enemy_data({"name": "存活王军指挥官"}),
+		1, Vector2i(18, 7))
+	stale_ch4_victory_battle.get_node("UnitLayer").add_child(stale_ch4_enemy)
+	stale_ch4_victory_battle.get_node("UnitLayer").add_child(surviving_royal_enemy)
+	stale_ch4_victory_battle.get_node("UnitLayer").add_child(surviving_commander)
+	stale_ch4_victory_battle.enemy_units.assign([
+		stale_ch4_enemy, surviving_royal_enemy, surviving_commander])
+	stale_ch4_victory_battle._royal_commander = surviving_commander
+	stale_ch4_victory_battle._commander_killed = false
+	stale_ch4_victory_battle._ch4_midway_hint_shown = false
+	stale_ch4_enemy.queue_free()
+	await process_frame
+	stale_ch4_victory_battle._battle_over = false
+	stale_ch4_victory_battle._check_victory()
+	_assert(not stale_ch4_victory_battle._ch4_midway_hint_shown,
+		"序章四中途判定会忽略已释放引用且不会漏掉后续存活普通王军")
+	GameState.current_chapter = previous_ch4_victory_chapter
+	stale_ch4_victory_battle.queue_free()
+	await process_frame
+
 	var data := _make_unit_data()
 	var unit := Unit.new()
 	unit.setup(data, 0, Vector2i(3, 3))
