@@ -328,7 +328,7 @@ func _process(delta: float) -> void:
 
 # ── 摄像机（方向键控制）──────────────────────────────────
 func _handle_cam_scroll(delta: float) -> void:
-	if not is_instance_valid(_cam): return
+	if not is_instance_valid(_cam) or _modal_overlay_open(): return
 	var dir := Vector2.ZERO
 	if Input.is_key_pressed(KEY_LEFT):  dir.x -= 1
 	if Input.is_key_pressed(KEY_RIGHT): dir.x += 1
@@ -1596,7 +1596,7 @@ func _do_move_animated(unit: Unit, target: Vector2i) -> void:
 
 # ── 输入 ─────────────────────────────────────────────────
 func _input(event: InputEvent) -> void:
-	if _settings_menu_open():
+	if _modal_overlay_open():
 		return
 	# D键：危险区切换
 	if event is InputEventKey and (event as InputEventKey).pressed \
@@ -2291,13 +2291,24 @@ func _set_terrain_info(msg: String) -> void:
 	if _terrain_label: _terrain_label.text = msg
 
 func _unhandled_input(event: InputEvent) -> void:
-	if _settings_menu_open():
+	if _modal_overlay_open():
 		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_R:
 		_restart()
 
 func _settings_menu_open() -> bool:
 	return get_node_or_null("SettingsMenu") != null
+
+func _modal_overlay_open() -> bool:
+	if _settings_menu_open():
+		return true
+	var ui_layer := get_node_or_null("UI")
+	if ui_layer == null:
+		return false
+	for child in ui_layer.get_children():
+		if child is SupportPopup and (child as SupportPopup).visible:
+			return true
+	return false
 
 # ── 工具 ─────────────────────────────────────────────────
 func _unit_at(pos: Vector2i, team: int) -> Unit:

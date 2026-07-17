@@ -4455,6 +4455,28 @@ func _test_overlay_runtime_flow() -> void:
 	_assert(support_popup != null, "支援阈值达成后真实挂载 SupportPopup")
 	if support_popup != null:
 		_assert(support_popup.visible, "SupportPopup 触发后可见")
+		var camera_before_modal_scroll: Vector2 = support_battle._cam.position
+		var modal_scroll_event := InputEventKey.new()
+		modal_scroll_event.pressed = true
+		modal_scroll_event.keycode = KEY_RIGHT
+		modal_scroll_event.physical_keycode = KEY_RIGHT
+		Input.parse_input_event(modal_scroll_event)
+		await process_frame
+		support_battle._handle_cam_scroll(0.1)
+		modal_scroll_event.pressed = false
+		Input.parse_input_event(modal_scroll_event)
+		_assert_eq(support_battle._cam.position, camera_before_modal_scroll,
+			"SupportPopup 可见时方向键不会移动战场镜头")
+		var support_autopilot_event := InputEventKey.new()
+		support_autopilot_event.pressed = true
+		support_autopilot_event.keycode = KEY_A
+		support_battle._input(support_autopilot_event)
+		_assert(not support_battle._autopilot, "SupportPopup 可见时不会穿透自动托管快捷键")
+		var support_restart_event := InputEventKey.new()
+		support_restart_event.pressed = true
+		support_restart_event.keycode = KEY_R
+		support_battle._unhandled_input(support_restart_event)
+		_assert(not support_battle.restart_requested, "SupportPopup 可见时不会穿透章节重开快捷键")
 		var support_content := support_popup.get_node_or_null("Background/VBox/ContentLabel") as Label
 		var support_rank := support_popup.get_node_or_null("Background/VBox/RankLabel") as Label
 		if support_content != null:
@@ -4462,11 +4484,27 @@ func _test_overlay_runtime_flow() -> void:
 		if support_rank != null:
 			_assert("奈德 ↔ 劳勃" in support_rank.text, "SupportPopup 显示真实角色名")
 			_assert("[C级 +5%命中/5%回避]" in support_rank.text, "SupportPopup 显示真实加成数值")
+		var second_support_popup := load("res://scenes/ui/SupportPopup.tscn").instantiate() as SupportPopup
+		support_battle.get_node("UI").add_child(second_support_popup, true)
+		second_support_popup.popup_closed.connect(second_support_popup.queue_free)
+		second_support_popup.show_support("奈德", "琼恩·艾林", "C", {"hit": 5, "avoid": 5})
 		support_popup.call("_on_close_pressed")
 		await process_frame
 		await process_frame
 		_assert(support_battle.get_node_or_null("UI/SupportPopup") == null,
 			"SupportPopup 关闭信号会释放真实弹窗实例")
+		_assert(support_battle._modal_overlay_open(), "仍有第二个 SupportPopup 可见时继续保持战场输入锁")
+		second_support_popup._on_close_pressed()
+		await process_frame
+		_assert(not support_battle._modal_overlay_open(), "全部 SupportPopup 关闭后解除战场输入锁")
+		modal_scroll_event.pressed = true
+		Input.parse_input_event(modal_scroll_event)
+		await process_frame
+		support_battle._handle_cam_scroll(0.1)
+		modal_scroll_event.pressed = false
+		Input.parse_input_event(modal_scroll_event)
+		_assert(support_battle._cam.position.x > camera_before_modal_scroll.x,
+			"全部 SupportPopup 关闭后方向键恢复移动战场镜头")
 	if is_instance_valid(support_battle):
 		support_battle.queue_free()
 	await process_frame
