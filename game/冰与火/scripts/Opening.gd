@@ -247,3 +247,18 @@ func _apply_chinese_font() -> void:
 	# 同时设置全局回退字体（确保即使没有项目主题也能显示中文）
 	ThemeDB.fallback_font = font
 	ThemeDB.fallback_font_size = 14
+	# 主菜单场景在启动时已经完成实例化，单纯依赖 fallback_font
+	# 在部分 Godot 4.6/macOS 环境下不会立刻刷新到现有控件，
+	# 会导致中文显示为方框。这里递归给当前场景内文本控件显式覆写字体。
+	call_deferred("_apply_font_to_controls", self)
+
+func _apply_font_to_controls(node: Node) -> void:
+	var font := _get_cjk_font()
+	if node is Label:
+		(node as Label).add_theme_font_override("font", font)
+	elif node is Button:
+		(node as Button).add_theme_font_override("font", font)
+	elif node is RichTextLabel:
+		(node as RichTextLabel).add_theme_font_override("normal_font", font)
+	for child in node.get_children():
+		_apply_font_to_controls(child)

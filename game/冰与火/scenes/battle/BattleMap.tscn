@@ -1,6 +1,6 @@
 [gd_scene format=4 uid="uid://bm0ewhvtovw10"]
 
-[ext_resource type="Script" uid="uid://dx75rvhf3h8vo" path="res://scripts/battle/BattleBootstrap.gd" id="1"]
+[ext_resource type="Script" uid="uid://cyfo5giwruwto" path="res://scripts/battle/BattleBootstrap.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/battle/HighlightLayer.gd" id="3_hl"]
 [node name="BattleMap" type="Node2D" unique_id=1594060771]
 script = ExtResource("1")
