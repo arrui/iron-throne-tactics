@@ -2813,6 +2813,20 @@ func _test_unit_state_machine() -> void:
 	repeated_minimap_event.keycode = KEY_M
 	battle._input(repeated_minimap_event)
 	_assert(battle._minimap.visible, "长按 M 产生的重复事件不会立即关闭小地图")
+	# 小地图重绘应越过战场数组中已释放的单位引用。
+	var minimap_players_before: Array[Unit] = []
+	minimap_players_before.assign(battle.player_units)
+	var stale_minimap_unit := Unit.new()
+	stale_minimap_unit.setup(_make_unit_data({"name": "已释放小地图单位"}),
+		0, Vector2i(1, 1))
+	battle.get_node("UnitLayer").add_child(stale_minimap_unit)
+	battle.player_units.push_front(stale_minimap_unit)
+	stale_minimap_unit.free()
+	battle._minimap._canvas.queue_redraw()
+	await process_frame
+	battle.player_units.assign(minimap_players_before)
+	_assert(battle._minimap.visible,
+		"小地图重绘忽略已释放单位且保持显示")
 	battle._input(minimap_toggle_event)
 	_assert(not battle._minimap.visible, "再次按 M 键会通过正式输入链路关闭小地图")
 

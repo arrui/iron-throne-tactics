@@ -102,8 +102,12 @@ func _draw_minimap() -> void:
 	# ── 单位点 ──────────────────────────────────────────
 	var dot: int = 3
 	var all_units: Array = _bm.player_units + _bm.enemy_units
-	for u: Unit in all_units:
-		if not is_instance_valid(u) or u.is_dead(): continue
+	for candidate: Variant in all_units:
+		if not is_instance_valid(candidate):
+			continue
+		var u := candidate as Unit
+		if u == null or u.is_dead():
+			continue
 		var uc: Color
 		if   u.team == 0: uc = PLAYER_COL
 		elif u.team == 2: uc = NEUTRAL_COL
