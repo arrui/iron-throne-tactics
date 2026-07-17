@@ -2120,9 +2120,9 @@ func _start_enemy_turn() -> void:
 		if enemy.team == 2: continue   # 中立单位不参与敌方回合
 		await focus_unit(enemy, 0.18)
 		if _battle_over: break
+		if not is_instance_valid(enemy) or enemy not in enemy_units: continue
 
 		var action: Dictionary = EnemyAI.decide(enemy, player_units, _calc_move_range(enemy))
-		if not is_instance_valid(enemy): continue
 
 		# 敌方行走动画
 		var path := _find_path_to(enemy, action["move_to"])

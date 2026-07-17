@@ -1910,6 +1910,41 @@ func _test_auto_camera_focus() -> void:
 	_assert_eq(battle._turn_count, turn_count_before_interruption,
 		"敌方回合期间战斗结束不会增加玩家回合计数")
 
+	# 独立战场覆盖敌军聚焦 Tween 的恢复点：聚焦期间敌军可能被其他事件移除。
+	var removed_enemy_battle := TestBootstrapClass.new()
+	root.add_child(removed_enemy_battle)
+	await process_frame
+	for existing_unit: Unit in removed_enemy_battle.player_units + removed_enemy_battle.enemy_units:
+		if is_instance_valid(existing_unit):
+			existing_unit.queue_free()
+	await process_frame
+	removed_enemy_battle.player_units.clear()
+	removed_enemy_battle.enemy_units.clear()
+	var focus_target_player := Unit.new()
+	focus_target_player.setup(_make_unit_data({"name": "敌军决策目标"}),
+		0, Vector2i(7, 6))
+	var removed_during_focus := Unit.new()
+	removed_during_focus.setup(_make_enemy_data({"name": "聚焦期间移除敌军"}),
+		1, Vector2i(2, 4))
+	removed_enemy_battle.get_node("UnitLayer").add_child(focus_target_player)
+	removed_enemy_battle.get_node("UnitLayer").add_child(removed_during_focus)
+	removed_enemy_battle.player_units.append(focus_target_player)
+	removed_enemy_battle.enemy_units.append(removed_during_focus)
+	removed_enemy_battle.recorded_player_turn_starts = 0
+	removed_enemy_battle._start_enemy_turn()
+	await process_frame
+	_assert(removed_enemy_battle._enemy_turn_running,
+		"敌军释放前敌方回合正停留在镜头聚焦阶段")
+	removed_enemy_battle.enemy_units.erase(removed_during_focus)
+	removed_during_focus.queue_free()
+	await create_timer(0.5).timeout
+	_assert(not removed_enemy_battle._enemy_turn_running,
+		"镜头聚焦期间敌军释放时敌方回合安全结束并释放运行锁")
+	_assert_eq(removed_enemy_battle.recorded_player_turn_starts, 1,
+		"镜头聚焦期间敌军释放后正常切回一次玩家回合")
+	removed_enemy_battle.queue_free()
+	await process_frame
+
 	settings.auto_camera_enabled = old_enabled
 	battle.queue_free()
 	await process_frame
