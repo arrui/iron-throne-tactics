@@ -2546,9 +2546,7 @@ func _show_items_panel(unit: Unit) -> void:
 	cancel.text = "取消"
 	cancel.custom_minimum_size = Vector2(180, 30)
 	cancel.add_theme_font_override("font", _get_cjk_font())
-	cancel.pressed.connect(func() -> void:
-		if _active_items_panel: _active_items_panel.queue_free(); _active_items_panel = null
-		_show_action_menu(unit.grid_pos, not _adj_enemies(unit.grid_pos).is_empty()))
+	cancel.pressed.connect(func() -> void: _on_items_cancelled(unit_id))
 	vbox.add_child(cancel)
 	var ui_layer := get_node_or_null("UI") as CanvasLayer
 	if ui_layer: ui_layer.add_child(panel)
@@ -2556,6 +2554,16 @@ func _show_items_panel(unit: Unit) -> void:
 	var vs := get_viewport().get_visible_rect().size
 	panel.position = Vector2(vs.x * 0.5 - 90.0, vs.y * 0.5 - 100.0)
 	_active_items_panel = panel
+
+func _on_items_cancelled(unit_id: int) -> void:
+	if _active_items_panel:
+		_active_items_panel.queue_free()
+		_active_items_panel = null
+	var unit := instance_from_id(unit_id) as Unit
+	if not is_instance_valid(unit):
+		_deselect()
+		return
+	_show_action_menu(unit.grid_pos, not _adj_enemies(unit.grid_pos).is_empty())
 
 func _on_item_used(unit_id: int, item_idx: int) -> void:
 	if _active_items_panel:

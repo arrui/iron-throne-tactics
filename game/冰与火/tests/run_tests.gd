@@ -1380,6 +1380,30 @@ func _test_item_system() -> void:
 			and not is_instance_valid(removed_user_panel),
 		"道具使用回调遇到已释放单位时关闭面板并清理选择态")
 
+	var removed_item_cancel_unit := Unit.new()
+	removed_item_cancel_unit.setup(_make_unit_data({
+		"name": "道具取消前被移除单位",
+		"items": [{"name": "急救药", "type": "heal", "heal_amount": 10, "uses": 1}],
+	}), 0, Vector2i(4, 5))
+	battle.get_node("UnitLayer").add_child(removed_item_cancel_unit)
+	battle.player_units.append(removed_item_cancel_unit)
+	battle.selected_unit = removed_item_cancel_unit
+	battle.player_state = battle.PlayerState.UNIT_MOVED
+	battle._show_items_panel(removed_item_cancel_unit)
+	var removed_cancel_panel := battle._active_items_panel as PanelContainer
+	var removed_cancel_vbox := removed_cancel_panel.get_child(0) as VBoxContainer
+	var removed_cancel_button := removed_cancel_vbox.get_child(removed_cancel_vbox.get_child_count() - 1) as Button
+	battle.player_units.erase(removed_item_cancel_unit)
+	removed_item_cancel_unit.free()
+	removed_cancel_button.pressed.emit()
+	await process_frame
+	_assert(not is_instance_valid(battle.selected_unit) \
+			and battle.player_state == battle.PlayerState.IDLE \
+			and battle._active_items_panel == null \
+			and not is_instance_valid(removed_cancel_panel) \
+			and not action_menu.visible,
+		"取消道具面板遇到已释放单位时关闭面板并清理选择态")
+
 	battle.selected_unit = reserve
 	battle.player_state = battle.PlayerState.UNIT_MOVED
 	battle._show_action_menu(reserve.grid_pos, false)
