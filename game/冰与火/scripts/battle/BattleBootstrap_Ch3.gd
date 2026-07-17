@@ -233,8 +233,12 @@ func _trigger_betrayal() -> void:
 	_set_status("⚠ 背叛！城卫军倒戈——重新评估战场！")
 
 	# 3. 闪烁动画后变为敌方
-	for u: Unit in _golden_cloak_units.duplicate():
-		if not is_instance_valid(u) or u.is_dead(): continue
+	for candidate: Variant in _golden_cloak_units.duplicate():
+		if not is_instance_valid(candidate):
+			continue
+		var u := candidate as Unit
+		if u == null or u.is_dead():
+			continue
 		var sprite := u.get_node_or_null("Sprite") as Sprite2D
 		if sprite:
 			for _i: int in 3:

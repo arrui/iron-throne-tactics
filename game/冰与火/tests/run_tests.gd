@@ -34,6 +34,9 @@ class TestCh3Bootstrap extends Ch3BootstrapClass:
 	func _trigger_tower_sequence() -> void:
 		pass
 
+	func _play_dialogue(_path: String) -> void:
+		pass
+
 var _pass_count: int = 0
 var _fail_count: int = 0
 var _current_suite: String = ""
@@ -2436,6 +2439,26 @@ func _test_unit_state_machine() -> void:
 	_assert(not ch4_bootstrap_source.contains("enemy_units.filter(func(u: Unit)"),
 		"独立序章四胜利判定不会使用无法接收已释放引用的强类型 filter")
 	stale_legacy_ch4_battle.free()
+
+	# 正式序章三背叛流程应越过已释放金袍，继续转换后续存活单位。
+	var stale_betrayal_battle := TestCh3Bootstrap.new()
+	var stale_golden_cloak := Unit.new()
+	stale_golden_cloak.setup(_make_unit_data({"name": "已释放金袍"}),
+		0, Vector2i(4, 4))
+	var surviving_golden_cloak := Unit.new()
+	surviving_golden_cloak.setup(_make_unit_data({"name": "存活金袍"}),
+		0, Vector2i(6, 6))
+	stale_betrayal_battle.add_child(stale_golden_cloak)
+	stale_betrayal_battle.add_child(surviving_golden_cloak)
+	stale_betrayal_battle.player_units.assign([stale_golden_cloak, surviving_golden_cloak])
+	stale_betrayal_battle._golden_cloak_units.assign([
+		stale_golden_cloak, surviving_golden_cloak])
+	stale_golden_cloak.free()
+	await stale_betrayal_battle._trigger_betrayal()
+	_assert(surviving_golden_cloak.team == 1 \
+			and stale_betrayal_battle.enemy_units.has(surviving_golden_cloak),
+		"独立序章三背叛流程忽略已释放金袍且转换后续存活单位")
+	stale_betrayal_battle.free()
 
 	# 序章四中途提示不能因已释放引用而漏掉仍存活的普通王军。
 	var previous_ch4_victory_chapter: int = GameState.current_chapter
