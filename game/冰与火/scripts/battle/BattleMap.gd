@@ -1655,7 +1655,15 @@ func _input(event: InputEvent) -> void:
 
 	if _battle_over or _animating_battle or current_phase != Phase.PLAYER_TURN:
 		return
-	if _action_menu   and _action_menu.visible:   return
+	if _action_menu and _action_menu.visible:
+		# 已移动后的行动菜单中，右键与 ESC /“取消移动”按钮保持一致。
+		if event is InputEventMouseButton and (event as InputEventMouseButton).pressed \
+				and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_RIGHT \
+				and player_state == PlayerState.UNIT_MOVED \
+				and _pre_move_pos != Vector2i(-1, -1):
+			_on_cancel_move_pressed()
+			get_viewport().set_input_as_handled()
+		return
 	if _predict_panel and _predict_panel.visible: return
 
 	if not (event is InputEventMouseButton and (event as InputEventMouseButton).pressed):
