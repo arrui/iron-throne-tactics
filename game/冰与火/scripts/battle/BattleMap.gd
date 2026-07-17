@@ -1854,7 +1854,7 @@ func _on_cancel_move_pressed() -> void:
 	_set_status("%s 取消移动" % selected_unit.data.name)
 
 func _on_end_turn_pressed() -> void:
-	if _battle_over or current_phase != Phase.PLAYER_TURN or _animating_battle: return
+	if _battle_over or _turn_ending or current_phase != Phase.PLAYER_TURN or _animating_battle: return
 	_deselect()
 	if _end_turn_btn: _end_turn_btn.disabled = true
 	_start_enemy_turn()
@@ -2078,8 +2078,10 @@ func _check_all_acted() -> void:
 		_turn_ending = true
 		_update_support_adjacency()   # 回合结束时统计支援相邻
 		await get_tree().create_timer(0.5).timeout
+		if _battle_over or current_phase != Phase.PLAYER_TURN:
+			_turn_ending = false
+			return
 		_turn_ending = false
-		if _battle_over: return        # await 期间战斗可能结束
 		_start_enemy_turn()
 
 func _start_enemy_turn() -> void:

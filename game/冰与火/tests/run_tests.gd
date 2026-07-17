@@ -2403,6 +2403,31 @@ func _test_unit_state_machine() -> void:
 			"点击结束回合后清除选中单位并返回空闲状态")
 		_assert(not action_menu.visible, "点击结束回合后关闭行动菜单")
 
+		battle.recorded_enemy_turn_starts = 0
+		battle.current_phase = battle.Phase.PLAYER_TURN
+		battle._turn_ending = false
+		waiter.mark_acted()
+		mover.mark_acted()
+		end_turn_button.disabled = false
+		battle._check_all_acted()
+		_assert(battle._turn_ending, "最后单位行动后进入自动结束回合延迟窗口")
+		end_turn_button.pressed.emit()
+		_assert_eq(battle.recorded_enemy_turn_starts, 0,
+			"自动结束回合延迟期间点击结束回合会被立即拦截")
+		await create_timer(0.6).timeout
+		_assert_eq(battle.recorded_enemy_turn_starts, 1,
+			"自动结束回合延迟期间点击结束回合不会重复启动敌方回合")
+		_assert(not battle._turn_ending, "自动结束回合完成后清除回合切换锁")
+
+		battle.recorded_enemy_turn_starts = 0
+		battle.current_phase = battle.Phase.PLAYER_TURN
+		battle._check_all_acted()
+		battle.current_phase = battle.Phase.ENEMY_TURN
+		await create_timer(0.6).timeout
+		_assert_eq(battle.recorded_enemy_turn_starts, 0,
+			"自动结束回合等待期间阶段已变化时不会再次启动敌方回合")
+		_assert(not battle._turn_ending, "阶段变化中止自动结束回合后清除回合切换锁")
+
 	battle.queue_free()
 	await process_frame
 
