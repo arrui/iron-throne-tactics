@@ -9,6 +9,8 @@ var return_to_opening_requested: bool = false
 var fixed_combat_result: Dictionary = {}
 var recorded_enemy_turn_starts: int = 0
 var intercept_enemy_turn_start: bool = false
+var record_autopilot_range_calculations: bool = false
+var recorded_autopilot_range_calculations: int = 0
 
 func _enter_tree() -> void:
 	if get_node_or_null("HighlightLayer") == null:
@@ -111,6 +113,12 @@ func _start_enemy_turn() -> void:
 	recorded_enemy_turn_starts += 1
 	if not intercept_enemy_turn_start:
 		await super._start_enemy_turn()
+
+func _calc_move_range(unit: Unit) -> Array[Vector2i]:
+	if record_autopilot_range_calculations:
+		recorded_autopilot_range_calculations += 1
+		return [unit.grid_pos]
+	return super._calc_move_range(unit)
 
 func _build_combat_result(pred: Dictionary, attacker_hp: int, defender_hp: int) -> Dictionary:
 	if not fixed_combat_result.is_empty():

@@ -2428,6 +2428,20 @@ func _test_unit_state_machine() -> void:
 			"自动结束回合等待期间阶段已变化时不会再次启动敌方回合")
 		_assert(not battle._turn_ending, "阶段变化中止自动结束回合后清除回合切换锁")
 
+		battle.current_phase = battle.Phase.PLAYER_TURN
+		waiter.reset_turn()
+		mover.reset_turn()
+		battle.record_autopilot_range_calculations = true
+		battle.recorded_autopilot_range_calculations = 0
+		battle._input(autopilot_toggle_event)
+		battle._input(stop_autopilot_event)
+		battle._input(autopilot_toggle_event)
+		await create_timer(0.35).timeout
+		_assert_eq(battle.recorded_autopilot_range_calculations, 1,
+			"快速中止并重启自动托管时只有最新协程执行单位决策")
+		battle._input(stop_autopilot_event)
+		await create_timer(0.4).timeout
+
 	battle.queue_free()
 	await process_frame
 
@@ -2924,12 +2938,35 @@ func _test_visual_style_unification() -> void:
 	runtime_battle.set_script(TestBootstrapClass)
 	root.add_child(runtime_battle)
 	await process_frame
+	runtime_battle._autopilot_label = Label.new()
+	runtime_battle.add_child(runtime_battle._autopilot_label)
+	runtime_battle._autopilot = true
+	runtime_battle._autopilot_running = true
+	runtime_battle._update_autopilot_label()
 	runtime_battle._end_battle(false)
 	await process_frame
 	var runtime_result_panel := runtime_battle.get_node("UI/ResultPanel") as PanelContainer
 	var runtime_result_title := runtime_result_panel.get_node("VBox/ResultTitle") as Label
 	var runtime_result_style := runtime_result_panel.get_theme_stylebox("panel") as StyleBoxFlat
 	_assert(runtime_result_panel.visible, "败北时战斗结果面板可见")
+	_assert(not runtime_battle._autopilot and not runtime_battle._autopilot_running,
+		"战斗结束会中止自动托管")
+	_assert_eq(runtime_battle._autopilot_label.text, "", "战斗结束会清除自动托管状态标签")
+	var ended_autopilot_event := InputEventKey.new()
+	ended_autopilot_event.pressed = true
+	ended_autopilot_event.keycode = KEY_A
+	runtime_result_panel.visible = false
+	runtime_battle._input(ended_autopilot_event)
+	_assert(not runtime_battle._autopilot, "战斗结束后 A 键不会重新启用自动托管")
+	runtime_battle._battle_over = false
+	runtime_battle._autopilot = true
+	runtime_battle._autopilot_running = true
+	runtime_battle._update_autopilot_label()
+	runtime_battle._battle_over = true
+	_assert(not runtime_battle._autopilot and not runtime_battle._autopilot_running,
+		"章节直接进入战斗结束态时也会中止自动托管")
+	_assert_eq(runtime_battle._autopilot_label.text, "",
+		"章节直接进入战斗结束态时也会清除自动托管标签")
 	_assert_eq(runtime_result_title.text, "败北", "战斗结束入口会设置败北标题")
 	_assert_eq(runtime_result_title.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_STATUS,
 		"战斗结束入口会切换败北标题危险色")

@@ -43,7 +43,11 @@ var target_enemy:  Unit  = null
 var move_range:    Array[Vector2i] = []
 var attack_tiles:  Array[Vector2i] = []
 
-var _battle_over:      bool = false
+var _battle_over:      bool = false:
+	set(value):
+		_battle_over = value
+		if value:
+			_cancel_autopilot()
 var _animating_battle: bool = false
 var _turn_ending:      bool = false  # 防止_check_all_acted重复进入
 
@@ -63,6 +67,7 @@ var _preview_attack_tiles: Array[Vector2i] = []      # 其攻击覆盖（红色�
 # ── 自动托管（A 键切换，随时可中止）─────────────────────
 var _autopilot:         bool  = false   # 是否启用自动托管
 var _autopilot_running: bool  = false   # 协程正在运行中
+var _autopilot_run_id:  int   = 0       # 使已中止的旧协程无法恢复执行
 var _autopilot_label:   Label = null    # UI 状态提示标签
 
 # ── 小地图（M 键切换）────────────────────────────────────
@@ -1613,7 +1618,7 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 		if key == KEY_A:
-			if _animating_battle:
+			if _battle_over or _animating_battle:
 				return
 			_toggle_autopilot()
 			get_viewport().set_input_as_handled()
@@ -1621,9 +1626,7 @@ func _input(event: InputEvent) -> void:
 		if key == KEY_ESCAPE:
 			# ESC 同时关闭自动托管
 			if _autopilot:
-				_autopilot = false
-				_autopilot_running = false
-				_update_autopilot_label()
+				_cancel_autopilot()
 				_set_status("自动托管已中止（ESC）")
 				get_viewport().set_input_as_handled()
 				return
@@ -2156,6 +2159,7 @@ func _start_player_turn() -> void:
 # ════════════════════════════════════════════════════════
 
 func _toggle_autopilot() -> void:
+	_autopilot_run_id += 1
 	_autopilot = not _autopilot
 	_update_autopilot_label()
 	if _autopilot:
@@ -2166,6 +2170,12 @@ func _toggle_autopilot() -> void:
 	else:
 		_autopilot_running = false
 		_set_status("⏸ 自动托管已暂停（A 键重新启动）")
+
+func _cancel_autopilot() -> void:
+	_autopilot_run_id += 1
+	_autopilot = false
+	_autopilot_running = false
+	_update_autopilot_label()
 
 func _update_autopilot_label() -> void:
 	if _autopilot_label == null: return
@@ -2178,9 +2188,11 @@ func _update_autopilot_label() -> void:
 func _run_autopilot_turn() -> void:
 	if _autopilot_running: return   # 防止重入
 	_autopilot_running = true
+	var run_id := _autopilot_run_id
 
 	# 短暂延迟，让玩家看清画面
 	await get_tree().create_timer(0.3).timeout
+	if run_id != _autopilot_run_id: return
 
 	# 逐一处理所有可行动的玩家单位
 	while _autopilot and not _battle_over and current_phase == Phase.PLAYER_TURN:
@@ -2216,6 +2228,7 @@ func _run_autopilot_turn() -> void:
 			_deselect()
 			_redraw_all()
 			await get_tree().create_timer(0.40).timeout
+			if run_id != _autopilot_run_id: return
 			if not is_inside_tree() or not _autopilot: break
 			continue   # 直接找下一个可行动单位
 
@@ -2223,8 +2236,10 @@ func _run_autopilot_turn() -> void:
 		var target_pos: Vector2i = action["move_to"]
 		if target_pos != acting.grid_pos:
 			await _do_move_animated(acting, target_pos)
+			if run_id != _autopilot_run_id: return
 			if not is_inside_tree() or not _autopilot: break
 			await get_tree().create_timer(0.15).timeout
+			if run_id != _autopilot_run_id: return
 
 		# ── 执行攻击 ──────────────────────────────────────────
 		var attack_target: Unit = action.get("attack") as Unit
@@ -2232,8 +2247,10 @@ func _run_autopilot_turn() -> void:
 				and not attack_target.is_dead():
 			if _honor_check_attack(acting, attack_target):
 				await _start_battle_with_animation(acting, attack_target)
+				if run_id != _autopilot_run_id: return
 				if not is_inside_tree() or not _autopilot: break
 				await get_tree().create_timer(0.2).timeout
+				if run_id != _autopilot_run_id: return
 			else:
 				# 荣耀保护：等待
 				acting.mark_acted()
@@ -2247,11 +2264,14 @@ func _run_autopilot_turn() -> void:
 		_check_victory()
 		if _battle_over: break
 		await get_tree().create_timer(0.2).timeout
+		if run_id != _autopilot_run_id: return
 
 	# 回合结束
+	if run_id != _autopilot_run_id: return
 	_autopilot_running = false
 	if _autopilot and not _battle_over and current_phase == Phase.PLAYER_TURN:
 		await get_tree().create_timer(0.3).timeout
+		if run_id != _autopilot_run_id: return
 		if _autopilot and not _battle_over:
 			_on_end_turn_pressed()
 
