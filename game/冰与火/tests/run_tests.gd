@@ -2042,6 +2042,39 @@ func _test_combat_result_and_animation_setting() -> void:
 	_assert_eq(instant_defender.data.hp, instant_defender.data.max_hp - 4,
 		"关闭动画仍使用同一统一结果结算伤害")
 	_assert(not battle._animating_battle, "关闭动画的即时结算后解除操作锁")
+
+	# 独立战场覆盖镜头 Tween 的异步恢复点：聚焦期间目标可能被其他流程移除。
+	settings.auto_camera_enabled = true
+	var interrupted_battle := TestBootstrapClass.new()
+	root.add_child(interrupted_battle)
+	await process_frame
+	var interrupted_attacker := Unit.new()
+	interrupted_attacker.setup(_make_unit_data({"name": "聚焦攻击方"}),
+		0, Vector2i(7, 5))
+	var freed_defender := Unit.new()
+	freed_defender.setup(_make_enemy_data({"name": "聚焦期间释放防守方"}),
+		1, Vector2i(8, 5))
+	interrupted_battle.get_node("UnitLayer").add_child(interrupted_attacker)
+	interrupted_battle.get_node("UnitLayer").add_child(freed_defender)
+	interrupted_battle.player_units.append(interrupted_attacker)
+	interrupted_battle.enemy_units.append(freed_defender)
+	interrupted_battle.record_battle_completion.call_deferred(
+		interrupted_attacker, freed_defender)
+	await process_frame
+	_assert(interrupted_battle._animating_battle,
+		"单位释放前战斗流程正停留在镜头聚焦阶段")
+	freed_defender.queue_free()
+	for frame: int in range(60):
+		if interrupted_battle.recorded_battle_completion:
+			break
+		await process_frame
+	_assert(interrupted_battle.recorded_battle_completion,
+		"镜头聚焦期间防守方释放时战斗流程安全结束")
+	_assert(not interrupted_battle._animating_battle,
+		"镜头聚焦期间防守方释放时解除共享操作锁")
+	interrupted_battle.queue_free()
+	await process_frame
+
 	settings.auto_camera_enabled = old_auto_camera
 	settings.battle_animations_enabled = old_enabled
 	battle.queue_free()

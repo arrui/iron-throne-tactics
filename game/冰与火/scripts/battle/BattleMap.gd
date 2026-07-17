@@ -1936,6 +1936,9 @@ func _start_battle_with_animation(attacker: Unit, defender: Unit) -> void:
 		return
 	_animating_battle = true
 	await focus_combat(attacker, defender, 0.18)
+	if not is_instance_valid(attacker) or not is_instance_valid(defender):
+		_animating_battle = false
+		return
 
 	var bonus: Dictionary = get_terrain_bonus(defender.grid_pos)
 	var pred: Dictionary = BattleCalculator.predict(

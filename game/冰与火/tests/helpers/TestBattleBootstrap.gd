@@ -13,6 +13,7 @@ var recorded_player_turn_starts: int = 0
 var record_autopilot_range_calculations: bool = false
 var recorded_autopilot_range_calculations: int = 0
 var recorded_move_result: Variant = null
+var recorded_battle_completion: bool = false
 
 func _enter_tree() -> void:
 	if get_node_or_null("HighlightLayer") == null:
@@ -133,3 +134,7 @@ func _build_combat_result(pred: Dictionary, attacker_hp: int, defender_hp: int) 
 
 func record_move_result(unit: Unit, target: Vector2i) -> void:
 	recorded_move_result = await _do_move_animated(unit, target)
+
+func record_battle_completion(attacker: Unit, defender: Unit) -> void:
+	await _start_battle_with_animation(attacker, defender)
+	recorded_battle_completion = true
