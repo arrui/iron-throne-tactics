@@ -1818,6 +1818,9 @@ func _clear_enemy_preview() -> void:
 # ── 行动菜单 ─────────────────────────────────────────────
 func _show_action_menu(grid_pos: Vector2i, can_attack: bool) -> void:
 	if _action_menu == null: return
+	if not is_instance_valid(selected_unit):
+		_deselect()
+		return
 	var screen_pos := _tile_to_screen(grid_pos)
 	var vs := get_viewport().get_visible_rect().size
 	var mp := screen_pos + Vector2(TILE_SIZE * 0.65, -TILE_SIZE * 0.55)

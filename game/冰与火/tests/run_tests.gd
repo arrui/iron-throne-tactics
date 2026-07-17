@@ -1424,6 +1424,25 @@ func _test_item_system() -> void:
 			and not action_menu.visible,
 		"正式道具入口遇到已释放单位时关闭菜单并清理选择态")
 
+	var removed_action_menu_unit := Unit.new()
+	removed_action_menu_unit.setup(_make_unit_data({
+		"name": "显示菜单前被移除单位",
+		"items": [{"name": "急救药", "type": "heal", "heal_amount": 10, "uses": 1}],
+	}), 0, Vector2i(4, 7))
+	battle.get_node("UnitLayer").add_child(removed_action_menu_unit)
+	battle.player_units.append(removed_action_menu_unit)
+	battle.selected_unit = removed_action_menu_unit
+	battle.player_state = battle.PlayerState.UNIT_MOVED
+	var removed_action_menu_pos := removed_action_menu_unit.grid_pos
+	battle.player_units.erase(removed_action_menu_unit)
+	removed_action_menu_unit.free()
+	battle._show_action_menu(removed_action_menu_pos, false)
+	await process_frame
+	_assert(not is_instance_valid(battle.selected_unit) \
+			and battle.player_state == battle.PlayerState.IDLE \
+			and not action_menu.visible,
+		"行动菜单渲染遇到已释放单位时保持关闭并清理选择态")
+
 	battle.selected_unit = reserve
 	battle.player_state = battle.PlayerState.UNIT_MOVED
 	battle._show_action_menu(reserve.grid_pos, false)
