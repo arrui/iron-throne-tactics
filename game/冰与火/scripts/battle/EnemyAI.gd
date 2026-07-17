@@ -21,8 +21,12 @@ static func _decide_guard(enemy: Unit, player_units: Array,
 	# 找守卫范围内最近的玩家
 	var nearest_in_range: Unit = null
 	var min_dist := 999
-	for p: Unit in player_units:
-		if p.is_dead(): continue
+	for candidate: Variant in player_units:
+		if not is_instance_valid(candidate):
+			continue
+		var p := candidate as Unit
+		if p == null or p.is_dead():
+			continue
 		var d := _manhattan(guard_pos, p.grid_pos)
 		if d <= guard_range + 1:
 			var pd := _manhattan(enemy.grid_pos, p.grid_pos)
@@ -86,8 +90,12 @@ static func _decide_chase(enemy: Unit, player_units: Array,
 static func _find_nearest(enemy: Unit, players: Array) -> Unit:
 	var nearest: Unit = null
 	var min_dist := 999
-	for p: Unit in players:
-		if p.is_dead(): continue
+	for candidate: Variant in players:
+		if not is_instance_valid(candidate):
+			continue
+		var p := candidate as Unit
+		if p == null or p.is_dead():
+			continue
 		var d := _manhattan(enemy.grid_pos, p.grid_pos)
 		if d < min_dist:
 			min_dist = d

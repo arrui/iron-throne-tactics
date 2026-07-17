@@ -596,6 +596,56 @@ func _test_enemy_ai_distance() -> void:
 	_assert_eq(EnemyAI._manhattan(Vector2i(-1,-1), Vector2i(2,3)), 7,
 		"曼哈顿距离：含负坐标")
 
+	# 玩家单位可能已由战场事件释放，但权威数组尚未来得及同步清理。
+	var ai_units := Node2D.new()
+	root.add_child(ai_units)
+	var deciding_enemy := Unit.new()
+	deciding_enemy.setup(_make_enemy_data({"name": "决策敌军"}),
+		1, Vector2i(1, 1))
+	var stale_player := Unit.new()
+	stale_player.setup(_make_unit_data({"name": "已释放目标"}),
+		0, Vector2i(2, 1))
+	var valid_player := Unit.new()
+	valid_player.setup(_make_unit_data({"name": "有效目标"}),
+		0, Vector2i(4, 1))
+	ai_units.add_child(deciding_enemy)
+	ai_units.add_child(stale_player)
+	ai_units.add_child(valid_player)
+	var players_with_stale_reference: Array = [stale_player, valid_player]
+	stale_player.queue_free()
+	await process_frame
+	var chase_decision := EnemyAI.decide(deciding_enemy,
+		players_with_stale_reference, [Vector2i(3, 1)])
+	_assert(chase_decision.get("attack") == valid_player,
+		"敌军追击决策会忽略数组中残留的已释放玩家引用")
+
+	var guard_enemy := Unit.new()
+	guard_enemy.setup(_make_enemy_data({
+		"name": "守卫敌军",
+		"is_boss": true,
+		"guard_pos_x": 6,
+		"guard_pos_y": 6,
+		"guard_range": 2,
+	}), 1, Vector2i(6, 6))
+	var stale_guard_target := Unit.new()
+	stale_guard_target.setup(_make_unit_data({"name": "已释放守卫目标"}),
+		0, Vector2i(6, 5))
+	var valid_guard_target := Unit.new()
+	valid_guard_target.setup(_make_unit_data({"name": "有效守卫目标"}),
+		0, Vector2i(7, 6))
+	ai_units.add_child(guard_enemy)
+	ai_units.add_child(stale_guard_target)
+	ai_units.add_child(valid_guard_target)
+	var guard_players_with_stale_reference: Array = [stale_guard_target, valid_guard_target]
+	stale_guard_target.queue_free()
+	await process_frame
+	var guard_decision := EnemyAI.decide(guard_enemy,
+		guard_players_with_stale_reference, [guard_enemy.grid_pos])
+	_assert(guard_decision.get("attack") == valid_guard_target,
+		"守卫敌军决策会忽略数组中残留的已释放玩家引用")
+	ai_units.queue_free()
+	await process_frame
+
 # ══════════════════════════════════════════════════════════
 # 测试套件 8：对话 JSON 文件加载
 # ══════════════════════════════════════════════════════════
