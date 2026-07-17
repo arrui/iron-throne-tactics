@@ -1896,6 +1896,18 @@ func _test_auto_camera_focus() -> void:
 	var before_narration := camera.position
 	battle._focus_dialogue_speaker("旁白", 0.0)
 	_assert_eq(camera.position, before_narration, "旁白不会改变战场镜头")
+	var stale_dialogue_unit := Unit.new()
+	stale_dialogue_unit.setup(_make_unit_data({"name": "已释放发言者"}),
+		0, Vector2i(5, 5))
+	battle.get_node("UnitLayer").add_child(stale_dialogue_unit)
+	battle.player_units.assign([stale_dialogue_unit, ned])
+	stale_dialogue_unit.queue_free()
+	await process_frame
+	camera.position = Vector2.ZERO
+	battle._focus_dialogue_speaker("测试发言者", 0.0)
+	_assert_eq(camera.position, battle._g2p(ned.grid_pos),
+		"战场对话会忽略残留的已释放引用并聚焦后续发言单位")
+	battle.player_units.assign([ned])
 
 	var dialogue_scene := load("res://scenes/dialogue/DialogueBox.tscn") as PackedScene
 	var dialogue := dialogue_scene.instantiate() as DialogueSystem

@@ -384,8 +384,11 @@ func _focus_dialogue_speaker(speaker: String, duration: float = 0.22) -> void:
 		"皇家卫兵": ["皇家卫兵", "王军", "王军指挥官"],
 	}
 	var names: Array = aliases.get(speaker, [speaker])
-	for unit: Unit in player_units + enemy_units:
-		if is_instance_valid(unit) and not unit.is_dead() and unit.data.name in names:
+	for candidate: Variant in player_units + enemy_units:
+		if not is_instance_valid(candidate):
+			continue
+		var unit := candidate as Unit
+		if unit != null and not unit.is_dead() and unit.data.name in names:
 			await focus_unit(unit, duration)
 			return
 
