@@ -2061,10 +2061,21 @@ func _restore_unit_color(unit: Unit) -> void:
 # ── 胜败 ─────────────────────────────────────────────────
 func _check_victory() -> void:
 	if _battle_over: return
-	if enemy_units.filter(func(u: Unit) -> bool: return not u.is_dead()).is_empty():
+	var has_alive_enemy := false
+	for candidate: Variant in enemy_units:
+		if not is_instance_valid(candidate):
+			continue
+		var enemy := candidate as Unit
+		if enemy != null and not enemy.is_dead():
+			has_alive_enemy = true
+			break
+	if not has_alive_enemy:
 		_end_battle(true); return
-	for u: Unit in player_units:
-		if u.grid_pos == victory_pos and not u.is_dead():
+	for candidate: Variant in player_units:
+		if not is_instance_valid(candidate):
+			continue
+		var unit := candidate as Unit
+		if unit != null and unit.grid_pos == victory_pos and not unit.is_dead():
 			_end_battle(true); return
 
 func _check_defeat() -> void:

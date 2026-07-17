@@ -16,6 +16,7 @@ extends SceneTree
 
 # ── 加载依赖 ─────────────────────────────────────────────
 const BattleCalculatorClass := preload("res://scripts/battle/BattleCalculator.gd")
+const BattleMapClass        := preload("res://scripts/battle/BattleMap.gd")
 const UnitDataClass          := preload("res://scripts/data/UnitData.gd")
 const EnemyAIClass           := preload("res://scripts/battle/EnemyAI.gd")
 const BootstrapClass         := preload("res://scripts/battle/BattleBootstrap.gd")
@@ -2381,6 +2382,47 @@ func _test_unit_state_machine() -> void:
 		"序章四中途判定会忽略已释放引用且不会漏掉后续存活普通王军")
 	GameState.current_chapter = previous_ch4_victory_chapter
 	stale_ch4_victory_battle.queue_free()
+	await process_frame
+
+	# 基类胜利判定也必须安全扫描敌我双方数组中的已释放引用。
+	var stale_base_victory_scene := load("res://scenes/battle/BattleMap.tscn") as PackedScene
+	var stale_base_victory_battle := stale_base_victory_scene.instantiate()
+	stale_base_victory_battle.set_script(BattleMapClass)
+	root.add_child(stale_base_victory_battle)
+	await process_frame
+	for existing_unit: Variant in (stale_base_victory_battle.player_units + stale_base_victory_battle.enemy_units):
+		if is_instance_valid(existing_unit):
+			existing_unit.queue_free()
+	await process_frame
+	stale_base_victory_battle.player_units.clear()
+	stale_base_victory_battle.enemy_units.clear()
+	var stale_base_enemy := Unit.new()
+	stale_base_enemy.setup(_make_enemy_data({"name": "已释放基类敌军"}), 1, Vector2i(4, 4))
+	var live_base_enemy := Unit.new()
+	live_base_enemy.setup(_make_enemy_data({"name": "存活基类敌军"}), 1, Vector2i(6, 6))
+	stale_base_victory_battle.add_child(stale_base_enemy)
+	stale_base_victory_battle.add_child(live_base_enemy)
+	stale_base_victory_battle.enemy_units.assign([stale_base_enemy, live_base_enemy])
+	stale_base_enemy.queue_free()
+	await process_frame
+	stale_base_victory_battle._battle_over = false
+	stale_base_victory_battle._check_victory()
+	_assert(not stale_base_victory_battle._battle_over,
+		"基类胜利判定忽略已释放敌军且不会漏掉后续存活敌军")
+	var stale_base_player := Unit.new()
+	stale_base_player.setup(_make_unit_data({"name": "已释放基类友军"}), 0, Vector2i(2, 2))
+	var goal_base_player := Unit.new()
+	goal_base_player.setup(_make_unit_data({"name": "抵达目标友军"}),
+		0, stale_base_victory_battle.victory_pos)
+	stale_base_victory_battle.add_child(stale_base_player)
+	stale_base_victory_battle.add_child(goal_base_player)
+	stale_base_victory_battle.player_units.assign([stale_base_player, goal_base_player])
+	stale_base_player.queue_free()
+	await process_frame
+	stale_base_victory_battle._check_victory()
+	_assert(stale_base_victory_battle._battle_over,
+		"基类胜利判定忽略已释放友军且识别后续抵达目标单位")
+	stale_base_victory_battle.queue_free()
 	await process_frame
 
 	var data := _make_unit_data()
