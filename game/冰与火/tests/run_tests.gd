@@ -66,7 +66,7 @@ func _run_all_tests() -> void:
 		["GameSettings 设置持久化", _test_game_settings],
 		["SettingsMenu 设置菜单", _test_settings_menu],
 		["Opening 正式主菜单", _test_opening_main_menu],
-		["自动镜头聚焦", _test_auto_camera_focus],
+		["自动镜头与敌方回合安全", _test_auto_camera_focus],
 		["战斗结果与动画开关", _test_combat_result_and_animation_setting],
 		["守卫型Boss数据字段", _test_guard_boss_fields],
 		["战斗动画freed节点防护", _test_animation_freed_guard],
@@ -1875,11 +1875,40 @@ func _test_auto_camera_focus() -> void:
 	battle.get_node("UnitLayer").add_child(tracked_enemy)
 	battle.enemy_units.append(tracked_enemy)
 	var enemy_start := tracked_enemy.grid_pos
+	var turn_count_before_enemy_turn: int = battle._turn_count
+	battle.recorded_player_turn_starts = 0
 	camera.position = Vector2.ZERO
-	await battle._start_enemy_turn()
+	battle._start_enemy_turn()
+	battle._start_enemy_turn()
+	for frame in 120:
+		if not battle._enemy_turn_running:
+			break
+		await process_frame
+	await create_timer(0.4).timeout
 	_assert(tracked_enemy.grid_pos != enemy_start, "敌军回合测试单位实际发生移动")
 	_assert_eq(camera.position, battle._g2p(tracked_enemy.grid_pos),
 		"开启自动镜头时敌军移动结束后镜头跟随到最终位置")
+	_assert_eq(battle._turn_count, turn_count_before_enemy_turn + 1,
+		"敌方回合同帧重复入口只会切回一次玩家回合")
+	_assert_eq(battle.recorded_player_turn_starts, 1,
+		"敌方回合同帧重复入口只会调用一次玩家回合入口")
+	_assert(not battle._enemy_turn_running, "敌方回合正常结束后释放运行锁")
+
+	var interrupted_enemy := Unit.new()
+	interrupted_enemy.setup(_make_enemy_data({"name": "中止回合敌军"}), 1, Vector2i(2, 4))
+	battle.get_node("UnitLayer").add_child(interrupted_enemy)
+	battle.enemy_units.assign([interrupted_enemy])
+	battle.recorded_player_turn_starts = 0
+	var turn_count_before_interruption: int = battle._turn_count
+	battle._battle_over = false
+	battle._start_enemy_turn()
+	battle._battle_over = true
+	await create_timer(0.5).timeout
+	_assert(not battle._enemy_turn_running, "战斗中止后敌方回合仍释放运行锁")
+	_assert_eq(battle.recorded_player_turn_starts, 0,
+		"敌方回合期间战斗结束不会切回玩家回合")
+	_assert_eq(battle._turn_count, turn_count_before_interruption,
+		"敌方回合期间战斗结束不会增加玩家回合计数")
 
 	settings.auto_camera_enabled = old_enabled
 	battle.queue_free()

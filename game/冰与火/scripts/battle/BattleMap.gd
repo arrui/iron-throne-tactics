@@ -49,6 +49,7 @@ var _battle_over:      bool = false:
 		if value:
 			_cancel_autopilot()
 var _animating_battle: bool = false
+var _enemy_turn_running: bool = false
 var _turn_ending:      bool = false  # 防止_check_all_acted重复进入
 
 # ── FE GBA 新增状态 ─────────────────────────────────────
@@ -2093,7 +2094,8 @@ func _check_all_acted() -> void:
 		_start_enemy_turn()
 
 func _start_enemy_turn() -> void:
-	if _battle_over: return
+	if _battle_over or _enemy_turn_running: return
+	_enemy_turn_running = true
 	current_phase = Phase.ENEMY_TURN
 	_deselect()
 	_update_turn_label()
@@ -2106,6 +2108,7 @@ func _start_enemy_turn() -> void:
 		if not is_instance_valid(enemy) or enemy.is_dead(): continue
 		if enemy.team == 2: continue   # 中立单位不参与敌方回合
 		await focus_unit(enemy, 0.18)
+		if _battle_over: break
 
 		var action: Dictionary = EnemyAI.decide(enemy, player_units, _calc_move_range(enemy))
 		if not is_instance_valid(enemy): continue
@@ -2140,6 +2143,7 @@ func _start_enemy_turn() -> void:
 
 		await get_tree().create_timer(0.15).timeout
 
+	_enemy_turn_running = false
 	if not _battle_over:
 		_start_player_turn()
 

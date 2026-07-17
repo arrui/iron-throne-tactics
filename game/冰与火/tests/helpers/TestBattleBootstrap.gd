@@ -9,6 +9,7 @@ var return_to_opening_requested: bool = false
 var fixed_combat_result: Dictionary = {}
 var recorded_enemy_turn_starts: int = 0
 var intercept_enemy_turn_start: bool = false
+var recorded_player_turn_starts: int = 0
 var record_autopilot_range_calculations: bool = false
 var recorded_autopilot_range_calculations: int = 0
 
@@ -113,6 +114,10 @@ func _start_enemy_turn() -> void:
 	recorded_enemy_turn_starts += 1
 	if not intercept_enemy_turn_start:
 		await super._start_enemy_turn()
+
+func _start_player_turn() -> void:
+	recorded_player_turn_starts += 1
+	super._start_player_turn()
 
 func _calc_move_range(unit: Unit) -> Array[Vector2i]:
 	if record_autopilot_range_calculations:
