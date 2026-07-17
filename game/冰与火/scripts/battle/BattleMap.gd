@@ -1855,6 +1855,9 @@ func _honor_check_attack(attacker: Unit, defender: Unit) -> bool:
 
 func _on_attack_pressed() -> void:
 	_hide_all_panels()
+	if not is_instance_valid(selected_unit):
+		_deselect()
+		return
 	if attack_tiles.size() == 1:
 		var enemy: Unit = _unit_at(attack_tiles[0], 1)
 		if enemy != null:
