@@ -2026,6 +2026,36 @@ func _test_auto_camera_focus() -> void:
 	removed_enemy_battle.queue_free()
 	await process_frame
 
+	# 敌方回合快照应越过启动前已释放的敌军引用并正常结束。
+	var stale_enemy_turn_battle := TestBootstrapClass.new()
+	root.add_child(stale_enemy_turn_battle)
+	await process_frame
+	for existing_unit: Variant in (stale_enemy_turn_battle.player_units + stale_enemy_turn_battle.enemy_units):
+		if is_instance_valid(existing_unit):
+			existing_unit.queue_free()
+	await process_frame
+	stale_enemy_turn_battle.player_units.clear()
+	stale_enemy_turn_battle.enemy_units.clear()
+	var stale_turn_enemy := Unit.new()
+	stale_turn_enemy.setup(_make_enemy_data({"name": "已释放敌方回合单位"}),
+		1, Vector2i(2, 4))
+	var neutral_turn_unit := Unit.new()
+	neutral_turn_unit.setup(_make_enemy_data({"name": "后续中立单位"}),
+		2, Vector2i(3, 4))
+	stale_enemy_turn_battle.get_node("UnitLayer").add_child(stale_turn_enemy)
+	stale_enemy_turn_battle.get_node("UnitLayer").add_child(neutral_turn_unit)
+	stale_enemy_turn_battle.enemy_units.assign([stale_turn_enemy, neutral_turn_unit])
+	stale_turn_enemy.free()
+	stale_enemy_turn_battle._battle_over = false
+	stale_enemy_turn_battle.recorded_player_turn_starts = 0
+	stale_enemy_turn_battle._start_enemy_turn()
+	await process_frame
+	_assert(not stale_enemy_turn_battle._enemy_turn_running \
+			and stale_enemy_turn_battle.recorded_player_turn_starts == 1,
+		"敌方回合忽略启动前已释放敌军且正常切回玩家回合")
+	stale_enemy_turn_battle.queue_free()
+	await process_frame
+
 	settings.auto_camera_enabled = old_enabled
 	battle.queue_free()
 	await process_frame

@@ -2147,8 +2147,11 @@ func _start_enemy_turn() -> void:
 
 	for i in enemies_this_turn.size():
 		if _battle_over: break
-		var enemy: Unit = enemies_this_turn[i]
-		if not is_instance_valid(enemy) or enemy.is_dead(): continue
+		var candidate: Variant = enemies_this_turn[i]
+		if not is_instance_valid(candidate):
+			continue
+		var enemy := candidate as Unit
+		if enemy == null or enemy.is_dead(): continue
 		if enemy.team == 2: continue   # 中立单位不参与敌方回合
 		await focus_unit(enemy, 0.18)
 		if _battle_over: break
