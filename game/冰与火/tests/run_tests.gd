@@ -5183,14 +5183,22 @@ func _test_overlay_runtime_flow() -> void:
 	ned.setup(_make_unit_data({"name": "奈德"}), 0, Vector2i(3, 3))
 	var robert := Unit.new()
 	robert.setup(_make_unit_data({"name": "劳勃"}), 0, Vector2i(4, 3))
+	var stale_support_unit := Unit.new()
+	stale_support_unit.setup(_make_unit_data({"name": "已释放支援单位"}),
+		0, Vector2i(2, 3))
+	support_battle.add_child(stale_support_unit)
 	support_battle.add_child(ned)
 	support_battle.add_child(robert)
+	support_battle.player_units.push_front(stale_support_unit)
 	support_battle.player_units.append(ned)
 	support_battle.player_units.append(robert)
+	stale_support_unit.queue_free()
+	await process_frame
 	for _idx in range(5):
 		support_battle._update_support_adjacency()
 	var support_popup := support_battle.get_node_or_null("UI/SupportPopup") as CanvasLayer
-	_assert(support_popup != null, "支援阈值达成后真实挂载 SupportPopup")
+	_assert(support_popup != null,
+		"支援累计忽略已释放引用并为后续相邻友军挂载 SupportPopup")
 	if support_popup != null:
 		_assert(support_popup.visible, "SupportPopup 触发后可见")
 		var camera_before_modal_scroll: Vector2 = support_battle._cam.position

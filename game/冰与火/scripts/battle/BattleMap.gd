@@ -2557,11 +2557,19 @@ func _on_item_used(unit: Unit, item_idx: int) -> void:
 # ── 支援系统 ──────────────────────────────────────────────
 func _update_support_adjacency() -> void:
 	for i: int in player_units.size():
+		var candidate_a: Variant = player_units[i]
+		if not is_instance_valid(candidate_a):
+			continue
+		var ua := candidate_a as Unit
+		if ua == null or ua.is_dead():
+			continue
 		for j: int in range(i + 1, player_units.size()):
-			var ua: Unit = player_units[i]
-			var ub: Unit = player_units[j]
-			if not is_instance_valid(ua) or not is_instance_valid(ub): continue
-			if ua.is_dead() or ub.is_dead(): continue
+			var candidate_b: Variant = player_units[j]
+			if not is_instance_valid(candidate_b):
+				continue
+			var ub := candidate_b as Unit
+			if ub == null or ub.is_dead():
+				continue
 			if _manhattan_dist(ua.grid_pos, ub.grid_pos) == 1:
 				var key := _support_key(ua.data.name, ub.data.name)
 				_support_data[key] = int(_support_data.get(key, 0)) + 1
