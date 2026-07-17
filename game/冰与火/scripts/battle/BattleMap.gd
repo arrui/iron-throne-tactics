@@ -1556,11 +1556,13 @@ func _set_unit_facing(unit: Unit, dir: Vector2i) -> void:
 	sprite.flip_h = (unit.team == 0) == (dir.x < 0)
 
 # ── 行走动画 ─────────────────────────────────────────────
-func _do_move_animated(unit: Unit, target: Vector2i) -> void:
+func _do_move_animated(unit: Unit, target: Vector2i) -> bool:
+	if _animating_battle:
+		return false
 	# 安全检查：目标格被友方占据时拒绝移动
 	var occupant: Unit = _unit_at(target, unit.team)
 	if occupant != null and occupant != unit:
-		return
+		return false
 	_pre_move_pos  = unit.grid_pos
 	var path       := _find_path_to(unit, target)
 	_animating_battle = true
@@ -1598,6 +1600,7 @@ func _do_move_animated(unit: Unit, target: Vector2i) -> void:
 	else:
 		_show_action_menu(target, true)
 	_on_player_unit_action_position_updated(unit)
+	return true
 
 # ── 输入 ─────────────────────────────────────────────────
 func _input(event: InputEvent) -> void:
@@ -2237,7 +2240,11 @@ func _run_autopilot_turn() -> void:
 		# ── 执行移动动画 ──────────────────────────────────────
 		var target_pos: Vector2i = action["move_to"]
 		if target_pos != acting.grid_pos:
-			await _do_move_animated(acting, target_pos)
+			var move_completed := await _do_move_animated(acting, target_pos)
+			if not move_completed:
+				_cancel_autopilot()
+				_set_status("⏸ 自动托管因当前操作被占用而暂停（A 键重新启动）")
+				return
 			if run_id != _autopilot_run_id: return
 			if not is_inside_tree() or not _autopilot: break
 			await get_tree().create_timer(0.15).timeout

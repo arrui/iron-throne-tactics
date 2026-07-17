@@ -2221,6 +2221,9 @@ func _test_unit_state_machine() -> void:
 	move_click.pressed = true
 	move_click.position = battle.get_global_transform_with_canvas() * battle._g2p(moved_pos)
 	battle._input(move_click)
+	var duplicate_move_result: Variant = await battle._do_move_animated(mover, moved_pos)
+	_assert_eq(duplicate_move_result, false,
+		"移动流程重入时向调用方明确返回失败")
 	for frame: int in range(60):
 		if not battle._animating_battle:
 			break
@@ -2228,7 +2231,8 @@ func _test_unit_state_machine() -> void:
 	_assert_eq(mover.state, Unit.State.MOVED, "正式移动流程会将单位标记为已移动")
 	_assert_eq(mover.grid_pos, moved_pos, "正式移动流程会更新单位格坐标")
 	_assert_eq(mover.position, battle._g2p(moved_pos), "正式移动动画会到达目标格场景位置")
-	_assert_eq(battle._pre_move_pos, move_origin, "正式移动流程会记录取消移动所需原坐标")
+	_assert_eq(battle._pre_move_pos, move_origin,
+		"移动流程重入时保留首次移动的取消原坐标")
 	_assert(battle.player_state == battle.PlayerState.UNIT_MOVED,
 		"正式移动完成后进入单位已移动状态")
 	_assert(action_menu.visible and cancel_move_button.visible,
@@ -2443,6 +2447,27 @@ func _test_unit_state_machine() -> void:
 			"快速中止并重启自动托管时只有最新协程执行单位决策")
 		battle._input(stop_autopilot_event)
 		await create_timer(0.4).timeout
+
+		waiter.reset_turn()
+		mover.reset_turn()
+		battle.record_autopilot_range_calculations = false
+		battle._animating_battle = true
+		if battle._autopilot_label == null:
+			battle._autopilot_label = Label.new()
+			battle.add_child(battle._autopilot_label)
+		battle._autopilot = true
+		battle._update_autopilot_label()
+		battle._run_autopilot_turn()
+		await create_timer(0.4).timeout
+		_assert(not battle._autopilot_running,
+			"共享操作锁拒绝移动时自动托管安全停止当前运行")
+		_assert(not battle._autopilot,
+			"共享操作锁拒绝移动时同步暂停自动托管开关")
+		_assert_eq(battle._autopilot_label.text, "",
+			"共享操作锁拒绝移动时清理自动托管状态标签")
+		_assert(waiter.can_act() and mover.can_act(),
+			"共享操作锁拒绝移动时自动托管不会消耗单位行动")
+		battle._animating_battle = false
 
 	battle.queue_free()
 	await process_frame
