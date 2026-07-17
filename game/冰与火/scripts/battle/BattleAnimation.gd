@@ -33,6 +33,7 @@ const ROUND_GAP          := 0.30
 
 var _panel_hidden_y: float = 0.0
 var _panel_shown_y:  float = 0.0
+var _playing: bool = false
 
 func _ready() -> void:
 	visible = false
@@ -65,9 +66,13 @@ func _apply_font_recursive(node: Node, font: Font) -> void:
 		_apply_font_recursive(child, font)
 
 func play(attacker: Unit, defender: Unit, result: Dictionary) -> void:
+	if _playing:
+		return
+	_playing = true
 	# ── 在任何await之前提取所有需要的数据 ──────────────────
 	# await期间节点可能被释放，必须在此之前把数据存成局部变量
 	if not is_instance_valid(attacker) or not is_instance_valid(defender):
+		_playing = false
 		animation_finished.emit({"atk_hit": false, "atk_damage": 0,
 			"def_hit": false, "def_damage": 0, "atk_double": false,
 			"double_hit": false, "double_damage": 0})
@@ -112,6 +117,7 @@ func play(attacker: Unit, defender: Unit, result: Dictionary) -> void:
 	await _slide_panel(_panel_hidden_y)
 	visible = false
 
+	_playing = false
 	animation_finished.emit(result)
 
 # ── UI初始化 ────────────────────────────────────────────

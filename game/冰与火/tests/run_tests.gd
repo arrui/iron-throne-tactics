@@ -1952,6 +1952,38 @@ func _test_combat_result_and_animation_setting() -> void:
 	_assert_eq(anim._slash_center(atk_icon, def_icon), expected_slash_center,
 		"武器轨迹使用双方全局位置计算舞台中心")
 	anim.queue_free()
+	await process_frame
+
+	var reentrant_anim := anim_scene.instantiate() as BattleAnimation
+	root.add_child(reentrant_anim)
+	await process_frame
+	var reentrant_attacker := Unit.new()
+	reentrant_attacker.setup(_make_unit_data({"name": "重入动画攻击方"}), 0, Vector2i(1, 1))
+	var reentrant_defender := Unit.new()
+	reentrant_defender.setup(_make_enemy_data({"name": "重入动画防守方"}), 1, Vector2i(2, 1))
+	root.add_child(reentrant_attacker)
+	root.add_child(reentrant_defender)
+	var animation_finished_count := [0]
+	reentrant_anim.animation_finished.connect(func(_result: Dictionary) -> void:
+		animation_finished_count[0] += 1
+	)
+	var lethal_result := {
+		"atk_hit": true, "atk_crit": false,
+		"atk_damage": reentrant_defender.data.max_hp,
+		"def_hit": false, "def_crit": false, "def_damage": 0,
+		"atk_double": false, "double_hit": false,
+		"double_crit": false, "double_damage": 0,
+	}
+	reentrant_anim.play(reentrant_attacker, reentrant_defender, lethal_result)
+	reentrant_anim.play(reentrant_attacker, reentrant_defender, lethal_result)
+	await reentrant_anim.animation_finished
+	await create_timer(0.5).timeout
+	_assert_eq(animation_finished_count[0], 1,
+		"同一战斗动画实例重复播放时只运行并完成一次")
+	reentrant_anim.queue_free()
+	reentrant_attacker.queue_free()
+	reentrant_defender.queue_free()
+	await process_frame
 
 	var fixed_result := {
 		"atk_hit": true, "atk_crit": false, "atk_damage": 4,
