@@ -2666,6 +2666,38 @@ func _test_unit_state_machine() -> void:
 	battle.queue_free()
 	await process_frame
 
+	# 自动托管初始等待期间，单位可能被剧情/事件释放但尚未从权威数组移除。
+	var stale_autopilot_battle := TestBootstrapClass.new()
+	root.add_child(stale_autopilot_battle)
+	await process_frame
+	for existing_unit: Variant in (stale_autopilot_battle.player_units + stale_autopilot_battle.enemy_units):
+		if is_instance_valid(existing_unit):
+			existing_unit.queue_free()
+	await process_frame
+	stale_autopilot_battle.player_units.clear()
+	stale_autopilot_battle.enemy_units.clear()
+	var stale_autopilot_unit := Unit.new()
+	stale_autopilot_unit.setup(_make_unit_data({"name": "已释放托管单位"}),
+		0, Vector2i(2, 2))
+	stale_autopilot_battle.get_node("UnitLayer").add_child(stale_autopilot_unit)
+	stale_autopilot_battle.player_units.append(stale_autopilot_unit)
+	stale_autopilot_battle.record_autopilot_range_calculations = true
+	stale_autopilot_battle._battle_over = false
+	stale_autopilot_battle.current_phase = stale_autopilot_battle.Phase.PLAYER_TURN
+	stale_autopilot_battle._autopilot = true
+	stale_autopilot_battle._run_autopilot_turn()
+	stale_autopilot_unit.queue_free()
+	await process_frame
+	await create_timer(0.35).timeout
+	_assert_eq(stale_autopilot_battle.recorded_autopilot_range_calculations, 0,
+		"自动托管会忽略初始等待期间释放且仍残留在数组中的单位")
+	_assert(not stale_autopilot_battle._autopilot_running,
+		"自动托管没有有效行动单位时会解除运行锁")
+	stale_autopilot_battle._cancel_autopilot()
+	await create_timer(0.35).timeout
+	stale_autopilot_battle.queue_free()
+	await process_frame
+
 # ══════════════════════════════════════════════════════════
 # 测试套件 12：路径查找 Dijkstra 逻辑（无需场景，纯算法）
 # ══════════════════════════════════════════════════════════

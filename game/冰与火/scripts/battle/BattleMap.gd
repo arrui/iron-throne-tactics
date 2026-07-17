@@ -2220,8 +2220,11 @@ func _run_autopilot_turn() -> void:
 
 		# 找下一个还能行动的单位
 		var acting: Unit = null
-		for u: Unit in player_units:
-			if is_instance_valid(u) and not u.is_dead() and u.can_act():
+		for candidate: Variant in player_units:
+			if not is_instance_valid(candidate):
+				continue
+			var u := candidate as Unit
+			if u != null and not u.is_dead() and u.can_act():
 				acting = u
 				break
 
