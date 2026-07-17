@@ -3177,6 +3177,25 @@ func _test_unit_state_machine() -> void:
 	battle.queue_free()
 	await process_frame
 
+	# 托管决策应越过已释放敌军，并继续选择后续可攻击目标。
+	var deciding_unit := Unit.new()
+	deciding_unit.setup(_make_unit_data({"name": "托管决策单位"}),
+		0, Vector2i(2, 2))
+	var stale_decision_enemy := Unit.new()
+	stale_decision_enemy.setup(_make_enemy_data({"name": "已释放托管目标"}),
+		1, Vector2i(3, 2))
+	var live_decision_enemy := Unit.new()
+	live_decision_enemy.setup(_make_enemy_data({"name": "存活托管目标"}),
+		1, Vector2i(3, 2))
+	var decision_enemies: Array = [stale_decision_enemy, live_decision_enemy]
+	stale_decision_enemy.free()
+	var stale_safe_decision := AutopilotAI.decide(
+		deciding_unit, decision_enemies, [Vector2i(2, 2)])
+	_assert(stale_safe_decision.get("attack") == live_decision_enemy,
+		"自动托管决策忽略已释放敌军且选择后续可攻击目标")
+	deciding_unit.free()
+	live_decision_enemy.free()
+
 	# 自动托管初始等待期间，单位可能被剧情/事件释放但尚未从权威数组移除。
 	var stale_autopilot_battle := TestBootstrapClass.new()
 	root.add_child(stale_autopilot_battle)

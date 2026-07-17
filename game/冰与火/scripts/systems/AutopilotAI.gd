@@ -21,8 +21,13 @@ static func decide(
 				return {"move_to": unit.grid_pos, "attack": null, "use_item": heal_idx}
 
 	# ── 优先级 1：攻击最低血量敌人 ──────────────────────────
-	var enemies: Array = enemy_units.filter(
-		func(e: Unit) -> bool: return is_instance_valid(e) and not e.is_dead())
+	var enemies: Array[Unit] = []
+	for candidate: Variant in enemy_units:
+		if not is_instance_valid(candidate):
+			continue
+		var enemy := candidate as Unit
+		if enemy != null and not enemy.is_dead():
+			enemies.append(enemy)
 	enemies.sort_custom(
 		func(a: Unit, b: Unit) -> bool: return a.data.hp < b.data.hp)
 
