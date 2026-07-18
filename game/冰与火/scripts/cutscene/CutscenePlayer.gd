@@ -2,6 +2,8 @@
 class_name CutscenePlayer
 extends CanvasLayer
 
+const CJKFontHelper := preload("res://scripts/ui/CJKFontHelper.gd")
+
 signal cutscene_finished
 
 const FADE_DURATION := 0.6
@@ -56,20 +58,48 @@ const CAMERA_STYLE_PRESETS := {
 		"pan_y": -4.0,
 		"overlay": Color(0.86, 0.92, 1.0, 0.04),
 	},
+	"sentence_glower": {
+		"zoom": 1.10,
+		"pan_x": 0.0,
+		"pan_y": -14.0,
+		"overlay": Color(1.0, 0.70, 0.42, 0.07),
+	},
+	"ember_descent": {
+		"zoom": 1.14,
+		"pan_x": -6.0,
+		"pan_y": 16.0,
+		"overlay": Color(0.94, 0.20, 0.10, 0.10),
+	},
+	"river_requiem": {
+		"zoom": 1.10,
+		"pan_x": 6.0,
+		"pan_y": 10.0,
+		"overlay": Color(0.82, 0.16, 0.20, 0.09),
+	},
+	"verdict_hold": {
+		"zoom": 1.09,
+		"pan_x": 12.0,
+		"pan_y": -8.0,
+		"overlay": Color(1.0, 0.84, 0.70, 0.06),
+	},
 }
 
 const SCENE_ART_STYLE_DEFAULTS := {
 	"throne_room": "throne_push",
+	"mad_king_sentence": "sentence_glower",
 	"execution": "execution_heat",
+	"stark_execution_close": "ember_descent",
 	"vale_castle": "steady",
 	"stormlands_road": "battle_sway",
 	"ruby_ford_duel": "battle_sway",
 	"ruby_ford_fall": "fall_drift",
+	"ruby_ford_aftermath": "river_requiem",
 	"trident_muster": "battle_sway",
 	"tower_of_joy_gate": "desert_glide",
 	"tower_of_joy_fall": "fall_drift",
 	"lyanna_chamber": "candle_breath",
 	"kingslayer": "throne_push",
+	"kingslayer_aftermath": "verdict_hold",
 	"throne_room_crowned": "throne_push",
 	"north_road": "snow_drift",
 	"winterfell_gate": "snow_drift",
@@ -110,21 +140,7 @@ func _process(_delta: float) -> void:
 		_abort_current_playback()
 
 func _apply_cjk_font() -> void:
-	# 直接加载内置 Arial Unicode 字体
-	var font: Font = null
-	const BUNDLED_FONT := "res://assets/fonts/ArialUnicode.ttf"
-	if ResourceLoader.exists(BUNDLED_FONT):
-		font = load(BUNDLED_FONT) as Font
-	# 回退到系统字体
-	if font == null:
-		var sf := SystemFont.new()
-		sf.font_names = PackedStringArray(["Heiti SC", "Arial Unicode MS", "Microsoft YaHei"])
-		font = sf
-	# 应用到所有标签
-	if font:
-		for child in get_children():
-			if child is Label:
-				(child as Label).add_theme_font_override("font", font)
+	CJKFontHelper.apply_to_node_recursive(self)
 
 func play(json_path: String) -> void:
 	_play_id += 1
@@ -195,14 +211,25 @@ func _play_slide(index: int, play_id: int) -> void:
 	# 优先：代码绘制场景（无需外部资源）
 	if _scene_art != null:
 		if scene_art != "":
-			_scene_art.reset_motion_state()
+			var scene_changed := _scene_art.scene_type != scene_art
+			if scene_changed and _scene_art.alpha > 0.01:
+				await _fade_scene_art(_scene_art.alpha, 0.0,
+					FADE_DURATION * 0.35, play_id)
+				if play_id != _play_id: return
+			if scene_changed:
+				_scene_art.reset_motion_state()
+				_scene_art.scene_type = scene_art
 			if camera_style == "":
 				camera_style = "steady"
 			_apply_camera_style(camera_style, duration, play_id)
-			_scene_art.scene_type = scene_art
 			_scene_art.queue_redraw()
-			await _fade_scene_art(0.0, 1.0, FADE_DURATION * 0.8, play_id)
-			if play_id != _play_id: return
+			if scene_changed:
+				await _fade_scene_art(0.0, 1.0, FADE_DURATION * 0.8, play_id)
+				if play_id != _play_id: return
+			elif _scene_art.alpha < 0.99:
+				await _fade_scene_art(_scene_art.alpha, 1.0,
+					FADE_DURATION * 0.25, play_id)
+				if play_id != _play_id: return
 		else:
 			# 确保上一张场景艺术已隐藏
 			if _scene_art.alpha > 0.01:

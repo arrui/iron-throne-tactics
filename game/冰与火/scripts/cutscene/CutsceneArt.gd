@@ -1,9 +1,9 @@
 # CutsceneArt.gd — 过场动画场景绘制（无外部资源，纯代码绘制）
 # 支持场景类型：
-# throne_room / execution / vale_castle / stormlands_road
-# ruby_ford_duel / ruby_ford_fall / trident_muster
+# throne_room / mad_king_sentence / execution / stark_execution_close / vale_castle / stormlands_road
+# ruby_ford_duel / ruby_ford_fall / ruby_ford_aftermath / trident_muster
 # tower_of_joy_gate / tower_of_joy_fall / lyanna_chamber
-# kingslayer / throne_room_crowned / north_road / winterfell_gate / red_keep_breach
+# kingslayer / kingslayer_aftermath / throne_room_crowned / north_road / winterfell_gate / red_keep_breach
 class_name CutsceneArt
 extends Node2D
 
@@ -33,16 +33,20 @@ func _draw() -> void:
 	var h := vp.size.y
 	match scene_type:
 		"throne_room":    _draw_throne_room(w, h)
+		"mad_king_sentence": _draw_mad_king_sentence(w, h)
 		"execution":      _draw_execution(w, h)
+		"stark_execution_close": _draw_stark_execution_close(w, h)
 		"vale_castle":    _draw_vale_castle(w, h)
 		"stormlands_road": _draw_stormlands_road(w, h)
 		"ruby_ford_duel": _draw_ruby_ford_duel(w, h)
 		"ruby_ford_fall": _draw_ruby_ford_fall(w, h)
+		"ruby_ford_aftermath": _draw_ruby_ford_aftermath(w, h)
 		"trident_muster": _draw_trident_muster(w, h)
 		"tower_of_joy_gate": _draw_tower_of_joy_gate(w, h)
 		"tower_of_joy_fall": _draw_tower_of_joy_fall(w, h)
 		"lyanna_chamber": _draw_lyanna_chamber(w, h)
 		"kingslayer": _draw_kingslayer(w, h)
+		"kingslayer_aftermath": _draw_kingslayer_aftermath(w, h)
 		"throne_room_crowned": _draw_throne_room_crowned(w, h)
 		"north_road": _draw_north_road(w, h)
 		"winterfell_gate": _draw_winterfell_gate(w, h)
@@ -80,15 +84,15 @@ func _draw_drifters(rect: Rect2, count: int, color: Color,
 
 func _draw_scene_fx(w: float, h: float) -> void:
 	match scene_type:
-		"throne_room", "throne_room_crowned", "kingslayer":
+		"throne_room", "mad_king_sentence", "throne_room_crowned", "kingslayer", "kingslayer_aftermath":
 			_draw_firelight_fx(w, h)
-		"execution":
+		"execution", "stark_execution_close":
 			_draw_execution_fx(w, h)
 		"vale_castle":
 			_draw_vale_mist_fx(w, h)
 		"stormlands_road":
 			_draw_stormlands_fx(w, h)
-		"ruby_ford_duel", "ruby_ford_fall":
+		"ruby_ford_duel", "ruby_ford_fall", "ruby_ford_aftermath":
 			_draw_ruby_ford_fx(w, h)
 		"trident_muster":
 			_draw_trident_muster_fx(w, h)
@@ -261,6 +265,36 @@ func _draw_throne_room(w: float, h: float) -> void:
 	draw_rect(Rect2(w * 0.40, h * 0.70, w * 0.20, h * 0.03),
 		_c(0.80, 0.35, 0.04, 0.3))
 
+func _draw_mad_king_sentence(w: float, h: float) -> void:
+	_draw_throne_room(w, h)
+	for chain: float in [w * 0.30, w * 0.70]:
+		draw_line(Vector2(chain, h * 0.16), Vector2(chain, h * 0.44), _c(0.30, 0.24, 0.18, 0.68), 3.0)
+		draw_arc(Vector2(chain, h * 0.46), 12.0, 0.0, TAU, 18, _c(0.34, 0.26, 0.20, 0.72), 3.0)
+
+	var petitioner := PackedVector2Array([
+		Vector2(w * 0.30, h * 0.66),
+		Vector2(w * 0.35, h * 0.57),
+		Vector2(w * 0.38, h * 0.64),
+		Vector2(w * 0.36, h * 0.74),
+		Vector2(w * 0.30, h * 0.74),
+	])
+	draw_polygon(petitioner, [_c(0.16, 0.14, 0.12, 0.94)])
+	draw_circle(Vector2(w * 0.31, h * 0.55), 12.0, _c(0.14, 0.12, 0.10, 0.92))
+	draw_line(Vector2(w * 0.35, h * 0.58), Vector2(w * 0.46, h * 0.46), _c(0.70, 0.72, 0.76, 0.45), 3.0)
+
+	for guard: Array in [
+		[w * 0.18, h * 0.60, -18.0],
+		[w * 0.82, h * 0.60, 18.0],
+	]:
+		var gx: float = guard[0]
+		var gy: float = guard[1]
+		var tilt: float = guard[2]
+		draw_circle(Vector2(gx, gy - 18.0), 11.0, _c(0.10, 0.09, 0.08, 0.92))
+		draw_rect(Rect2(gx - 10.0, gy - 4.0, 20.0, 30.0), _c(0.10, 0.09, 0.08, 0.92))
+		draw_line(Vector2(gx, gy - 6.0), Vector2(gx + tilt, gy - 42.0), _c(0.54, 0.54, 0.56, 0.55), 3.0)
+
+	draw_rect(Rect2(w * 0.24, h * 0.72, w * 0.16, h * 0.02), _c(0.46, 0.10, 0.10, 0.34))
+
 # ─── 场景2：行刑室 ───────────────────────────────────────
 func _draw_execution(w: float, h: float) -> void:
 	# 地面
@@ -322,6 +356,42 @@ func _draw_execution(w: float, h: float) -> void:
 		draw_rect(Rect2(fpx - 18, h * 0.78, 36, 22), _c(0.70, 0.22, 0.02, 0.45))
 		draw_rect(Rect2(fpx - 10, h * 0.75, 20, 14), _c(1.00, 0.50, 0.06, 0.60))
 		draw_rect(Rect2(fpx - 5,  h * 0.73,  10, 8), _c(1.00, 0.85, 0.30, 0.80))
+
+func _draw_stark_execution_close(w: float, h: float) -> void:
+	draw_rect(Rect2(0, 0, w, h * 0.72), _c(0.08, 0.06, 0.06))
+	draw_rect(Rect2(0, h * 0.72, w, h * 0.28), _c(0.14, 0.10, 0.08))
+	for ry: int in 6:
+		draw_line(Vector2(0, h * (0.14 + float(ry) * 0.08)),
+			Vector2(w, h * (0.14 + float(ry) * 0.08)), _c(0.14, 0.10, 0.10, 0.32), 1.0)
+
+	var armor := PackedVector2Array([
+		Vector2(w * 0.28, h * 0.80),
+		Vector2(w * 0.36, h * 0.58),
+		Vector2(w * 0.44, h * 0.54),
+		Vector2(w * 0.50, h * 0.64),
+		Vector2(w * 0.46, h * 0.82),
+	])
+	draw_polygon(armor, [_c(0.18, 0.17, 0.16, 0.96)])
+	draw_rect(Rect2(w * 0.36, h * 0.48, w * 0.10, h * 0.08), _c(0.22, 0.20, 0.19, 0.96))
+	draw_rect(Rect2(w * 0.35, h * 0.53, w * 0.12, h * 0.04), _c(0.12, 0.10, 0.10, 0.96))
+	draw_line(Vector2(w * 0.39, h * 0.56), Vector2(w * 0.32, h * 0.72), _c(0.66, 0.54, 0.28, 0.44), 2.0)
+
+	draw_line(Vector2(w * 0.66, h * 0.10), Vector2(w * 0.66, h * 0.44), _c(0.40, 0.32, 0.22, 0.82), 3.0)
+	draw_arc(Vector2(w * 0.66, h * 0.47), 18.0, 0.0, TAU, 20, _c(0.42, 0.34, 0.24, 0.82), 3.0)
+	draw_circle(Vector2(w * 0.66, h * 0.56), 12.0, _c(0.10, 0.08, 0.08, 0.92))
+	draw_rect(Rect2(w * 0.645, h * 0.58, w * 0.03, h * 0.10), _c(0.10, 0.08, 0.08, 0.92))
+	draw_line(Vector2(w * 0.645, h * 0.62), Vector2(w * 0.61, h * 0.58), _c(0.10, 0.08, 0.08, 0.92), 6.0)
+	draw_line(Vector2(w * 0.675, h * 0.62), Vector2(w * 0.71, h * 0.58), _c(0.10, 0.08, 0.08, 0.92), 6.0)
+
+	for flame: Array in [
+		[w * 0.22, h * 0.78, 24.0], [w * 0.32, h * 0.74, 18.0],
+		[w * 0.48, h * 0.76, 22.0], [w * 0.58, h * 0.80, 26.0],
+	]:
+		var fx: float = flame[0]
+		var fy: float = flame[1]
+		var radius: float = flame[2]
+		_soft_circle(Vector2(fx, fy), radius, _c(0.92, 0.24, 0.08, 0.22), 5)
+		_soft_circle(Vector2(fx, fy - 2.0), radius * 0.45, _c(1.0, 0.80, 0.34, 0.20), 4)
 
 # ─── 场景3：鹰巢城（谷地）───────────────────────────────
 func _draw_vale_castle(w: float, h: float) -> void:
@@ -621,6 +691,26 @@ func _draw_ruby_ford_fall(w: float, h: float) -> void:
 		_c(0.06, 0.05, 0.04), 6.0)
 	draw_rect(Rect2(robert_x + 32.0, robert_y - 12.0, 16.0, 12.0), _c(0.10, 0.09, 0.08))
 
+func _draw_ruby_ford_aftermath(w: float, h: float) -> void:
+	_draw_ruby_ford_fall(w, h)
+	for ripple: int in 5:
+		var rx := w * (0.40 + float(ripple) * 0.08)
+		var ry := h * (0.68 + float(ripple % 2) * 0.05)
+		draw_arc(Vector2(rx, ry), 22.0 + float(ripple) * 8.0, 0.20 * PI, 1.80 * PI,
+			24, _c(0.78, 0.86, 0.94, 0.18), 2.0)
+
+	draw_circle(Vector2(w * 0.31, h * 0.61), 12.0, _c(0.08, 0.06, 0.06, 0.92))
+	draw_rect(Rect2(w * 0.295, h * 0.63, w * 0.04, h * 0.09), _c(0.08, 0.06, 0.06, 0.92))
+	draw_line(Vector2(w * 0.33, h * 0.65), Vector2(w * 0.40, h * 0.72), _c(0.58, 0.10, 0.10, 0.50), 3.0)
+	draw_line(Vector2(w * 0.32, h * 0.63), Vector2(w * 0.42, h * 0.48), _c(0.12, 0.12, 0.12, 0.72), 4.0)
+
+	for gem: Vector2 in [
+		Vector2(w * 0.46, h * 0.70), Vector2(w * 0.51, h * 0.74),
+		Vector2(w * 0.56, h * 0.68), Vector2(w * 0.60, h * 0.73)
+	]:
+		draw_circle(gem, 7.0, _c(0.92, 0.16, 0.20, 0.98))
+		draw_circle(gem + Vector2(2.0, -2.0), 2.5, _c(1.0, 0.80, 0.84, 0.78))
+
 
 # ─── 场景6.5：三叉戟北岸集结 ───────────────────────────
 func _draw_trident_muster(w: float, h: float) -> void:
@@ -820,6 +910,25 @@ func _draw_kingslayer(w: float, h: float) -> void:
 	for ci: int in 3:
 		var cx: float = w * 0.435 + ci * 6.0
 		draw_line(Vector2(cx, h * 0.63), Vector2(cx, h * 0.60), _c(0.72, 0.62, 0.22, 0.82), 2.0)
+
+func _draw_kingslayer_aftermath(w: float, h: float) -> void:
+	_draw_kingslayer(w, h)
+	draw_rect(Rect2(w * 0.22, h * 0.66, w * 0.44, h * 0.018), _c(0.52, 0.08, 0.08, 0.50))
+	draw_circle(Vector2(w * 0.72, h * 0.58), 12.0, _c(0.10, 0.09, 0.08, 0.92))
+	draw_rect(Rect2(w * 0.708, h * 0.60, w * 0.028, h * 0.11), _c(0.10, 0.09, 0.08, 0.92))
+	draw_line(Vector2(w * 0.708, h * 0.64), Vector2(w * 0.68, h * 0.69), _c(0.10, 0.09, 0.08, 0.92), 5.0)
+	draw_line(Vector2(w * 0.736, h * 0.64), Vector2(w * 0.76, h * 0.70), _c(0.10, 0.09, 0.08, 0.92), 5.0)
+	draw_line(Vector2(w * 0.68, h * 0.60), Vector2(w * 0.60, h * 0.68), _c(0.86, 0.86, 0.84, 0.85), 4.0)
+
+	for witness: Array in [
+		[w * 0.18, h * 0.62, 10.0],
+		[w * 0.84, h * 0.64, 9.0],
+	]:
+		var wx: float = witness[0]
+		var wy: float = witness[1]
+		var hr: float = witness[2]
+		draw_circle(Vector2(wx, wy - hr - 4.0), hr * 0.75, _c(0.12, 0.10, 0.09, 0.70))
+		draw_rect(Rect2(wx - hr * 0.45, wy - 2.0, hr * 0.9, hr * 1.6), _c(0.12, 0.10, 0.09, 0.70))
 
 
 # ─── 场景11：劳勃登上铁王座 ───────────────────────────

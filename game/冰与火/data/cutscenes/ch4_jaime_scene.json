@@ -9,18 +9,25 @@
 	  "camera_style": "throne_push"
     },
     {
-      "text": "铁王座大厅。\n詹姆·兰尼斯特独自站立，\n持剑，背对着来者。",
-      "subtext": "王卫白袍上染了血。\n他没有回头。",
+	  "text": "铁王座大厅。\n詹姆·兰尼斯特独自站立，\n持剑，背对着来者。",
+	  "subtext": "王卫白袍上染了血。\n他刚刚穿过最后一道命令，\n也刚刚背负起自己一生的名字。",
       "duration": 6.0,
 	  "scene_art": "kingslayer",
 	  "camera_style": "throne_push"
     },
     {
-      "text": "疯王艾里斯·坦格利安，\n就倒在铁王座的台阶下。",
-      "subtext": "后世将在史书中称此人为「弑君者」。\n但此刻，铁王座大厅里只有沉默。",
+	  "text": "疯王艾里斯·坦格利安，\n就倒在铁王座的台阶下。",
+	  "subtext": "他的血沿着台阶缓慢淌开，\n像把最后一簇野火也一并熄灭。",
       "duration": 6.5,
-	  "scene_art": "kingslayer",
-	  "camera_style": "throne_push"
+	  "scene_art": "kingslayer_aftermath",
+	  "camera_style": "verdict_hold"
+	},
+	{
+	  "text": "后世将在史书中称此人为「弑君者」。",
+	  "subtext": "可在这一个瞬间，\n铁王座大厅里只有沉默，\n只有焦糊、鲜血，\n以及一个人替整座城做出的决定。",
+	  "duration": 6.0,
+	  "scene_art": "kingslayer_aftermath",
+	  "camera_style": "verdict_hold"
     }
   ]
 }

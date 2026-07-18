@@ -2,6 +2,7 @@
 extends Node
 
 const PrologueChapterBriefs := preload("res://scripts/chapter/PrologueChapterBriefs.gd")
+const CJKFontHelper := preload("res://scripts/ui/CJKFontHelper.gd")
 
 const CUTSCENE_SCENE := preload("res://scenes/cutscene/CutscenePlayer.tscn")
 const SETTINGS_SCENE := preload("res://scenes/ui/SettingsMenu.tscn")
@@ -82,9 +83,17 @@ func _chapter_display_name(chapter: int) -> String:
 
 func _on_new_game_pressed() -> void:
 	if SaveSystem.has_save() and _new_game_confirm != null:
-		_new_game_confirm.popup_centered()
+		_show_new_game_confirm()
 		return
 	_start_new_game()
+
+func _show_new_game_confirm() -> void:
+	if _new_game_confirm == null:
+		return
+	_refresh_new_game_confirm_font()
+	_new_game_confirm.popup_centered()
+	call_deferred("_refresh_new_game_confirm_font")
+	call_deferred("_refresh_new_game_confirm_font_after_popup")
 
 func _start_new_game() -> void:
 	SaveSystem.delete_save()
@@ -202,63 +211,26 @@ func _on_cutscene_finished() -> void:
 
 # ── 全局字体：使用系统黑体支持中文显示 ──────────────────
 func _get_cjk_font() -> Font:
-	# 方案一：加载项目内置 Arial Unicode 字体（最可靠）
-	const BUNDLED_FONT := "res://assets/fonts/ArialUnicode.ttf"
-	if ResourceLoader.exists(BUNDLED_FONT):
-		var ff := load(BUNDLED_FONT) as Font
-		if ff != null:
-			return ff
-	# 方案二：直接加载系统字体文件（优先 .ttf 格式）
-	var os_font_paths := [
-		"/System/Library/Fonts/Supplemental/Arial Unicode.ttf",  # macOS，含全套CJK
-		"/Library/Fonts/Arial Unicode.ttf",           # macOS 备选路径
-		"/System/Library/Fonts/STHeiti Medium.ttc",   # macOS 简体中文黑体
-		"/System/Library/Fonts/Hiragino Sans GB.ttc", # macOS 备选
-		"C:/Windows/Fonts/msyh.ttc",                  # Windows 微软雅黑
-		"C:/Windows/Fonts/simhei.ttf",                # Windows 黑体
-		"/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",  # Linux
-	]
-	for path in os_font_paths:
-		if FileAccess.file_exists(path):
-			var ff := load(path) as Font
-			if ff != null:
-				return ff
-	# 方案二：使用 SystemFont（名称匹配）
-	var sf := SystemFont.new()
-	sf.font_names = PackedStringArray([
-		"Heiti SC",          # macOS 简体中文黑体
-		"Hiragino Sans GB",  # macOS 备选
-		"Arial Unicode MS",  # 通用 Unicode
-		"Microsoft YaHei",   # Windows 微软雅黑
-		"PingFang SC",       # macOS 苹方
-		"STHeitiSC-Medium",  # macOS PostScript 名
-		"WenQuanYi Micro Hei", # Linux
-		"Noto Sans CJK SC",  # Linux/Android
-	])
-	return sf
+	return CJKFontHelper.get_font()
 
 func _apply_chinese_font() -> void:
-	var font := _get_cjk_font()
-	# 设置项目主题默认字体
-	var theme := ThemeDB.get_project_theme()
-	if theme != null:
-		theme.default_font = font
-		theme.default_font_size = 14
-	# 同时设置全局回退字体（确保即使没有项目主题也能显示中文）
-	ThemeDB.fallback_font = font
-	ThemeDB.fallback_font_size = 14
+	var font := CJKFontHelper.apply_global_theme(14)
 	# 主菜单场景在启动时已经完成实例化，单纯依赖 fallback_font
 	# 在部分 Godot 4.6/macOS 环境下不会立刻刷新到现有控件，
 	# 会导致中文显示为方框。这里递归给当前场景内文本控件显式覆写字体。
-	call_deferred("_apply_font_to_controls", self)
+	CJKFontHelper.apply_to_node_recursive(self, font)
+	call_deferred("_apply_font_to_controls", self, font)
+	call_deferred("_refresh_new_game_confirm_font")
 
-func _apply_font_to_controls(node: Node) -> void:
+func _apply_font_to_controls(node: Node, font: Font = null) -> void:
+	CJKFontHelper.apply_to_node_recursive(node, font)
+
+func _refresh_new_game_confirm_font() -> void:
+	if _new_game_confirm == null:
+		return
 	var font := _get_cjk_font()
-	if node is Label:
-		(node as Label).add_theme_font_override("font", font)
-	elif node is Button:
-		(node as Button).add_theme_font_override("font", font)
-	elif node is RichTextLabel:
-		(node as RichTextLabel).add_theme_font_override("normal_font", font)
-	for child in node.get_children():
-		_apply_font_to_controls(child)
+	CJKFontHelper.apply_to_confirmation_dialog(_new_game_confirm, font)
+
+func _refresh_new_game_confirm_font_after_popup() -> void:
+	await get_tree().process_frame
+	_refresh_new_game_confirm_font()

@@ -2,6 +2,8 @@
 class_name DialogueSystem
 extends CanvasLayer
 
+const CJKFontHelper := preload("res://scripts/ui/CJKFontHelper.gd")
+
 signal dialogue_finished
 signal line_changed(speaker: String)
 
@@ -43,18 +45,7 @@ var _typing_token: int   = 0
 
 func _ready() -> void:
 	# 为对话系统标签应用中文字体
-	var font: Font = null
-	const BUNDLED_FONT := "res://assets/fonts/ArialUnicode.ttf"
-	if ResourceLoader.exists(BUNDLED_FONT):
-		font = load(BUNDLED_FONT) as Font
-	if font == null:
-		var sf := SystemFont.new()
-		sf.font_names = PackedStringArray(["Heiti SC", "Arial Unicode MS", "Microsoft YaHei"])
-		font = sf
-	if font:
-		for child in get_children():
-			if child is Label:
-				(child as Label).add_theme_font_override("font", font)
+	CJKFontHelper.apply_to_node_recursive(self)
 	_apply_dark_ui_theme()
 
 func play(dialogue_path: String) -> void:

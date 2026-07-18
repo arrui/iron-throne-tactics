@@ -260,6 +260,9 @@ func _test_unit_data() -> void:
 	_assert_eq(d.move_type, "foot", "默认测试剑士使用步行标签")
 	_assert_eq(d.armor_type, "medium", "默认测试剑士使用中甲标签")
 	_assert_eq(d.animation_family, "lord_sword", "默认测试剑士继承职业动画家族")
+	_assert_eq(d.trait_key, "command_aura", "默认测试剑士继承职业特性键")
+	_assert_eq(d.trait_name, "中轴统军", "默认测试剑士继承职业特性名")
+	_assert("部署提示" in d.trait_desc, "默认测试剑士继承职业特性描述")
 	_assert_eq(d.source_id, "", "未指定source_id时保持空字符串")
 
 	var sourced := UnitData.from_dict({"name": "劳勃"}, "robert_baratheon.json")
@@ -268,11 +271,13 @@ func _test_unit_data() -> void:
 	var scout := UnitData.from_dict({"class": "长枪兵", "weapon_type": "lance", "move": 5}, "howland_reed.json")
 	_assert_eq(scout.class_id, "scout_spear", "霍兰映射到游猎枪手模板")
 	_assert_eq(scout.armor_type, "light", "霍兰使用轻甲标签")
+	_assert_eq(scout.trait_key, "harrier", "霍兰继承游猎枪手特性")
 
 	var ch4_guard := UnitData.from_dict({"class": "骑士", "weapon_type": "axe", "move": 4}, "north_spearwall")
 	_assert_eq(ch4_guard.class_id, "line_spear", "Ch4 护桥候选映射到线列枪兵模板")
 	_assert_eq(ch4_guard.move_type, "guard", "Ch4 护桥候选使用守卫移动标签")
 	_assert_eq(ch4_guard.armor_type, "heavy", "Ch4 护桥候选使用重甲标签")
+	_assert_eq(ch4_guard.trait_name, "枪墙", "Ch4 护桥候选继承枪墙特性")
 
 	# 缺失字段使用默认值
 	var empty := UnitData.from_dict({})
@@ -332,6 +337,38 @@ func _test_battle_calculator() -> void:
 	# C级武器（英雄级强化）
 	var sword_c := _make_unit_data({"weapon_rank": "C"})
 	_assert_eq(BattleCalculator.calc_damage(sword_c, def2, "sword_C"), 12, "伤害公式 sword_C (9+9-4=14 → wait pow=7+9=16-4=12)")
+
+	var breaker := UnitData.from_dict({
+		"name": "破门斧卫", "class_id": "raider_axe", "weapon_type": "axe", "weapon_rank": "D",
+		"pow": 11, "def": 8, "skl": 6, "lck": 4,
+	}, "north_axebreaker")
+	var heavy_guard := UnitData.from_dict({
+		"name": "重卫统领", "class_id": "heavy_guard_sword", "weapon_type": "sword", "weapon_rank": "D",
+		"armor_type": "heavy", "pow": 8, "def": 9, "spd": 4, "lck": 3,
+	}, "royal_guard_captain.json")
+	_assert_eq(BattleCalculator.calc_damage(breaker, heavy_guard, "axe_D", "sword_D", true), 10,
+		"破甲对重甲目标伤害+2，但坚垒会抵消部分先手输出")
+	var lancer := UnitData.from_dict({
+		"name": "侧翼游骑", "class_id": "lancer_elite", "weapon_type": "lance", "weapon_rank": "D",
+		"pow": 9, "skl": 7, "lck": 4,
+	}, "north_rider")
+	_assert_eq(BattleCalculator.calc_damage(lancer, def2, "lance_D", "sword_E", true), 16,
+		"冲锋先手伤害+2，且枪对剑兵刃克制额外+1")
+	var duelist := UnitData.from_dict({
+		"name": "林地快剑", "class_id": "duelist_sword", "weapon_type": "sword", "weapon_rank": "D",
+		"skl": 10, "lck": 5,
+	}, "north_swiftsword")
+	_assert_eq(BattleCalculator.calc_hit(duelist, def2, "sword_D", 0, "sword_E", true), 99,
+		"先手提升命中后仍受99上限约束")
+	_assert_eq(BattleCalculator.calc_crit(duelist, def2, true), 9,
+		"先手提升暴击+6")
+	_assert_eq(BattleCalculator.calc_damage(heavy_guard, breaker, "sword_D", "axe_D", false), 8,
+		"坚垒仅在被先手攻击时生效，不影响重卫主动反击输出")
+	var trait_effect := BattleCalculator.get_trait_effect(breaker, heavy_guard, true)
+	_assert_eq(trait_effect.get("damage_bonus", 0), 2, "破甲特效返回正确伤害加成")
+	_assert_eq(trait_effect.get("damage_reduction", 0), 3, "坚垒特效返回正确减伤")
+	_assert("破甲" in str(trait_effect.get("summary", "")) and "坚垒" in str(trait_effect.get("summary", "")),
+		"职业特效摘要同时描述攻守双方触发")
 
 	# predict() 返回完整字典
 	var pred := BattleCalculator.predict(atk, def2, "sword_E", "sword_E", 0)
@@ -876,16 +913,17 @@ func _test_cutscene_json() -> void:
 			# 验证 scene_art 值为已知类型
 			var valid_arts := [
 				"",
-				"throne_room", "execution", "vale_castle", "stormlands_road",
-				"ruby_ford_duel", "ruby_ford_fall", "trident_muster",
+				"throne_room", "mad_king_sentence", "execution", "stark_execution_close", "vale_castle", "stormlands_road",
+				"ruby_ford_duel", "ruby_ford_fall", "ruby_ford_aftermath", "trident_muster",
 				"tower_of_joy_gate", "tower_of_joy_fall", "lyanna_chamber",
-				"kingslayer", "throne_room_crowned", "north_road", "winterfell_gate",
+				"kingslayer", "kingslayer_aftermath", "throne_room_crowned", "north_road", "winterfell_gate",
 				"red_keep_breach",
 			]
 			var valid_camera_styles := [
 				"",
 				"steady", "throne_push", "execution_heat", "battle_sway",
 				"fall_drift", "desert_glide", "candle_breath", "snow_drift",
+				"sentence_glower", "ember_descent", "river_requiem", "verdict_hold",
 			]
 			var all_known := true
 			var all_camera_known := true
@@ -903,13 +941,14 @@ func _test_cutscene_json() -> void:
 			_assert(all_camera_known, "所有camera_style为已知类型")
 
 	var narrative_cutscene_art_expectations: Dictionary = {
+		"res://data/cutscenes/prologue_mad_king.json": ["throne_room", "mad_king_sentence", "execution", "stark_execution_close", "vale_castle"],
 		"res://data/cutscenes/ch2_opening.json": ["trident_muster", "ruby_ford_duel"],
-		"res://data/cutscenes/ch2_rhaegar_fall.json": ["ruby_ford_duel", "ruby_ford_fall"],
+		"res://data/cutscenes/ch2_rhaegar_fall.json": ["ruby_ford_duel", "ruby_ford_fall", "ruby_ford_aftermath"],
 		"res://data/cutscenes/ch3_opening.json": ["tower_of_joy_gate"],
 		"res://data/cutscenes/ch3_dayne_trigger.json": ["tower_of_joy_gate", "tower_of_joy_fall"],
 		"res://data/cutscenes/ch3_lyanna.json": ["lyanna_chamber"],
 		"res://data/cutscenes/ch4_opening.json": ["red_keep_breach"],
-		"res://data/cutscenes/ch4_jaime_scene.json": ["kingslayer"],
+		"res://data/cutscenes/ch4_jaime_scene.json": ["kingslayer", "kingslayer_aftermath"],
 		"res://data/cutscenes/ch4_ending.json": ["throne_room_crowned", "north_road", "winterfell_gate"],
 	}
 	for cutscene_path: String in narrative_cutscene_art_expectations.keys():
@@ -928,13 +967,13 @@ func _test_cutscene_json() -> void:
 
 	var camera_style_expectations := {
 		"res://data/cutscenes/ch2_opening.json": ["battle_sway"],
-		"res://data/cutscenes/prologue_mad_king.json": ["throne_push", "execution_heat", "steady"],
-		"res://data/cutscenes/ch2_rhaegar_fall.json": ["battle_sway", "fall_drift"],
+		"res://data/cutscenes/prologue_mad_king.json": ["throne_push", "sentence_glower", "execution_heat", "ember_descent", "steady"],
+		"res://data/cutscenes/ch2_rhaegar_fall.json": ["battle_sway", "fall_drift", "river_requiem"],
 		"res://data/cutscenes/ch3_opening.json": ["desert_glide"],
 		"res://data/cutscenes/ch3_dayne_trigger.json": ["battle_sway", "fall_drift"],
 		"res://data/cutscenes/ch3_lyanna.json": ["candle_breath"],
 		"res://data/cutscenes/ch4_opening.json": ["battle_sway"],
-		"res://data/cutscenes/ch4_jaime_scene.json": ["throne_push"],
+		"res://data/cutscenes/ch4_jaime_scene.json": ["throne_push", "verdict_hold"],
 		"res://data/cutscenes/ch4_ending.json": ["throne_push", "snow_drift"],
 	}
 	for cutscene_path: String in camera_style_expectations.keys():
@@ -1039,6 +1078,7 @@ func _test_battle_predict_full() -> void:
 	var confirm_button := predict_panel.get_node("VBox/Buttons/ConfirmBtn") as Button
 	var cancel_button := predict_panel.get_node("VBox/Buttons/CancelBtn") as Button
 	var triangle_line := predict_panel.get_node("VBox/TriangleLine") as Label
+	var trait_line := predict_panel.get_node_or_null("VBox/TraitLine") as Label
 	_assert_eq(attack_button.pressed.get_connections().size(), 1,
 		"正式攻击按钮仅连接一个处理目标")
 	_assert(confirm_button.pressed.get_connections().size() == 1,
@@ -1058,6 +1098,9 @@ func _test_battle_predict_full() -> void:
 		"战斗预测面板会明确显示当前兵刃克制关系")
 	if triangle_line != null:
 		_assert("剑压斧" in triangle_line.text, "战斗预测面板显示具体克制对象")
+	_assert(trait_line != null, "战斗预测面板新增兵种特性行")
+	if trait_line != null:
+		_assert("兵种特性" in trait_line.text, "战斗预测面板显示兵种特性提示")
 	var reserve_click := InputEventMouseButton.new()
 	reserve_click.button_index = MOUSE_BUTTON_LEFT
 	reserve_click.pressed = true
@@ -1972,6 +2015,13 @@ func _test_settings_menu() -> void:
 	_assert(menu.get_node_or_null("Dimmer/Panel/Margin/Content/Buttons/Close") is Button,
 		"设置菜单包含关闭按钮")
 	_assert(menu.has_signal("closed"), "设置菜单提供关闭信号")
+	var menu_title := menu.get_node_or_null("Dimmer/Panel/Margin/Content/Title") as Label
+	var menu_battle_animations := menu.get_node_or_null(
+		"Dimmer/Panel/Margin/Content/BattleAnimations") as CheckButton
+	_assert(menu_title != null and menu_title.get_theme_font("font") != null,
+		"设置菜单标题显式应用 CJK 字体")
+	_assert(menu_battle_animations != null and menu_battle_animations.get_theme_font("font") != null,
+		"设置菜单开关按钮显式应用 CJK 字体")
 	var global_settings := root.get_node_or_null("GameSettings")
 	var old_battle_animations: bool = global_settings.battle_animations_enabled
 	var old_auto_camera: bool = global_settings.auto_camera_enabled
@@ -2174,8 +2224,20 @@ func _test_opening_main_menu() -> void:
 	var new_game_dialog := confirmed_opening.get_node_or_null("NewGameConfirm") as ConfirmationDialog
 	if confirmed_new_game != null:
 		confirmed_new_game.pressed.emit()
+	await process_frame
 	_assert(new_game_dialog != null and new_game_dialog.visible,
 		"已有存档时点击新游戏真实打开二次确认框")
+	var confirm_ok := new_game_dialog.get_ok_button() if new_game_dialog != null else null
+	var confirm_cancel := new_game_dialog.get_cancel_button() if new_game_dialog != null else null
+	var confirm_label := new_game_dialog.get_label() if new_game_dialog != null else null
+	_assert(new_game_dialog != null and new_game_dialog.get_theme_font("title_font") != null,
+		"新游戏确认框标题显式应用 CJK 字体")
+	_assert(confirm_label != null and confirm_label.get_theme_font("font") != null,
+		"新游戏确认框正文显式应用 CJK 字体")
+	_assert(confirm_ok != null and confirm_ok.get_theme_font("font") != null,
+		"新游戏确认框的确认按钮显式应用 CJK 字体")
+	_assert(confirm_cancel != null and confirm_cancel.get_theme_font("font") != null,
+		"新游戏确认框的取消按钮显式应用 CJK 字体")
 	_assert(not confirmed_opening.played_chapter_1,
 		"确认前不会提前清档或进入 Ch1")
 	if new_game_dialog != null:
@@ -2477,8 +2539,12 @@ func _test_combat_result_and_animation_setting() -> void:
 	_assert(anim.get_node_or_null("Panel/SlashTrail") is Polygon2D, "战斗动画包含武器轨迹")
 	_assert(anim.get_node_or_null("Panel/CriticalLabel") is Label, "战斗动画包含暴击演出标题")
 	_assert(anim.get_node_or_null("Panel/StageAccent") is ColorRect, "战斗动画包含专属演出染色层")
+	_assert(anim.get_node_or_null("Panel/CinematicTop") is ColorRect, "战斗动画包含电影感上边框")
+	_assert(anim.get_node_or_null("Panel/CinematicBottom") is ColorRect, "战斗动画包含电影感下边框")
 	_assert(anim.get_node_or_null("Panel/ShowcaseLabel") is Label, "战斗动画包含专属标题标签")
+	_assert(anim.get_node_or_null("Panel/ShowcaseSubLabel") is Label, "战斗动画包含专属副标题标签")
 	_assert(anim.get_node_or_null("Panel/SignatureBurst") is Polygon2D, "战斗动画包含专属签名特效")
+	_assert(anim.get_node_or_null("Panel/ShowcaseGlint") is Polygon2D, "战斗动画包含专属闪切高光")
 	_assert_eq(anim._animation_style_from_data("sword", "lord_sword"), "sword",
 		"剑系战斗动画使用轻快斩击风格")
 	_assert_eq(anim._animation_style_from_data("axe", "heavy_axe"), "axe",
@@ -2533,6 +2599,8 @@ func _test_combat_result_and_animation_setting() -> void:
 	var ruby_profile: Dictionary = anim._profile_with_showcase_modifiers(anim._animation_profile("axe"), false)
 	_assert_eq((anim.get_node("Panel/VSLabel") as Label).text, "红宝石滩",
 		"劳勃对雷加会显示专属战斗标识")
+	_assert_eq((anim.get_node("Panel/ShowcaseSubLabel") as Label).text, "战锤破甲 · 王朝折断",
+		"红宝石滩专属演出会显示战斗副标题")
 	_assert_eq((anim.get_node("Panel/StageArt") as BattleStageArt).stage_mode,
 		BattleStageArt.MODE_RUBY_FORD,
 		"红宝石滩专属演出会切换到河战舞台背景")
@@ -2546,9 +2614,16 @@ func _test_combat_result_and_animation_setting() -> void:
 		"红宝石滩舞台背景保留军阵辅助构图能力")
 	_assert(float(ruby_profile.get("panel_kick", 0.0)) > float(axe_profile.get("panel_kick", 0.0)),
 		"红宝石滩专属演出会强化冲击感")
+	_assert(float(ruby_profile.get("defender_push", 0.0)) > float(axe_profile.get("defender_push", 0.0)),
+		"红宝石滩专属演出会强化受击击退感")
+	_assert((anim.get_node("Panel/CinematicTop") as ColorRect).visible,
+		"红宝石滩专属演出会启用电影感遮幅")
 	anim._apply_showcase_presentation(BattleAnimation.SHOWCASE_DAWN_FALL)
+	var dawn_profile: Dictionary = anim._profile_with_showcase_modifiers(anim._animation_profile("lance"), false)
 	_assert_eq((anim.get_node("Panel/CriticalLabel") as Label).text, "晓光折断！",
 		"晓剑落幕专属演出会替换必杀文案")
+	_assert_eq((anim.get_node("Panel/ShowcaseSubLabel") as Label).text, "双剑守门 · 一枪定局",
+		"晓剑落幕专属演出会显示战斗副标题")
 	_assert_eq((anim.get_node("Panel/StageArt") as BattleStageArt).stage_mode,
 		BattleStageArt.MODE_TOWER_OF_JOY,
 		"晓剑落幕专属演出会切换到极乐塔舞台背景")
@@ -2558,13 +2633,22 @@ func _test_combat_result_and_animation_setting() -> void:
 		"极乐塔舞台背景提供半立绘化前景层")
 	_assert((anim.get_node("Panel/StageArt") as BattleStageArt).has_method("_soft_circle"),
 		"极乐塔舞台背景保留柔光氛围辅助能力")
+	_assert(float(dawn_profile.get("charge_duration", 9.9)) < float(lance_profile.get("charge_duration", 0.0)),
+		"晓剑落幕专属演出会让突刺更凌厉")
+	_assert(float(dawn_profile.get("dodge_lift", 0.0)) > float(lance_profile.get("dodge_lift", 0.0)),
+		"晓剑落幕专属演出会强化擦身与闪避感")
 	_assert((anim._signature_polygon_for_showcase("unknown")).size() >= 6,
 		"专属签名工具为未知模式提供默认多边形")
 	_assert((anim.get_node("Panel/SignatureBurst") as Polygon2D).polygon.size() >= 6,
 		"专属演出会提供独立签名特效轮廓")
+	_assert((anim.get_node("Panel/ShowcaseGlint") as Polygon2D).polygon.size() >= 5,
+		"专属演出会提供额外闪切高光轮廓")
 	anim._apply_showcase_presentation(BattleAnimation.SHOWCASE_KINGSLAYER)
+	var kingslayer_profile: Dictionary = anim._profile_with_showcase_modifiers(anim._animation_profile("sword"), false)
 	_assert_eq((anim.get_node("Panel/ShowcaseLabel") as Label).text, "弑君者",
 		"弑君者专属演出会显示专属标题")
+	_assert_eq((anim.get_node("Panel/ShowcaseSubLabel") as Label).text, "白袍染血 · 王者陨落",
+		"弑君者专属演出会显示战斗副标题")
 	_assert_eq((anim.get_node("Panel/StageArt") as BattleStageArt).stage_mode,
 		BattleStageArt.MODE_THRONE_ROOM,
 		"弑君者专属演出会切换到王座厅舞台背景")
@@ -2574,9 +2658,17 @@ func _test_combat_result_and_animation_setting() -> void:
 		"王座厅舞台背景提供半立绘化前景层")
 	_assert((anim.get_node("Panel/StageArt") as BattleStageArt).has_method("_draw_blood_streak"),
 		"王座厅舞台背景保留血痕叙事辅助能力")
+	_assert(float(kingslayer_profile.get("windup_y", 0.0)) < float(sword_profile.get("windup_y", 0.0)),
+		"弑君者专属演出会强化上挑起手姿态")
+	_assert(float(kingslayer_profile.get("defender_push", 0.0)) > float(sword_profile.get("defender_push", 0.0)),
+		"弑君者专属演出会强化致命穿透的击退感")
 	anim._apply_showcase_presentation("")
 	_assert_eq((anim.get_node("Panel/StageArt") as BattleStageArt).stage_mode, "",
 		"退出专属演出后清空场景化舞台背景")
+	_assert(not (anim.get_node("Panel/CinematicTop") as ColorRect).visible,
+		"退出专属演出后关闭电影感遮幅")
+	_assert_eq((anim.get_node("Panel/ShowcaseSubLabel") as Label).text, "",
+		"退出专属演出后清空副标题")
 	showcase_robert.queue_free()
 	showcase_rhaegar.queue_free()
 	showcase_howland.queue_free()
@@ -3546,6 +3638,16 @@ func _test_unit_state_machine() -> void:
 	minimap_toggle_event.pressed = true
 	minimap_toggle_event.keycode = KEY_M
 	_assert(not battle._minimap.visible, "正式小地图初始化后默认隐藏")
+	var minimap_fallback_before: Font = ThemeDB.fallback_font
+	ThemeDB.fallback_font = null
+	battle._minimap.visible = true
+	var minimap_canvas := battle._minimap.get_child(0) as Control
+	if minimap_canvas != null:
+		minimap_canvas.queue_redraw()
+		await process_frame
+	_assert(battle._minimap.visible, "fallback_font 缺失时小地图仍可正常绘制标题")
+	ThemeDB.fallback_font = minimap_fallback_before
+	battle._minimap.visible = false
 	battle._input(minimap_toggle_event)
 	_assert(battle._minimap.visible, "M 键会通过正式输入链路打开小地图")
 	var repeated_minimap_event := InputEventKey.new()
@@ -5447,6 +5549,9 @@ func _test_map_sprite_assets_and_animation() -> void:
 	_assert(sprite.visible, "地图精灵在战场单位上可见")
 	_assert_eq(sprite.hframes, 3, "地图精灵按三帧横向图集配置")
 	var name_label := unit.get_node("Label") as Label
+	_assert(name_label.get_theme_font("font") != null, "单位简称标签显式应用 CJK 字体")
+	var hp_label := unit.get_node("HPLabel") as Label
+	_assert(hp_label.get_theme_font("font") != null, "单位 HP 标签显式应用 CJK 字体")
 	_assert(name_label.offset_bottom <= -32.0, "单位简称完全位于精灵上方而非遮挡角色")
 	var initial_frame := sprite.frame
 	await create_timer(0.4).timeout
@@ -5624,11 +5729,52 @@ func _test_font_setup() -> void:
 	var src: String = file.get_as_text()
 	file.close()
 	_assert("_apply_chinese_font" in src, "包含_apply_chinese_font方法")
-	_assert("SystemFont" in src, "使用SystemFont")
-	_assert("STHeitiSC-Medium" in src or "STHeiti Medium" in src, "包含中文字体名")
-	_assert("ThemeDB.get_project_theme()" in src, "设置到全局主题")
+	_assert("_refresh_new_game_confirm_font" in src, "包含新游戏确认框字体刷新方法")
+	_assert("CJKFontHelper" in src, "Opening 接入共享 CJK 字体助手")
+	_assert("apply_global_theme" in src, "Opening 通过共享助手设置全局主题")
+	_assert("apply_to_confirmation_dialog" in src, "Opening 通过共享助手刷新确认框字体")
 	_assert("DisplayServer.get_name()" in src or "headless" in src,
 		"包含headless环境检测（防止无显示器时崩溃）")
+	var helper_file := FileAccess.open("res://scripts/ui/CJKFontHelper.gd", FileAccess.READ)
+	_assert(helper_file != null, "CJKFontHelper.gd文件存在")
+	if helper_file != null:
+		var helper_src := helper_file.get_as_text()
+		helper_file.close()
+		_assert("static func get_font" in helper_src, "共享字体助手提供 get_font")
+		_assert("static func apply_global_theme" in helper_src, "共享字体助手提供全局主题应用")
+		_assert("static func apply_to_node_recursive" in helper_src, "共享字体助手提供递归控件字体应用")
+		_assert("static func apply_to_confirmation_dialog" in helper_src,
+			"共享字体助手提供确认框字体应用")
+		_assert("title_font" in helper_src, "共享字体助手覆盖确认框标题字体")
+		_assert("get_label" in helper_src, "共享字体助手覆盖确认框正文标签字体")
+		_assert("SystemFont" in helper_src, "共享字体助手包含系统字体回退")
+		_assert("STHeitiSC-Medium" in helper_src or "STHeiti Medium" in helper_src,
+			"共享字体助手包含中文字体名")
+		_assert("ThemeDB.get_project_theme()" in helper_src, "共享字体助手设置到全局主题")
+	var unit_file := FileAccess.open("res://scripts/battle/Unit.gd", FileAccess.READ)
+	_assert(unit_file != null, "Unit.gd文件存在")
+	if unit_file != null:
+		var unit_src := unit_file.get_as_text()
+		unit_file.close()
+		_assert("CJKFontHelper" in unit_src, "Unit 接入共享 CJK 字体助手")
+		_assert("add_theme_font_override(\"font\", CJKFontHelper.get_font())" in unit_src,
+			"Unit 会为简称与 HP 标签显式应用 CJK 字体")
+	var minimap_file := FileAccess.open("res://scripts/systems/MiniMap.gd", FileAccess.READ)
+	_assert(minimap_file != null, "MiniMap.gd文件存在")
+	if minimap_file != null:
+		var minimap_src := minimap_file.get_as_text()
+		minimap_file.close()
+		_assert("CJKFontHelper" in minimap_src, "MiniMap 接入共享 CJK 字体助手")
+		_assert("ThemeDB.fallback_font if ThemeDB.fallback_font != null else CJKFontHelper.get_font()" in minimap_src,
+			"MiniMap 在 fallback_font 缺失时仍有 CJK 字体兜底")
+	var settings_file := FileAccess.open("res://scripts/ui/SettingsMenu.gd", FileAccess.READ)
+	_assert(settings_file != null, "SettingsMenu.gd文件存在")
+	if settings_file != null:
+		var settings_src := settings_file.get_as_text()
+		settings_file.close()
+		_assert("_apply_chinese_font" in settings_src, "SettingsMenu 包含_apply_chinese_font方法")
+		_assert("CJKFontHelper" in settings_src, "SettingsMenu 接入共享 CJK 字体助手")
+		_assert("apply_to_node_recursive" in settings_src, "SettingsMenu 通过共享字体助手递归应用字体")
 
 # ── 关键场景/脚本加载冒烟测试 ───────────────────────────
 func _test_scene_and_script_smoke() -> void:
@@ -6253,6 +6399,7 @@ func _test_ch1_save_and_deploy_flow() -> void:
 		var mandatory_role := mandatory_card.get_node_or_null("VBox/RoleLabel") as Label
 		var mandatory_stats := mandatory_card.get_node_or_null("VBox/StatsLabel") as Label
 		var mandatory_matchup := mandatory_card.get_node_or_null("VBox/MatchupLabel") as Label
+		var mandatory_trait := mandatory_card.get_node_or_null("VBox/TraitLabel") as Label
 		var mandatory_status := mandatory_card.get_node_or_null("VBox/StatusLabel") as Label
 		var mandatory_tag := mandatory_card.get_node_or_null("VBox/MandatoryTag") as Label
 		var mandatory_portrait := mandatory_card.get_node_or_null("VBox/Portrait") as TextureRect
@@ -6268,6 +6415,8 @@ func _test_ch1_save_and_deploy_flow() -> void:
 				"部署界面固定主将卡显示武器等级与机动")
 		if mandatory_matchup != null:
 			_assert_eq(mandatory_matchup.text, "兵刃：克斧 / 惧枪", "部署界面固定主将卡显示剑系克制关系")
+		if mandatory_trait != null:
+			_assert("中轴统军" in mandatory_trait.text, "部署界面固定主将卡显示职业特性名")
 		if mandatory_status != null:
 			_assert_eq(mandatory_status.text, "状态：固定出战", "部署界面固定主将卡状态明确")
 		if mandatory_tag != null:
@@ -6280,6 +6429,7 @@ func _test_ch1_save_and_deploy_flow() -> void:
 		var optional_role := optional_card.get_node_or_null("VBox/RoleLabel") as Label
 		var optional_stats := optional_card.get_node_or_null("VBox/StatsLabel") as Label
 		var optional_matchup := optional_card.get_node_or_null("VBox/MatchupLabel") as Label
+		var optional_trait := optional_card.get_node_or_null("VBox/TraitLabel") as Label
 		var optional_status := optional_card.get_node_or_null("VBox/StatusLabel") as Label
 		var optional_button := optional_card.get_node_or_null("VBox/SelectBtn") as Button
 		var optional_portrait := optional_card.get_node_or_null("VBox/Portrait") as TextureRect
@@ -6295,6 +6445,9 @@ func _test_ch1_save_and_deploy_flow() -> void:
 				"部署界面可选卡显示武器等级与机动")
 		if optional_matchup != null:
 			_assert_eq(optional_matchup.text, "兵刃：克枪 / 惧剑", "部署界面斧兵候选卡显示兵刃克制提示")
+		if optional_trait != null:
+			_assert("破甲" in optional_trait.text and "重甲" in optional_trait.text,
+				"部署界面斧兵候选卡显示破甲特性说明")
 		if optional_status != null:
 			_assert_eq(optional_status.text, "状态：待命", "部署界面可选卡默认处于待命")
 		if optional_button != null:
@@ -6321,6 +6474,7 @@ func _test_ch1_save_and_deploy_flow() -> void:
 		var class_2 := optional_card_2.get_node_or_null("VBox/ClassLabel") as Label
 		var stats_2 := optional_card_2.get_node_or_null("VBox/StatsLabel") as Label
 		var matchup_2 := optional_card_2.get_node_or_null("VBox/MatchupLabel") as Label
+		var trait_2 := optional_card_2.get_node_or_null("VBox/TraitLabel") as Label
 		if name_2 != null:
 			_assert_eq(name_2.text, "白港枪卫", "部署界面第二候选卡改为护桥枪卫")
 		if class_2 != null:
@@ -6331,10 +6485,14 @@ func _test_ch1_save_and_deploy_flow() -> void:
 				"部署界面第二候选卡显示枪兵参数")
 		if matchup_2 != null:
 			_assert_eq(matchup_2.text, "兵刃：克剑 / 惧斧", "部署界面第二候选卡显示枪兵克制提示")
+		if trait_2 != null:
+			_assert("枪墙" in trait_2.text and "承伤-2" in trait_2.text,
+				"部署界面第二候选卡显示枪墙特性")
 	if optional_card_4 != null:
 		var name_4 := optional_card_4.get_node_or_null("VBox/NameLabel") as Label
 		var class_4 := optional_card_4.get_node_or_null("VBox/ClassLabel") as Label
 		var stats_4 := optional_card_4.get_node_or_null("VBox/StatsLabel") as Label
+		var trait_4 := optional_card_4.get_node_or_null("VBox/TraitLabel") as Label
 		if name_4 != null:
 			_assert_eq(name_4.text, "侧翼游骑", "部署界面第四候选卡改为机动游骑")
 		if class_4 != null:
@@ -6343,10 +6501,14 @@ func _test_ch1_save_and_deploy_flow() -> void:
 		if stats_4 != null:
 			_assert("枪D" in stats_4.text and "移动6" in stats_4.text,
 				"部署界面第四候选卡显示高机动枪骑参数")
+		if trait_4 != null:
+			_assert("冲锋" in trait_4.text and "伤害 +2" in trait_4.text,
+				"部署界面第四候选卡显示冲锋特性")
 	if optional_card_5 != null:
 		var name_5 := optional_card_5.get_node_or_null("VBox/NameLabel") as Label
 		var class_5 := optional_card_5.get_node_or_null("VBox/ClassLabel") as Label
 		var stats_5 := optional_card_5.get_node_or_null("VBox/StatsLabel") as Label
+		var trait_5 := optional_card_5.get_node_or_null("VBox/TraitLabel") as Label
 		if name_5 != null:
 			_assert_eq(name_5.text, "持旗老兵", "部署界面第五候选卡改为稳健副核老兵")
 		if class_5 != null:
@@ -6355,6 +6517,9 @@ func _test_ch1_save_and_deploy_flow() -> void:
 		if stats_5 != null:
 			_assert("斧C" in stats_5.text and "移动5" in stats_5.text,
 				"部署界面第五候选卡显示更稳健的斧兵参数")
+		if trait_5 != null:
+			_assert("督战" in trait_5.text and "反击命中 +8" in trait_5.text,
+				"部署界面第五候选卡显示督战特性")
 
 	if optional_card != null:
 		var optional_button_before := optional_card.get_node_or_null("VBox/SelectBtn") as Button

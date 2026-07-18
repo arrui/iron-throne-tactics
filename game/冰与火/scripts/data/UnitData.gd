@@ -21,6 +21,9 @@ var weapon_rank: String
 var move_type: String = "foot"
 var armor_type: String = "medium"
 var animation_family: String = ""
+var trait_key: String = ""
+var trait_name: String = ""
+var trait_desc: String = ""
 var source_id: String = ""
 
 # ── 武器耐久（-1 = 无限）────────────────────────────────
@@ -96,6 +99,9 @@ static func from_dict(d: Dictionary, source_id: String = "") -> UnitData:
 		"animation_family",
 		str(defaults.get("animation_family", data.class_id))
 	)
+	data.trait_key = d.get("trait_key", str(defaults.get("trait_key", "")))
+	data.trait_name = d.get("trait_name", str(defaults.get("trait_name", "")))
+	data.trait_desc = d.get("trait_desc", str(defaults.get("trait_desc", "")))
 	data.source_id = resolved_source
 	data.weapon_uses     = d.get("weapon_uses",     -1)
 	data.weapon_max_uses = d.get("weapon_max_uses", -1)

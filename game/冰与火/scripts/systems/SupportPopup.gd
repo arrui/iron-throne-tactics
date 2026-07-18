@@ -4,6 +4,7 @@ extends CanvasLayer
 signal popup_closed
 
 const BattleChromeTheme := preload("res://scripts/ui/BattleChromeTheme.gd")
+const CJKFontHelper := preload("res://scripts/ui/CJKFontHelper.gd")
 
 const AUTO_CLOSE_SEC := 4.0   # 无操作4秒自动关闭
 
@@ -14,20 +15,11 @@ const AUTO_CLOSE_SEC := 4.0   # 无操作4秒自动关闭
 var _auto_timer: SceneTreeTimer = null
 
 func _ready() -> void:
-	const BUNDLED := "res://assets/fonts/ArialUnicode.ttf"
-	var font: Font = load(BUNDLED) as Font if ResourceLoader.exists(BUNDLED) else null
-	if font == null:
-		var sf := SystemFont.new()
-		sf.font_names = PackedStringArray(["Heiti SC", "Arial Unicode MS", "Microsoft YaHei"])
-		font = sf
-	for child in get_children():
-		_apply_font_recursive(child, font)
+	CJKFontHelper.apply_to_node_recursive(self)
 	_apply_dark_ui_theme()
 
 func _apply_font_recursive(node: Node, font: Font) -> void:
-	if node is Label:  (node as Label).add_theme_font_override("font", font)
-	elif node is Button: (node as Button).add_theme_font_override("font", font)
-	for child in node.get_children(): _apply_font_recursive(child, font)
+	CJKFontHelper.apply_to_node_recursive(node, font)
 
 func show_support(unit_a: String, unit_b: String, rank: String, bonus: Dictionary) -> void:
 	_content_label.text = "两名单位长期相邻作战，默契转化为战场加成。\n序章目前仅支持 C 级支援。"

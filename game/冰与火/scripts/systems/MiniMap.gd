@@ -3,6 +3,8 @@
 class_name MiniMap
 extends CanvasLayer
 
+const CJKFontHelper := preload("res://scripts/ui/CJKFontHelper.gd")
+
 # ── 尺寸与位置 ────────────────────────────────────────────
 const MM_W   := 182   # 小地图像素宽（含1px内边距）
 const MM_H   := 134   # 小地图像素高
@@ -74,7 +76,7 @@ func _draw_minimap() -> void:
 	c.draw_rect(Rect2(0, 0, MM_W, total_h), BORDER_COL, false, 1.5)
 
 	# 标题
-	var font: Font = ThemeDB.fallback_font
+	var font: Font = ThemeDB.fallback_font if ThemeDB.fallback_font != null else CJKFontHelper.get_font()
 	if font:
 		c.draw_string(font, Vector2(6, 14),
 			"小地图  [M键关闭]", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, TITLE_COL)

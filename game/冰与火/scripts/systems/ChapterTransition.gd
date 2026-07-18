@@ -1,6 +1,8 @@
 class_name ChapterTransition
 extends CanvasLayer
 
+const CJKFontHelper := preload("res://scripts/ui/CJKFontHelper.gd")
+
 signal transition_finished
 
 const BattleChromeTheme := preload("res://scripts/ui/BattleChromeTheme.gd")
@@ -16,21 +18,11 @@ var _transition_id: int = 0
 
 func _ready() -> void:
 	# 为章节转场标签应用中文字体
-	var font := _get_cjk_font()
-	if font:
-		for child in get_children():
-			if child is Label:
-				(child as Label).add_theme_font_override("font", font)
+	CJKFontHelper.apply_to_node_recursive(self)
 	_apply_dark_ui_theme()
 
 func _get_cjk_font() -> Font:
-	const BUNDLED := "res://assets/fonts/ArialUnicode.ttf"
-	if ResourceLoader.exists(BUNDLED):
-		var f := load(BUNDLED) as Font
-		if f != null: return f
-	var sf := SystemFont.new()
-	sf.font_names = PackedStringArray(["Heiti SC", "Arial Unicode MS", "Microsoft YaHei"])
-	return sf
+	return CJKFontHelper.get_font()
 
 func show_chapter(number: String, title: String,
 		time_label: String, sub_label: String = "", objective_label: String = "") -> void:

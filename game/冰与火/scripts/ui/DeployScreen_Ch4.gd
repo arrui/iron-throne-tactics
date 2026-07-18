@@ -4,6 +4,7 @@ extends CanvasLayer
 
 const Ch4BattleBrief := preload("res://scripts/chapter/Ch4BattleBrief.gd")
 const BattleChromeTheme := preload("res://scripts/ui/BattleChromeTheme.gd")
+const CJKFontHelper := preload("res://scripts/ui/CJKFontHelper.gd")
 const ClassCatalog := preload("res://scripts/data/ClassCatalog.gd")
 
 const MAX_KNIGHTS := 4
@@ -81,22 +82,10 @@ func _style_section_header(label: Label) -> void:
 	label.add_theme_color_override("font_color", BattleChromeTheme.TEXT_OBJECTIVE)
 
 func _get_cjk_font() -> Font:
-	const BUNDLED := "res://assets/fonts/ArialUnicode.ttf"
-	if ResourceLoader.exists(BUNDLED):
-		var f := load(BUNDLED) as Font
-		if f != null: return f
-	var sf := SystemFont.new()
-	sf.font_names = PackedStringArray(["Heiti SC", "Arial Unicode MS", "Microsoft YaHei"])
-	return sf
+	return CJKFontHelper.get_font()
 
 func _apply_cjk_font_to_node(node: Node) -> void:
-	var font := _get_cjk_font()
-	if node is Label:
-		(node as Label).add_theme_font_override("font", font)
-	elif node is Button:
-		(node as Button).add_theme_font_override("font", font)
-	for child in node.get_children():
-		_apply_cjk_font_to_node(child)
+	CJKFontHelper.apply_to_node_recursive(node, _get_cjk_font())
 
 func _load_portrait_texture(path: String) -> Texture2D:
 	if path == "" or not ResourceLoader.exists(path):
@@ -150,6 +139,15 @@ func _class_summary(preview: Dictionary) -> String:
 		_armor_type_label(str(preview.get("armor_type", "medium"))),
 	]
 
+func _trait_summary(preview: Dictionary) -> String:
+	var trait_name := str(preview.get("trait_name", ""))
+	var trait_desc := str(preview.get("trait_desc", ""))
+	if trait_name == "" and trait_desc == "":
+		return "兵种特性：暂无"
+	if trait_desc == "":
+		return "兵种特性：%s" % trait_name
+	return "兵种特性：%s · %s" % [trait_name, trait_desc]
+
 func _load_unit_preview(idx: int, entry: Dictionary) -> Dictionary:
 	var file_name := str(entry.get("file", ""))
 	var source_file := str(entry.get("base_file", file_name))
@@ -166,6 +164,8 @@ func _load_unit_preview(idx: int, entry: Dictionary) -> Dictionary:
 		"class_id": str(entry.get("class_id", "")),
 		"move_type": str(entry.get("move_type", "foot")),
 		"armor_type": str(entry.get("armor_type", "medium")),
+		"trait_name": str(entry.get("trait_name", "")),
+		"trait_desc": str(entry.get("trait_desc", "")),
 		"matchup_hint": "兵刃：均势",
 	}
 	if FileAccess.file_exists(file_path):
@@ -206,6 +206,8 @@ func _load_unit_preview(idx: int, entry: Dictionary) -> Dictionary:
 	preview["matchup_hint"] = _weapon_matchup_hint(str(entry.get("weapon_type", "sword")))
 	var class_template := ClassCatalog.get_class_template(str(preview.get("class_id", "")))
 	preview["class_display"] = str(class_template.get("display_name", preview.get("class", "步兵")))
+	preview["trait_name"] = str(class_template.get("trait_name", preview.get("trait_name", "")))
+	preview["trait_desc"] = str(class_template.get("trait_desc", preview.get("trait_desc", "")))
 	return preview
 
 func _make_card_style(is_selected: bool, is_mandatory: bool) -> StyleBoxFlat:
@@ -581,6 +583,15 @@ func _make_unit_card(idx: int, entry: Dictionary) -> PanelContainer:
 	matchup_lbl.add_theme_color_override("font_color", BattleChromeTheme.TEXT_ACCENT)
 	matchup_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(matchup_lbl)
+
+	var trait_lbl := Label.new()
+	trait_lbl.name = "TraitLabel"
+	trait_lbl.text = _trait_summary(preview)
+	trait_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	trait_lbl.add_theme_font_size_override("font_size", 10)
+	trait_lbl.add_theme_color_override("font_color", BattleChromeTheme.TEXT_GOOD)
+	trait_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(trait_lbl)
 
 	var status_lbl := Label.new()
 	status_lbl.name = "StatusLabel"

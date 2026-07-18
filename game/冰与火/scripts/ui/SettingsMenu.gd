@@ -3,6 +3,8 @@ extends CanvasLayer
 
 signal closed
 
+const CJKFontHelper := preload("res://scripts/ui/CJKFontHelper.gd")
+
 @onready var _battle_animations: CheckButton = $Dimmer/Panel/Margin/Content/BattleAnimations
 @onready var _auto_camera: CheckButton = $Dimmer/Panel/Margin/Content/AutoCamera
 @onready var _master_volume: HSlider = $Dimmer/Panel/Margin/Content/MasterVolume
@@ -16,6 +18,7 @@ var _settings: Node = null
 func _ready() -> void:
 	# 设置入口既可在正常运行的主菜单/战场打开，也应兼容暂停态。
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_apply_chinese_font()
 	_settings = get_node_or_null("/root/GameSettings")
 	if _settings == null:
 		_settings = load("res://scripts/systems/GameSettings.gd").new()
@@ -24,6 +27,17 @@ func _ready() -> void:
 	_master_volume.value_changed.connect(_on_volume_changed)
 	_defaults.pressed.connect(_on_defaults_pressed)
 	_close.pressed.connect(close)
+
+func _get_cjk_font() -> Font:
+	return CJKFontHelper.get_font()
+
+func _apply_chinese_font() -> void:
+	var font := _get_cjk_font()
+	CJKFontHelper.apply_to_node_recursive(self, font)
+	call_deferred("_apply_font_to_controls", self, font)
+
+func _apply_font_to_controls(node: Node, font: Font = null) -> void:
+	CJKFontHelper.apply_to_node_recursive(node, font)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):

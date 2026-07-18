@@ -4,6 +4,8 @@ extends Node2D
 
 signal unit_died(unit)
 
+const CJKFontHelper := preload("res://scripts/ui/CJKFontHelper.gd")
+
 enum Team  { PLAYER, ENEMY, NEUTRAL }
 enum State { IDLE, MOVED, ACTED, DONE }
 
@@ -54,6 +56,7 @@ func _ready() -> void:
 	if lbl:
 		var txt_col := _PLAYER_TEXT if team == 0 else \
 			(_ENEMY_TEXT if team == 1 else Color(1.0, 0.95, 0.70))
+		lbl.add_theme_font_override("font", CJKFontHelper.get_font())
 		lbl.add_theme_font_size_override("font_size", 16)
 		lbl.add_theme_color_override("font_color", txt_col)
 		lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
@@ -68,6 +71,7 @@ func _ready() -> void:
 	# 隐藏旧 HP 数字标签（改用绘制 HP 条）
 	var hp_lbl := get_node_or_null("HPLabel") as Label
 	if hp_lbl:
+		hp_lbl.add_theme_font_override("font", CJKFontHelper.get_font())
 		hp_lbl.visible = false
 
 func _process(delta: float) -> void:

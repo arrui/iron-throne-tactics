@@ -4,6 +4,7 @@ class_name BattleAnimation
 extends Control
 
 const BattleStageArtClass := preload("res://scripts/battle/BattleStageArt.gd")
+const CJKFontHelper := preload("res://scripts/ui/CJKFontHelper.gd")
 
 signal animation_finished(result: Dictionary)
 
@@ -16,6 +17,8 @@ const DAMAGE_FLOAT_RISE  := 40.0
 const DAMAGE_FLOAT_DURATION := 0.7
 const HIT_PAUSE          := 0.18
 const ROUND_GAP          := 0.30
+const SHOWCASE_BAND_HEIGHT := 16.0
+const SHOWCASE_BAND_SETTLE_HEIGHT := 12.0
 
 const ANIM_STYLE_SWORD := "sword"
 const ANIM_STYLE_AXE := "axe"
@@ -55,10 +58,22 @@ const SHOWCASE_BADGES := {
 	SHOWCASE_KINGSLAYER: "弑君者",
 }
 
+const SHOWCASE_SUBTITLES := {
+	SHOWCASE_RUBY_FORD: "战锤破甲 · 王朝折断",
+	SHOWCASE_DAWN_FALL: "双剑守门 · 一枪定局",
+	SHOWCASE_KINGSLAYER: "白袍染血 · 王者陨落",
+}
+
 const SHOWCASE_SIGNATURE_COLORS := {
 	SHOWCASE_RUBY_FORD: Color(1.00, 0.32, 0.22, 0.92),
 	SHOWCASE_DAWN_FALL: Color(1.00, 0.94, 0.72, 0.92),
 	SHOWCASE_KINGSLAYER: Color(1.00, 0.80, 0.30, 0.92),
+}
+
+const SHOWCASE_BAND_COLORS := {
+	SHOWCASE_RUBY_FORD: Color(0.18, 0.05, 0.05, 0.0),
+	SHOWCASE_DAWN_FALL: Color(0.20, 0.12, 0.04, 0.0),
+	SHOWCASE_KINGSLAYER: Color(0.12, 0.04, 0.06, 0.0),
 }
 
 const SHOWCASE_STAGE_MODES := {
@@ -88,7 +103,11 @@ const SHOWCASE_STAGE_MODES := {
 @onready var _slash_trail: Polygon2D = $Panel/SlashTrail
 @onready var _critical_label: Label = $Panel/CriticalLabel
 @onready var _showcase_label: Label = $Panel/ShowcaseLabel
+@onready var _showcase_sub_label: Label = $Panel/ShowcaseSubLabel
 @onready var _signature_burst: Polygon2D = $Panel/SignatureBurst
+@onready var _showcase_glint: Polygon2D = $Panel/ShowcaseGlint
+@onready var _cinematic_top: ColorRect = $Panel/CinematicTop
+@onready var _cinematic_bottom: ColorRect = $Panel/CinematicBottom
 
 var _panel_hidden_y: float = 0.0
 var _panel_shown_y:  float = 0.0
@@ -106,24 +125,13 @@ func _ready() -> void:
 	_apply_cjk_font_to_all()
 
 func _get_cjk_font() -> Font:
-	const BUNDLED := "res://assets/fonts/ArialUnicode.ttf"
-	if ResourceLoader.exists(BUNDLED):
-		var f := load(BUNDLED) as Font
-		if f: return f
-	var sf := SystemFont.new()
-	sf.font_names = PackedStringArray(["Heiti SC", "Arial Unicode MS",
-		"Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC"])
-	return sf
+	return CJKFontHelper.get_font()
 
 func _apply_cjk_font_to_all() -> void:
-	var font := _get_cjk_font()
-	_apply_font_recursive(self, font)
+	CJKFontHelper.apply_to_node_recursive(self, _get_cjk_font())
 
 func _apply_font_recursive(node: Node, font: Font) -> void:
-	if node is Label:
-		(node as Label).add_theme_font_override("font", font)
-	for child in node.get_children():
-		_apply_font_recursive(child, font)
+	CJKFontHelper.apply_to_node_recursive(node, font)
 
 func play(attacker: Unit, defender: Unit, result: Dictionary) -> void:
 	if _playing:
@@ -181,8 +189,8 @@ func play(attacker: Unit, defender: Unit, result: Dictionary) -> void:
 		await get_tree().create_timer(ROUND_GAP).timeout
 
 	await _slide_panel(_panel_hidden_y)
+	_apply_showcase_presentation("")
 	visible = false
-	_showcase_mode = ""
 
 	_playing = false
 	animation_finished.emit(result)
@@ -246,7 +254,7 @@ func _pair_matches(a: String, b: String, left: String, right: String) -> bool:
 func _apply_showcase_presentation(mode: String) -> void:
 	_showcase_mode = mode
 	if _stage_backdrop:
-		_stage_backdrop.color = SHOWCASE_BACKDROP_COLORS.get(mode, Color(0.035, 0.055, 0.08, 0.98))
+		_stage_backdrop.color = _stage_backdrop_color(mode)
 	if _bg_rect:
 		_bg_rect.color = _showcase_bg_color(mode)
 	if _stage_art:
@@ -269,11 +277,32 @@ func _apply_showcase_presentation(mode: String) -> void:
 		_showcase_label.text = SHOWCASE_BADGES.get(mode, "")
 		_showcase_label.visible = false
 		_showcase_label.modulate.a = 0.0
+	if _showcase_sub_label:
+		_showcase_sub_label.text = SHOWCASE_SUBTITLES.get(mode, "")
+		_showcase_sub_label.visible = false
+		_showcase_sub_label.modulate.a = 0.0
 	if _signature_burst:
 		_signature_burst.visible = false
 		_signature_burst.modulate.a = 0.0
 		_signature_burst.polygon = _signature_polygon_for_showcase(mode)
 		_signature_burst.color = SHOWCASE_SIGNATURE_COLORS.get(mode, Color(1.0, 0.8, 0.3, 0.0))
+	if _showcase_glint:
+		_showcase_glint.visible = mode != ""
+		_showcase_glint.modulate.a = 0.0
+		_showcase_glint.scale = Vector2(0.6, 0.6)
+		_showcase_glint.polygon = _glint_polygon_for_showcase(mode)
+		_showcase_glint.color = SHOWCASE_SIGNATURE_COLORS.get(mode, Color(1.0, 0.8, 0.3, 0.0))
+	if _cinematic_top:
+		_cinematic_top.visible = mode != ""
+		_cinematic_top.offset_bottom = 0.0
+		_cinematic_top.color = SHOWCASE_BAND_COLORS.get(mode, Color(0.0, 0.0, 0.0, 0.0))
+	if _cinematic_bottom:
+		_cinematic_bottom.visible = mode != ""
+		_cinematic_bottom.offset_top = 0.0
+		_cinematic_bottom.color = SHOWCASE_BAND_COLORS.get(mode, Color(0.0, 0.0, 0.0, 0.0))
+
+func _stage_backdrop_color(mode: String) -> Color:
+	return SHOWCASE_BACKDROP_COLORS.get(mode, Color(0.035, 0.055, 0.08, 0.98))
 
 func _showcase_bg_color(mode: String) -> Color:
 	match mode:
@@ -320,6 +349,31 @@ func _signature_polygon_for_showcase(mode: String) -> PackedVector2Array:
 				Vector2(-48.0, -10.0), Vector2(0.0, -40.0), Vector2(52.0, -8.0),
 				Vector2(16.0, 6.0), Vector2(60.0, 34.0), Vector2(0.0, 18.0),
 				Vector2(-56.0, 30.0), Vector2(-18.0, 4.0),
+			])
+
+func _glint_polygon_for_showcase(mode: String) -> PackedVector2Array:
+	match mode:
+		SHOWCASE_RUBY_FORD:
+			return PackedVector2Array([
+				Vector2(-140.0, -12.0), Vector2(72.0, -30.0),
+				Vector2(138.0, 0.0), Vector2(72.0, 30.0),
+				Vector2(-140.0, 12.0),
+			])
+		SHOWCASE_DAWN_FALL:
+			return PackedVector2Array([
+				Vector2(-20.0, 140.0), Vector2(-44.0, 28.0), Vector2(0.0, -148.0),
+				Vector2(42.0, 28.0), Vector2(18.0, 140.0),
+			])
+		SHOWCASE_KINGSLAYER:
+			return PackedVector2Array([
+				Vector2(-106.0, -24.0), Vector2(-24.0, -34.0), Vector2(12.0, -140.0),
+				Vector2(38.0, -26.0), Vector2(112.0, 0.0), Vector2(34.0, 24.0),
+				Vector2(6.0, 142.0), Vector2(-26.0, 30.0),
+			])
+		_:
+			return PackedVector2Array([
+				Vector2(-88.0, -10.0), Vector2(58.0, -20.0), Vector2(92.0, 0.0),
+				Vector2(58.0, 20.0), Vector2(-88.0, 10.0),
 			])
 
 func _load_portrait_texture(path: String) -> Texture2D:
@@ -449,63 +503,112 @@ func _profile_with_showcase_modifiers(profile: Dictionary, critical: bool) -> Di
 	var modded := profile.duplicate(true)
 	match _showcase_mode:
 		SHOWCASE_RUBY_FORD:
-			modded["charge_offset"] = float(modded.get("charge_offset", CHARGE_OFFSET)) + 16.0
-			modded["panel_kick"] = float(modded.get("panel_kick", 12.0)) + 8.0
+			modded["charge_offset"] = float(modded.get("charge_offset", CHARGE_OFFSET)) + 24.0
+			modded["panel_kick"] = float(modded.get("panel_kick", 12.0)) + 10.0
 			modded["impact_color"] = Color(1.00, 0.46, 0.22, 0.66 if critical else 0.54)
 			modded["trail_color"] = Color(1.00, 0.70, 0.24, 0.96)
+			modded["trail_target_scale"] = Vector2(1.82, 1.62)
+			modded["defender_push"] = float(modded.get("defender_push", 8.0)) + 6.0
+			modded["shake_pattern"] = [-18.0, 22.0, -14.0, 8.0, 0.0]
 			modded["backdrop_impact_color"] = Color(0.18, 0.05, 0.05, 0.98)
 		SHOWCASE_DAWN_FALL:
 			modded["windup_duration"] = float(modded.get("windup_duration", 0.05)) * 0.85
-			modded["charge_duration"] = float(modded.get("charge_duration", CHARGE_DURATION)) * 0.88
+			modded["charge_duration"] = float(modded.get("charge_duration", CHARGE_DURATION)) * 0.80
+			modded["return_duration"] = float(modded.get("return_duration", RETURN_DURATION)) * 0.84
 			modded["trail_color"] = Color(1.00, 0.98, 0.78, 0.96)
+			modded["trail_target_scale"] = Vector2(1.92, 1.18)
 			modded["impact_color"] = Color(1.00, 0.94, 0.62, 0.58 if critical else 0.44)
-			modded["dodge_lift"] = float(modded.get("dodge_lift", 38.0)) + 8.0
+			modded["dodge_lift"] = float(modded.get("dodge_lift", 38.0)) + 12.0
 			modded["backdrop_impact_color"] = Color(0.16, 0.10, 0.04, 0.98)
 		SHOWCASE_KINGSLAYER:
 			modded["impact_color"] = Color(0.98, 0.26, 0.26, 0.62 if critical else 0.50)
 			modded["trail_color"] = Color(1.00, 0.84, 0.36, 0.94)
+			modded["windup_y"] = float(modded.get("windup_y", -6.0)) - 10.0
+			modded["trail_target_scale"] = Vector2(1.66, 1.76)
 			modded["panel_kick"] = float(modded.get("panel_kick", 12.0)) + 4.0
+			modded["defender_push"] = float(modded.get("defender_push", 4.0)) + 8.0
 			modded["backdrop_impact_color"] = Color(0.12, 0.03, 0.06, 0.98)
 	return modded
 
 func _play_showcase_intro(attacker: Unit, defender: Unit) -> void:
 	if _showcase_mode == "":
 		return
+	if _cinematic_top:
+		_cinematic_top.visible = true
+		_cinematic_top.offset_bottom = 0.0
+	if _cinematic_bottom:
+		_cinematic_bottom.visible = true
+		_cinematic_bottom.offset_top = 0.0
 	if _showcase_label:
 		_showcase_label.visible = true
 		_showcase_label.modulate.a = 0.0
+	if _showcase_sub_label:
+		_showcase_sub_label.visible = true
+		_showcase_sub_label.modulate.a = 0.0
 	if _signature_burst:
 		_signature_burst.visible = true
 		_signature_burst.modulate.a = 0.0
 		_signature_burst.scale = Vector2(0.4, 0.4)
 		_signature_burst.position = _showcase_burst_center(attacker, defender)
+	if _showcase_glint:
+		_showcase_glint.visible = true
+		_showcase_glint.modulate.a = 0.0
+		_showcase_glint.scale = Vector2(0.5, 0.5)
+		_showcase_glint.rotation = _signature_rotation(1.0)
+		_showcase_glint.position = _showcase_burst_center(attacker, defender)
 	if _stage_accent:
 		_stage_accent.visible = true
 		_stage_accent.color = SHOWCASE_SIGNATURE_COLORS.get(_showcase_mode, Color(1, 1, 1, 0))
 		_stage_accent.color.a = 0.0
 	var tween := create_tween().set_parallel(true)
+	if _cinematic_top:
+		tween.tween_property(_cinematic_top, "offset_bottom", SHOWCASE_BAND_HEIGHT, 0.12)
+		tween.tween_property(_cinematic_top, "color:a", 0.92, 0.10)
+	if _cinematic_bottom:
+		tween.tween_property(_cinematic_bottom, "offset_top", -SHOWCASE_BAND_HEIGHT, 0.12)
+		tween.tween_property(_cinematic_bottom, "color:a", 0.92, 0.10)
 	if _showcase_label:
 		tween.tween_property(_showcase_label, "modulate:a", 1.0, 0.12)
+	if _showcase_sub_label:
+		tween.tween_property(_showcase_sub_label, "modulate:a", 0.92, 0.14)
 	if _signature_burst:
 		tween.tween_property(_signature_burst, "modulate:a", 0.92, 0.08)
 		tween.tween_property(_signature_burst, "scale", Vector2(1.18, 1.18), 0.12)
+	if _showcase_glint:
+		tween.tween_property(_showcase_glint, "modulate:a", 0.85, 0.05)
+		tween.tween_property(_showcase_glint, "scale", Vector2(1.18, 1.18), 0.10)
 	if _stage_accent:
 		tween.tween_property(_stage_accent, "color:a", 0.14, 0.08)
 	await tween.finished
-	await get_tree().create_timer(0.08).timeout
+	await get_tree().create_timer(0.14).timeout
 	var outro := create_tween().set_parallel(true)
 	if _showcase_label:
 		outro.tween_property(_showcase_label, "modulate:a", 0.0, 0.18)
+	if _showcase_sub_label:
+		outro.tween_property(_showcase_sub_label, "modulate:a", 0.0, 0.16)
 	if _signature_burst:
 		outro.tween_property(_signature_burst, "modulate:a", 0.0, 0.16)
 		outro.tween_property(_signature_burst, "scale", Vector2(1.5, 1.5), 0.18)
+	if _showcase_glint:
+		outro.tween_property(_showcase_glint, "modulate:a", 0.0, 0.12)
+		outro.tween_property(_showcase_glint, "scale", Vector2(1.42, 1.42), 0.16)
+	if _cinematic_top:
+		outro.tween_property(_cinematic_top, "offset_bottom", SHOWCASE_BAND_SETTLE_HEIGHT, 0.16)
+		outro.tween_property(_cinematic_top, "color:a", 0.62, 0.14)
+	if _cinematic_bottom:
+		outro.tween_property(_cinematic_bottom, "offset_top", -SHOWCASE_BAND_SETTLE_HEIGHT, 0.16)
+		outro.tween_property(_cinematic_bottom, "color:a", 0.62, 0.14)
 	if _stage_accent:
 		outro.tween_property(_stage_accent, "color:a", 0.0, 0.16)
 	await outro.finished
 	if _showcase_label:
 		_showcase_label.visible = false
+	if _showcase_sub_label:
+		_showcase_sub_label.visible = false
 	if _signature_burst:
 		_signature_burst.visible = false
+	if _showcase_glint:
+		_showcase_glint.visible = false
 
 func _showcase_burst_center(attacker: Unit, defender: Unit) -> Vector2:
 	var atk_icon := _atk_icon
@@ -595,6 +698,7 @@ func _play_attack_windup(icon: Sprite2D, dir: float, attack_profile: Dictionary,
 func _play_critical_intro(icon: Sprite2D) -> void:
 	_critical_label.visible = true
 	_critical_label.modulate.a = 0.0
+	var showcase_backdrop := _stage_backdrop_color(_showcase_mode)
 	_stage_backdrop.color = Color(0.015, 0.012, 0.025, 1.0)
 	var original_scale := icon.scale
 	var tween := create_tween().set_parallel(true)
@@ -605,7 +709,7 @@ func _play_critical_intro(icon: Sprite2D) -> void:
 	await get_tree().create_timer(0.12).timeout
 	icon.scale = original_scale
 	_critical_label.visible = false
-	_stage_backdrop.color = Color(0.035, 0.055, 0.08, 0.98)
+	_stage_backdrop.color = showcase_backdrop
 
 func _play_impact(attacker: Sprite2D, defender: Sprite2D, dir: float, critical: bool,
 		attack_profile: Dictionary) -> void:
@@ -652,19 +756,42 @@ func _play_signature_strike(attacker: Sprite2D, defender: Sprite2D, dir: float,
 		_stage_accent.visible = true
 		_stage_accent.color = burst_color
 		_stage_accent.color.a = 0.0
+	if _showcase_glint:
+		_showcase_glint.visible = true
+		_showcase_glint.position = _slash_center(attacker, defender)
+		_showcase_glint.rotation = _signature_rotation(dir)
+		_showcase_glint.scale = Vector2(0.72, 0.72)
+		_showcase_glint.color = Color(burst_color.r, burst_color.g, burst_color.b, 0.88)
+		_showcase_glint.modulate.a = 0.0
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(_signature_burst, "modulate:a", 1.0, 0.04)
 	tween.tween_property(_signature_burst, "scale", _signature_scale() * 1.22, 0.07)
+	if _showcase_glint:
+		tween.tween_property(_showcase_glint, "modulate:a", 0.92, 0.03)
+		tween.tween_property(_showcase_glint, "scale", Vector2(1.12, 1.12), 0.06)
 	if _stage_accent:
 		tween.tween_property(_stage_accent, "color:a", 0.20 if critical else 0.12, 0.04)
+	if _cinematic_top:
+		tween.tween_property(_cinematic_top, "color:a", 0.88, 0.03)
+	if _cinematic_bottom:
+		tween.tween_property(_cinematic_bottom, "color:a", 0.88, 0.03)
 	await tween.finished
 	var fade := create_tween().set_parallel(true)
 	fade.tween_property(_signature_burst, "modulate:a", 0.0, 0.12)
 	fade.tween_property(_signature_burst, "scale", _signature_scale() * 1.42, 0.12)
+	if _showcase_glint:
+		fade.tween_property(_showcase_glint, "modulate:a", 0.0, 0.10)
+		fade.tween_property(_showcase_glint, "scale", Vector2(1.36, 1.36), 0.10)
 	if _stage_accent:
 		fade.tween_property(_stage_accent, "color:a", 0.0, 0.10)
+	if _cinematic_top:
+		fade.tween_property(_cinematic_top, "color:a", 0.62, 0.10)
+	if _cinematic_bottom:
+		fade.tween_property(_cinematic_bottom, "color:a", 0.62, 0.10)
 	await fade.finished
 	_signature_burst.visible = false
+	if _showcase_glint:
+		_showcase_glint.visible = false
 
 func _signature_scale() -> Vector2:
 	match _showcase_mode:
