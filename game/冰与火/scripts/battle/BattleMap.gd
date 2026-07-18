@@ -1844,7 +1844,9 @@ func _on_wait_pressed() -> void:
 	selected_unit.mark_acted()
 	_refresh_unit_color(selected_unit)
 	_deselect()
-	_check_all_acted()
+	_check_victory()
+	if not _battle_over:
+		_check_all_acted()
 
 func _on_cancel_move_pressed() -> void:
 	if not is_instance_valid(selected_unit):

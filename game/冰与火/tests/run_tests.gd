@@ -47,6 +47,10 @@ class TestCh3Bootstrap extends Ch3BootstrapClass:
 	func _play_dialogue(_path: String) -> void:
 		pass
 
+class TestCh3WaitBootstrap extends TestCh3Bootstrap:
+	func _trigger_tower_sequence() -> void:
+		_battle_over = true
+
 class TestCh4Bootstrap extends Ch4BootstrapClass:
 	func _ready() -> void:
 		pass
@@ -3533,6 +3537,41 @@ func _test_unit_state_machine() -> void:
 	_assert(mover.can_act(), "仍有友军可行动时等待不会提前切换敌方回合")
 	_assert(battle.current_phase == battle.Phase.PLAYER_TURN and not battle._turn_ending,
 		"仍有友军可行动时等待保持玩家回合且不启动回合切换")
+
+	# 第三章奈德抵达极乐塔后，等待动作必须立即触发通关且不能切入敌方回合。
+	var ch3_wait_battle := battle_scene.instantiate()
+	ch3_wait_battle.set_script(TestCh3WaitBootstrap)
+	root.add_child(ch3_wait_battle)
+	await process_frame
+	ch3_wait_battle.victory_pos = Vector2i(19, 9)
+	var ch3_ned := Unit.new()
+	ch3_ned.setup(_make_unit_data({"name": "奈德"}),
+		0, ch3_wait_battle.victory_pos)
+	var ch3_guard := Unit.new()
+	ch3_guard.setup(_make_enemy_data({"name": "极乐塔守军", "min_hp": 0}),
+		1, Vector2i(18, 8))
+	ch3_wait_battle.get_node("UnitLayer").add_child(ch3_ned)
+	ch3_wait_battle.get_node("UnitLayer").add_child(ch3_guard)
+	ch3_wait_battle.player_units.assign([ch3_ned])
+	ch3_wait_battle.enemy_units.assign([ch3_guard])
+	ch3_wait_battle.selected_unit = ch3_ned
+	ch3_wait_battle.player_state = ch3_wait_battle.PlayerState.UNIT_MOVED
+	ch3_wait_battle.current_phase = ch3_wait_battle.Phase.PLAYER_TURN
+	ch3_wait_battle._battle_over = false
+	ch3_wait_battle._tower_reached = false
+	ch3_wait_battle._on_wait_pressed()
+	_assert(ch3_ned.state == Unit.State.DONE,
+		"第三章奈德在极乐塔等待后结束行动")
+	_assert(ch3_wait_battle._tower_reached and ch3_wait_battle._battle_over,
+		"第三章奈德在极乐塔等待后立即触发通关")
+	_assert(ch3_wait_battle.current_phase == ch3_wait_battle.Phase.PLAYER_TURN \
+			and not ch3_wait_battle._turn_ending,
+		"第三章极乐塔通关后不再启动敌方回合")
+	_assert(ch3_wait_battle.selected_unit == null \
+			and ch3_wait_battle.player_state == ch3_wait_battle.PlayerState.IDLE,
+		"第三章极乐塔通关时清理等待选择态")
+	ch3_wait_battle.queue_free()
+	await process_frame
 
 	# 行动菜单显示后，选中单位可能被其他战场事件移除，等待回调仍需安全收尾。
 	var removed_waiter := Unit.new()
