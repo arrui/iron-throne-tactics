@@ -17,6 +17,7 @@ extends SceneTree
 # ── 加载依赖 ─────────────────────────────────────────────
 const BattleCalculatorClass := preload("res://scripts/battle/BattleCalculator.gd")
 const BattleMapClass        := preload("res://scripts/battle/BattleMap.gd")
+const BattleStageArt        := preload("res://scripts/battle/BattleStageArt.gd")
 const UnitDataClass          := preload("res://scripts/data/UnitData.gd")
 const EnemyAIClass           := preload("res://scripts/battle/EnemyAI.gd")
 const BootstrapClass         := preload("res://scripts/battle/BattleBootstrap.gd")
@@ -31,6 +32,12 @@ const TestOpeningClass       := preload("res://tests/helpers/TestOpening.gd")
 const TestDeployScreenClass  := preload("res://tests/helpers/TestDeployScreen.gd")
 
 class TestCh3Bootstrap extends Ch3BootstrapClass:
+	func _enter_tree() -> void:
+		if get_node_or_null("UnitLayer") == null:
+			var unit_layer := Node2D.new()
+			unit_layer.name = "UnitLayer"
+			add_child(unit_layer)
+
 	func _ready() -> void:
 		pass
 
@@ -249,6 +256,23 @@ func _test_unit_data() -> void:
 	_assert_eq(d.move, 5,          "move字段")
 	_assert_eq(d.weapon_type, "sword", "weapon_type字段")
 	_assert_eq(d.weapon_rank, "E",     "weapon_rank字段")
+	_assert_eq(d.class_id, "lord_blade", "默认测试剑士映射到领主剑士模板")
+	_assert_eq(d.move_type, "foot", "默认测试剑士使用步行标签")
+	_assert_eq(d.armor_type, "medium", "默认测试剑士使用中甲标签")
+	_assert_eq(d.animation_family, "lord_sword", "默认测试剑士继承职业动画家族")
+	_assert_eq(d.source_id, "", "未指定source_id时保持空字符串")
+
+	var sourced := UnitData.from_dict({"name": "劳勃"}, "robert_baratheon.json")
+	_assert_eq(sourced.source_id, "robert_baratheon.json", "UnitData 记录来源单位ID")
+
+	var scout := UnitData.from_dict({"class": "长枪兵", "weapon_type": "lance", "move": 5}, "howland_reed.json")
+	_assert_eq(scout.class_id, "scout_spear", "霍兰映射到游猎枪手模板")
+	_assert_eq(scout.armor_type, "light", "霍兰使用轻甲标签")
+
+	var ch4_guard := UnitData.from_dict({"class": "骑士", "weapon_type": "axe", "move": 4}, "north_spearwall")
+	_assert_eq(ch4_guard.class_id, "line_spear", "Ch4 护桥候选映射到线列枪兵模板")
+	_assert_eq(ch4_guard.move_type, "guard", "Ch4 护桥候选使用守卫移动标签")
+	_assert_eq(ch4_guard.armor_type, "heavy", "Ch4 护桥候选使用重甲标签")
 
 	# 缺失字段使用默认值
 	var empty := UnitData.from_dict({})
@@ -788,6 +812,15 @@ func _test_cutscene_json() -> void:
 		"res://data/cutscenes/prologue_opening.json",
 		"res://data/cutscenes/prologue_mad_king.json",
 		"res://data/cutscenes/prologue_uprising.json",
+		"res://data/cutscenes/ch2_opening.json",
+		"res://data/cutscenes/ch2_rhaegar_fall.json",
+		"res://data/cutscenes/ch2_split.json",
+		"res://data/cutscenes/ch3_opening.json",
+		"res://data/cutscenes/ch3_dayne_trigger.json",
+		"res://data/cutscenes/ch3_lyanna.json",
+		"res://data/cutscenes/ch4_opening.json",
+		"res://data/cutscenes/ch4_jaime_scene.json",
+		"res://data/cutscenes/ch4_ending.json",
 	]
 
 	for path: String in files:
@@ -841,15 +874,82 @@ func _test_cutscene_json() -> void:
 			_assert(has_art, "prologue_mad_king包含scene_art字段")
 
 			# 验证 scene_art 值为已知类型
-			var valid_arts := ["throne_room", "execution", "vale_castle", "stormlands_road", ""]
+			var valid_arts := [
+				"",
+				"throne_room", "execution", "vale_castle", "stormlands_road",
+				"ruby_ford_duel", "ruby_ford_fall", "trident_muster",
+				"tower_of_joy_gate", "tower_of_joy_fall", "lyanna_chamber",
+				"kingslayer", "throne_room_crowned", "north_road", "winterfell_gate",
+				"red_keep_breach",
+			]
+			var valid_camera_styles := [
+				"",
+				"steady", "throne_push", "execution_heat", "battle_sway",
+				"fall_drift", "desert_glide", "candle_breath", "snow_drift",
+			]
 			var all_known := true
+			var all_camera_known := true
 			for s: Variant in slides:
 				if s is Dictionary:
 					var art: String = (s as Dictionary).get("scene_art", "")
 					if not (art in valid_arts):
 						all_known = false
 						print("    未知scene_art类型：" + art)
+					var camera_style := String((s as Dictionary).get("camera_style", ""))
+					if not (camera_style in valid_camera_styles):
+						all_camera_known = false
+						print("    未知camera_style类型：" + camera_style)
 			_assert(all_known, "所有scene_art为已知类型")
+			_assert(all_camera_known, "所有camera_style为已知类型")
+
+	var narrative_cutscene_art_expectations: Dictionary = {
+		"res://data/cutscenes/ch2_opening.json": ["trident_muster", "ruby_ford_duel"],
+		"res://data/cutscenes/ch2_rhaegar_fall.json": ["ruby_ford_duel", "ruby_ford_fall"],
+		"res://data/cutscenes/ch3_opening.json": ["tower_of_joy_gate"],
+		"res://data/cutscenes/ch3_dayne_trigger.json": ["tower_of_joy_gate", "tower_of_joy_fall"],
+		"res://data/cutscenes/ch3_lyanna.json": ["lyanna_chamber"],
+		"res://data/cutscenes/ch4_opening.json": ["red_keep_breach"],
+		"res://data/cutscenes/ch4_jaime_scene.json": ["kingslayer"],
+		"res://data/cutscenes/ch4_ending.json": ["throne_room_crowned", "north_road", "winterfell_gate"],
+	}
+	for cutscene_path: String in narrative_cutscene_art_expectations.keys():
+		var cutscene_data: Variant = JSON.parse_string(FileAccess.get_file_as_string(cutscene_path))
+		_assert(cutscene_data is Dictionary, "关键叙事过场可解析：%s" % cutscene_path.get_file())
+		if not (cutscene_data is Dictionary):
+			continue
+		var arts_found: Dictionary = {}
+		for slide: Variant in (cutscene_data as Dictionary).get("slides", []):
+			if slide is Dictionary:
+				var art_name := String((slide as Dictionary).get("scene_art", ""))
+				if art_name != "":
+					arts_found[art_name] = true
+		for art_name: String in narrative_cutscene_art_expectations.get(cutscene_path, []):
+			_assert(arts_found.has(art_name), "%s 包含场景演出：%s" % [cutscene_path.get_file(), art_name])
+
+	var camera_style_expectations := {
+		"res://data/cutscenes/ch2_opening.json": ["battle_sway"],
+		"res://data/cutscenes/prologue_mad_king.json": ["throne_push", "execution_heat", "steady"],
+		"res://data/cutscenes/ch2_rhaegar_fall.json": ["battle_sway", "fall_drift"],
+		"res://data/cutscenes/ch3_opening.json": ["desert_glide"],
+		"res://data/cutscenes/ch3_dayne_trigger.json": ["battle_sway", "fall_drift"],
+		"res://data/cutscenes/ch3_lyanna.json": ["candle_breath"],
+		"res://data/cutscenes/ch4_opening.json": ["battle_sway"],
+		"res://data/cutscenes/ch4_jaime_scene.json": ["throne_push"],
+		"res://data/cutscenes/ch4_ending.json": ["throne_push", "snow_drift"],
+	}
+	for cutscene_path: String in camera_style_expectations.keys():
+		var cutscene_data: Variant = JSON.parse_string(FileAccess.get_file_as_string(cutscene_path))
+		_assert(cutscene_data is Dictionary, "关键轻动画过场可解析：%s" % cutscene_path.get_file())
+		if not (cutscene_data is Dictionary):
+			continue
+		var camera_found: Dictionary = {}
+		for slide: Variant in (cutscene_data as Dictionary).get("slides", []):
+			if slide is Dictionary:
+				var camera_style := String((slide as Dictionary).get("camera_style", ""))
+				if camera_style != "":
+					camera_found[camera_style] = true
+		for camera_style: String in camera_style_expectations.get(cutscene_path, []):
+			_assert(camera_found.has(camera_style), "%s 包含轻动画镜头风格：%s" % [cutscene_path.get_file(), camera_style])
 
 # ══════════════════════════════════════════════════════════
 # 测试套件 10：战斗预测全流程
@@ -915,7 +1015,7 @@ func _test_battle_predict_full() -> void:
 	var reserve := Unit.new()
 	reserve.setup(_make_unit_data({"name": "待命友军"}), 0, Vector2i(2, 3))
 	var defender := Unit.new()
-	defender.setup(_make_enemy_data({"name": "预测防守方"}), 1, Vector2i(4, 3))
+	defender.setup(_make_enemy_data({"name": "预测防守方", "weapon_type": "axe"}), 1, Vector2i(4, 3))
 	battle.get_node("UnitLayer").add_child(attacker)
 	battle.get_node("UnitLayer").add_child(reserve)
 	battle.get_node("UnitLayer").add_child(defender)
@@ -938,6 +1038,7 @@ func _test_battle_predict_full() -> void:
 	var predict_panel := battle.get_node("UI/PredictPanel") as PanelContainer
 	var confirm_button := predict_panel.get_node("VBox/Buttons/ConfirmBtn") as Button
 	var cancel_button := predict_panel.get_node("VBox/Buttons/CancelBtn") as Button
+	var triangle_line := predict_panel.get_node("VBox/TriangleLine") as Label
 	_assert_eq(attack_button.pressed.get_connections().size(), 1,
 		"正式攻击按钮仅连接一个处理目标")
 	_assert(confirm_button.pressed.get_connections().size() == 1,
@@ -953,6 +1054,10 @@ func _test_battle_predict_full() -> void:
 		"点击正式攻击按钮会打开唯一相邻敌军的战斗预测")
 	_assert(not action_menu.visible and battle.target_enemy == defender,
 		"点击正式攻击按钮会关闭行动菜单并锁定相邻目标")
+	_assert(triangle_line != null and "兵刃态势：克制" in triangle_line.text,
+		"战斗预测面板会明确显示当前兵刃克制关系")
+	if triangle_line != null:
+		_assert("剑压斧" in triangle_line.text, "战斗预测面板显示具体克制对象")
 	var reserve_click := InputEventMouseButton.new()
 	reserve_click.button_index = MOUSE_BUTTON_LEFT
 	reserve_click.pressed = true
@@ -2367,9 +2472,123 @@ func _test_combat_result_and_animation_setting() -> void:
 	root.add_child(anim)
 	await process_frame
 	_assert(anim.get_node_or_null("Panel/StageBackdrop") is ColorRect, "战斗动画包含大面积舞台背景")
+	_assert(anim.get_node_or_null("Panel/StageArt") is BattleStageArt, "战斗动画包含场景化舞台绘制层")
 	_assert(anim.get_node_or_null("Panel/ImpactFlash") is ColorRect, "战斗动画包含全舞台命中闪光")
 	_assert(anim.get_node_or_null("Panel/SlashTrail") is Polygon2D, "战斗动画包含武器轨迹")
 	_assert(anim.get_node_or_null("Panel/CriticalLabel") is Label, "战斗动画包含暴击演出标题")
+	_assert(anim.get_node_or_null("Panel/StageAccent") is ColorRect, "战斗动画包含专属演出染色层")
+	_assert(anim.get_node_or_null("Panel/ShowcaseLabel") is Label, "战斗动画包含专属标题标签")
+	_assert(anim.get_node_or_null("Panel/SignatureBurst") is Polygon2D, "战斗动画包含专属签名特效")
+	_assert_eq(anim._animation_style_from_data("sword", "lord_sword"), "sword",
+		"剑系战斗动画使用轻快斩击风格")
+	_assert_eq(anim._animation_style_from_data("axe", "heavy_axe"), "axe",
+		"斧系战斗动画使用重击下劈风格")
+	_assert_eq(anim._animation_style_from_data("lance", "elite_lance_charge"), "lance",
+		"枪系战斗动画使用直刺突进风格")
+	var sword_profile: Dictionary = anim._animation_profile("sword")
+	var axe_profile: Dictionary = anim._animation_profile("axe")
+	var lance_profile: Dictionary = anim._animation_profile("lance")
+	var showcase_robert := Unit.new()
+	showcase_robert.setup(_make_unit_data({
+		"name": "劳勃", "weapon_type": "axe", "weapon_rank": "C",
+		"source_id": "robert_baratheon.json"
+	}), 0, Vector2i(1, 1))
+	showcase_robert.set_meta("source_id", "robert_baratheon.json")
+	var showcase_rhaegar := Unit.new()
+	showcase_rhaegar.setup(_make_enemy_data({
+		"name": "雷加", "weapon_type": "lance", "weapon_rank": "C",
+		"source_id": "rhaegar_targaryen.json"
+	}), 1, Vector2i(2, 1))
+	showcase_rhaegar.set_meta("source_id", "rhaegar_targaryen.json")
+	_assert_eq(anim._resolve_showcase_mode(showcase_robert, showcase_rhaegar),
+		BattleAnimation.SHOWCASE_RUBY_FORD,
+		"劳勃对雷加会命中特殊战斗演出")
+	var showcase_howland := Unit.new()
+	showcase_howland.setup(_make_unit_data({
+		"name": "霍兰", "weapon_type": "lance", "source_id": "howland_reed.json"
+	}), 0, Vector2i(1, 1))
+	showcase_howland.set_meta("source_id", "howland_reed.json")
+	var showcase_dayne := Unit.new()
+	showcase_dayne.setup(_make_enemy_data({
+		"name": "亚瑟·戴恩", "weapon_type": "sword", "source_id": "arthur_dayne.json"
+	}), 1, Vector2i(2, 1))
+	showcase_dayne.set_meta("source_id", "arthur_dayne.json")
+	_assert_eq(anim._resolve_showcase_mode(showcase_howland, showcase_dayne),
+		BattleAnimation.SHOWCASE_DAWN_FALL,
+		"霍兰参与晓剑落幕时会命中特殊战斗演出")
+	var showcase_jaime := Unit.new()
+	showcase_jaime.setup(_make_unit_data({
+		"name": "詹姆", "weapon_type": "sword", "source_id": "jaime_lannister"
+	}), 0, Vector2i(1, 1))
+	showcase_jaime.set_meta("source_id", "jaime_lannister")
+	var showcase_royal := Unit.new()
+	showcase_royal.setup(_make_enemy_data({
+		"name": "王军队长", "weapon_type": "sword", "source_id": "royal_guard_captain.json"
+	}), 1, Vector2i(2, 1))
+	showcase_royal.set_meta("source_id", "royal_guard_captain.json")
+	_assert_eq(anim._resolve_showcase_mode(showcase_jaime, showcase_royal),
+		BattleAnimation.SHOWCASE_KINGSLAYER,
+		"詹姆对王军守卫时会命中特殊战斗演出")
+	anim._apply_showcase_presentation(BattleAnimation.SHOWCASE_RUBY_FORD)
+	var ruby_profile: Dictionary = anim._profile_with_showcase_modifiers(anim._animation_profile("axe"), false)
+	_assert_eq((anim.get_node("Panel/VSLabel") as Label).text, "红宝石滩",
+		"劳勃对雷加会显示专属战斗标识")
+	_assert_eq((anim.get_node("Panel/StageArt") as BattleStageArt).stage_mode,
+		BattleStageArt.MODE_RUBY_FORD,
+		"红宝石滩专属演出会切换到河战舞台背景")
+	_assert((anim.get_node("Panel/StageArt") as BattleStageArt).accent_color.a > 0.0,
+		"红宝石滩专属演出会为舞台背景提供专属染色")
+	_assert((anim.get_node("Panel/StageArt") as BattleStageArt).has_method("_draw_warhammer_duel"),
+		"红宝石滩舞台背景提供劳勃对雷加前景构图")
+	_assert((anim.get_node("Panel/StageArt") as BattleStageArt).has_method("_draw_ruby_ford_foreground"),
+		"红宝石滩舞台背景提供半立绘化前景层")
+	_assert((anim.get_node("Panel/StageArt") as BattleStageArt).has_method("_draw_rank_line"),
+		"红宝石滩舞台背景保留军阵辅助构图能力")
+	_assert(float(ruby_profile.get("panel_kick", 0.0)) > float(axe_profile.get("panel_kick", 0.0)),
+		"红宝石滩专属演出会强化冲击感")
+	anim._apply_showcase_presentation(BattleAnimation.SHOWCASE_DAWN_FALL)
+	_assert_eq((anim.get_node("Panel/CriticalLabel") as Label).text, "晓光折断！",
+		"晓剑落幕专属演出会替换必杀文案")
+	_assert_eq((anim.get_node("Panel/StageArt") as BattleStageArt).stage_mode,
+		BattleStageArt.MODE_TOWER_OF_JOY,
+		"晓剑落幕专属演出会切换到极乐塔舞台背景")
+	_assert((anim.get_node("Panel/StageArt") as BattleStageArt).has_method("_draw_dayne_stand"),
+		"极乐塔舞台背景提供亚瑟前景构图")
+	_assert((anim.get_node("Panel/StageArt") as BattleStageArt).has_method("_draw_tower_of_joy_foreground"),
+		"极乐塔舞台背景提供半立绘化前景层")
+	_assert((anim.get_node("Panel/StageArt") as BattleStageArt).has_method("_soft_circle"),
+		"极乐塔舞台背景保留柔光氛围辅助能力")
+	_assert((anim._signature_polygon_for_showcase("unknown")).size() >= 6,
+		"专属签名工具为未知模式提供默认多边形")
+	_assert((anim.get_node("Panel/SignatureBurst") as Polygon2D).polygon.size() >= 6,
+		"专属演出会提供独立签名特效轮廓")
+	anim._apply_showcase_presentation(BattleAnimation.SHOWCASE_KINGSLAYER)
+	_assert_eq((anim.get_node("Panel/ShowcaseLabel") as Label).text, "弑君者",
+		"弑君者专属演出会显示专属标题")
+	_assert_eq((anim.get_node("Panel/StageArt") as BattleStageArt).stage_mode,
+		BattleStageArt.MODE_THRONE_ROOM,
+		"弑君者专属演出会切换到王座厅舞台背景")
+	_assert((anim.get_node("Panel/StageArt") as BattleStageArt).has_method("_draw_kingslayer_tableau"),
+		"王座厅舞台背景提供弑君前景构图")
+	_assert((anim.get_node("Panel/StageArt") as BattleStageArt).has_method("_draw_throne_room_foreground"),
+		"王座厅舞台背景提供半立绘化前景层")
+	_assert((anim.get_node("Panel/StageArt") as BattleStageArt).has_method("_draw_blood_streak"),
+		"王座厅舞台背景保留血痕叙事辅助能力")
+	anim._apply_showcase_presentation("")
+	_assert_eq((anim.get_node("Panel/StageArt") as BattleStageArt).stage_mode, "",
+		"退出专属演出后清空场景化舞台背景")
+	showcase_robert.queue_free()
+	showcase_rhaegar.queue_free()
+	showcase_howland.queue_free()
+	showcase_dayne.queue_free()
+	showcase_jaime.queue_free()
+	showcase_royal.queue_free()
+	_assert(float(axe_profile.get("charge_duration", 0.0)) > float(sword_profile.get("charge_duration", 0.0)),
+		"斧系冲锋更沉重，前摇长于剑系")
+	_assert(float(lance_profile.get("charge_offset", 0.0)) > float(sword_profile.get("charge_offset", 0.0)),
+		"枪系冲刺距离长于剑系")
+	_assert(float(axe_profile.get("panel_kick", 0.0)) > float(lance_profile.get("panel_kick", 0.0)),
+		"斧系命中屏幕震感强于枪系")
 	var atk_icon := anim.get_node("Panel/AtkSide/Icon") as Sprite2D
 	var def_icon := anim.get_node("Panel/DefSide/Icon") as Sprite2D
 	var panel := anim.get_node("Panel") as Control
@@ -4287,6 +4506,7 @@ func _test_visual_style_unification() -> void:
 	var predict_title := predict_panel.get_node("VBox/Title") as Label
 	var predict_atk_line := predict_panel.get_node("VBox/AtkLine") as Label
 	var predict_def_line := predict_panel.get_node("VBox/DefLine") as Label
+	var predict_triangle_line := predict_panel.get_node("VBox/TriangleLine") as Label
 	var predict_double_line := predict_panel.get_node("VBox/DoubleLine") as Label
 	var predict_confirm_btn := predict_panel.get_node("VBox/Buttons/ConfirmBtn") as Button
 	var predict_cancel_btn := predict_panel.get_node("VBox/Buttons/CancelBtn") as Button
@@ -4303,6 +4523,8 @@ func _test_visual_style_unification() -> void:
 		"战斗预测攻击方使用进攻色")
 	_assert_eq(predict_def_line.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_GUIDANCE,
 		"战斗预测防守方使用冷色")
+	_assert_eq(predict_triangle_line.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_SECONDARY,
+		"战斗预测兵刃态势默认使用次级提示色")
 	_assert_eq(predict_double_line.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_ACCENT,
 		"战斗预测追击提示使用强调色")
 	_assert(predict_confirm_style.bg_color != predict_cancel_style.bg_color,
@@ -5081,6 +5303,51 @@ func _test_portrait_assets() -> void:
 		_assert(tex.get_width() == tex.get_height(),
 			"立绘保持方形比例：%s" % portrait_name)
 
+	var ch4_variant_portraits := {
+		"north_axebreaker_portrait.png": "破门斧卫使用独立立绘资源",
+		"north_spearwall_portrait.png": "白港枪卫使用独立立绘资源",
+		"north_swiftsword_portrait.png": "林地快剑使用独立立绘资源",
+		"north_rider_portrait.png": "侧翼游骑使用独立立绘资源",
+		"north_veteran_portrait.png": "持旗老兵使用独立立绘资源",
+	}
+	for portrait_name: String in ch4_variant_portraits.keys():
+		var path := "res://assets/units/" + portrait_name
+		_assert(FileAccess.file_exists(path), ch4_variant_portraits[portrait_name])
+		if not FileAccess.file_exists(path):
+			continue
+		var img := Image.load_from_file(ProjectSettings.globalize_path(path))
+		_assert(img != null and not img.is_empty(), "Ch4 变体立绘图片可直接读取：%s" % portrait_name)
+		if img == null or img.is_empty():
+			continue
+		_assert_eq(img.get_size(), Vector2i(96, 96), "Ch4 变体立绘保持96×96：%s" % portrait_name)
+
+	var ch23_variant_portraits := {
+		"ch2_storm_vanguard_portrait.png": "Ch2 风暴先锋使用独立立绘资源",
+		"ch2_vale_veteran_portrait.png": "Ch2 谷地宿卫使用独立立绘资源",
+		"ch2_river_captain_portrait.png": "Ch2 河间队长使用独立立绘资源",
+		"ch2_dragon_guard_portrait.png": "Ch2 龙焰卫使用独立立绘资源",
+		"ch2_ruby_lancer_portrait.png": "Ch2 赤宝枪卫使用独立立绘资源",
+		"ch2_crown_phalanx_portrait.png": "Ch2 王冠方阵使用独立立绘资源",
+		"ch3_frost_axe_portrait.png": "Ch3 霜斧侍从使用独立立绘资源",
+		"ch3_white_blade_portrait.png": "Ch3 白刃近卫使用独立立绘资源",
+		"ch3_greymark_veteran_portrait.png": "Ch3 灰痕老兵使用独立立绘资源",
+		"ch3_red_sand_lancer_portrait.png": "Ch3 赤沙枪骑使用独立立绘资源",
+		"ch3_sunfire_lancer_portrait.png": "Ch3 耀阳枪骑使用独立立绘资源",
+		"ch3_dune_guard_portrait.png": "Ch3 沙丘护卫使用独立立绘资源",
+		"ch3_goldcloak_captain_portrait.png": "Ch3 金袍队长使用独立立绘资源",
+		"ch3_gate_goldcloak_portrait.png": "Ch3 城门金袍使用独立立绘资源",
+	}
+	for portrait_name: String in ch23_variant_portraits.keys():
+		var path := "res://assets/units/" + portrait_name
+		_assert(FileAccess.file_exists(path), ch23_variant_portraits[portrait_name])
+		if not FileAccess.file_exists(path):
+			continue
+		var img := Image.load_from_file(ProjectSettings.globalize_path(path))
+		_assert(img != null and not img.is_empty(), "Ch2/Ch3 变体立绘图片可直接读取：%s" % portrait_name)
+		if img == null or img.is_empty():
+			continue
+		_assert_eq(img.get_size(), Vector2i(96, 96), "Ch2/Ch3 变体立绘保持96×96：%s" % portrait_name)
+
 func _test_map_sprite_assets_and_animation() -> void:
 	var expected_sprite_map := {
 		"arthur_dayne.json": "arthur_dayne_map.png",
@@ -5128,6 +5395,31 @@ func _test_map_sprite_assets_and_animation() -> void:
 	# 詹姆与史林特暂未拥有单位 JSON，但预制同规格资源供后续章节直接接入。
 	sprite_names.append("jaime_lannister_map.png")
 	sprite_names.append("janos_slynt_map.png")
+	# Ch4 差异化突击队使用独立地图精灵，避免重新落回同脸同兵种观感。
+	sprite_names.append_array([
+		"north_axebreaker_map.png",
+		"north_spearwall_map.png",
+		"north_swiftsword_map.png",
+		"north_rider_map.png",
+		"north_veteran_map.png",
+	])
+	# Ch2 / Ch3 差异化角色也需要独立地图精灵，避免再次出现同模板同脸。
+	sprite_names.append_array([
+		"ch2_storm_vanguard_map.png",
+		"ch2_vale_veteran_map.png",
+		"ch2_river_captain_map.png",
+		"ch2_dragon_guard_map.png",
+		"ch2_ruby_lancer_map.png",
+		"ch2_crown_phalanx_map.png",
+		"ch3_frost_axe_map.png",
+		"ch3_white_blade_map.png",
+		"ch3_greymark_veteran_map.png",
+		"ch3_red_sand_lancer_map.png",
+		"ch3_sunfire_lancer_map.png",
+		"ch3_dune_guard_map.png",
+		"ch3_goldcloak_captain_map.png",
+		"ch3_gate_goldcloak_map.png",
+	])
 	for sprite_name: String in sprite_names:
 		var path := "res://assets/units/" + sprite_name
 		_assert(FileAccess.file_exists(path), "地图精灵资源存在：%s" % sprite_name)
@@ -5161,6 +5453,104 @@ func _test_map_sprite_assets_and_animation() -> void:
 	_assert(sprite.frame != initial_frame, "地图精灵待机动画会自动切换帧")
 	unit.queue_free()
 	await process_frame
+
+	GameState.current_chapter = 4
+	GameState.deploy_selection = [
+		"ned_stark.json",
+		"north_axebreaker",
+		"north_spearwall",
+		"north_swiftsword",
+		"north_rider",
+		"north_veteran",
+	]
+	var ch4_spawn := TestBootstrapClass.new()
+	root.add_child(ch4_spawn)
+	await process_frame
+	var ch4_variant_assets := {
+		"破门斧卫": ["res://assets/units/north_axebreaker_map.png", "res://assets/units/north_axebreaker_portrait.png"],
+		"白港枪卫": ["res://assets/units/north_spearwall_map.png", "res://assets/units/north_spearwall_portrait.png"],
+		"林地快剑": ["res://assets/units/north_swiftsword_map.png", "res://assets/units/north_swiftsword_portrait.png"],
+		"侧翼游骑": ["res://assets/units/north_rider_map.png", "res://assets/units/north_rider_portrait.png"],
+		"持旗老兵": ["res://assets/units/north_veteran_map.png", "res://assets/units/north_veteran_portrait.png"],
+	}
+	for unit_node: Variant in ch4_spawn.player_units:
+		if not (unit_node is Unit):
+			continue
+		var spawned := unit_node as Unit
+		if not ch4_variant_assets.has(spawned.data.name):
+			continue
+		var sprite_node := spawned.get_node_or_null("Sprite") as Sprite2D
+		var expected_assets: Array = ch4_variant_assets[spawned.data.name]
+		_assert(sprite_node != null and sprite_node.texture != null,
+			"Ch4 差异化骑士已挂载地图精灵：%s" % spawned.data.name)
+		if sprite_node != null and sprite_node.texture != null:
+			_assert_eq(sprite_node.texture.resource_path, String(expected_assets[0]),
+				"Ch4 差异化骑士使用独立地图精灵：%s" % spawned.data.name)
+		_assert_eq(String(spawned.get_meta("portrait_path", "")), String(expected_assets[1]),
+			"Ch4 差异化骑士使用独立立绘：%s" % spawned.data.name)
+	if is_instance_valid(ch4_spawn):
+		ch4_spawn.queue_free()
+	await process_frame
+
+	var ch2_direct_assets := {
+		"ch2_storm_vanguard": ["风暴先锋", "res://assets/units/ch2_storm_vanguard_map.png", "res://assets/units/ch2_storm_vanguard_portrait.png"],
+		"ch2_vale_veteran": ["谷地宿卫", "res://assets/units/ch2_vale_veteran_map.png", "res://assets/units/ch2_vale_veteran_portrait.png"],
+		"ch2_river_captain": ["河间队长", "res://assets/units/ch2_river_captain_map.png", "res://assets/units/ch2_river_captain_portrait.png"],
+		"ch2_dragon_guard": ["龙焰卫", "res://assets/units/ch2_dragon_guard_map.png", "res://assets/units/ch2_dragon_guard_portrait.png"],
+		"ch2_ruby_lancer": ["赤宝枪卫", "res://assets/units/ch2_ruby_lancer_map.png", "res://assets/units/ch2_ruby_lancer_portrait.png"],
+		"ch2_crown_phalanx": ["王冠方阵", "res://assets/units/ch2_crown_phalanx_map.png", "res://assets/units/ch2_crown_phalanx_portrait.png"],
+	}
+	var ch2_spawn := Ch2BootstrapClass.new()
+	var ch2_unit_layer := Node2D.new()
+	ch2_unit_layer.name = "UnitLayer"
+	ch2_spawn.add_child(ch2_unit_layer)
+	for unit_id: String in ch2_direct_assets.keys():
+		var spawned := ch2_spawn._make_unit_ret(unit_id, 0, Vector2i.ZERO)
+		var expected_assets: Array = ch2_direct_assets[unit_id]
+		_assert(spawned != null, "独立序章二可直接生成差异化单位：%s" % String(expected_assets[0]))
+		if spawned == null:
+			continue
+		_assert_eq(spawned.data.name, String(expected_assets[0]),
+			"独立序章二差异化单位名称覆盖生效：%s" % unit_id)
+		var sprite_node := spawned.get_node_or_null("Sprite") as Sprite2D
+		_assert(sprite_node != null and sprite_node.texture != null,
+			"独立序章二差异化单位已挂载地图精灵：%s" % spawned.data.name)
+		if sprite_node != null and sprite_node.texture != null:
+			_assert_eq(sprite_node.texture.resource_path, String(expected_assets[1]),
+				"独立序章二差异化单位使用独立地图精灵：%s" % spawned.data.name)
+		_assert_eq(String(spawned.get_meta("portrait_path", "")), String(expected_assets[2]),
+			"独立序章二差异化单位使用独立立绘：%s" % spawned.data.name)
+
+	var ch3_direct_assets := {
+		"ch3_frost_axe": ["霜斧侍从", "res://assets/units/ch3_frost_axe_map.png", "res://assets/units/ch3_frost_axe_portrait.png"],
+		"ch3_white_blade": ["白刃近卫", "res://assets/units/ch3_white_blade_map.png", "res://assets/units/ch3_white_blade_portrait.png"],
+		"ch3_greymark_veteran": ["灰痕老兵", "res://assets/units/ch3_greymark_veteran_map.png", "res://assets/units/ch3_greymark_veteran_portrait.png"],
+		"ch3_red_sand_lancer": ["赤沙枪骑", "res://assets/units/ch3_red_sand_lancer_map.png", "res://assets/units/ch3_red_sand_lancer_portrait.png"],
+		"ch3_sunfire_lancer": ["耀阳枪骑", "res://assets/units/ch3_sunfire_lancer_map.png", "res://assets/units/ch3_sunfire_lancer_portrait.png"],
+		"ch3_dune_guard": ["沙丘护卫", "res://assets/units/ch3_dune_guard_map.png", "res://assets/units/ch3_dune_guard_portrait.png"],
+		"ch3_goldcloak_captain": ["金袍队长", "res://assets/units/ch3_goldcloak_captain_map.png", "res://assets/units/ch3_goldcloak_captain_portrait.png"],
+		"ch3_gate_goldcloak": ["城门金袍", "res://assets/units/ch3_gate_goldcloak_map.png", "res://assets/units/ch3_gate_goldcloak_portrait.png"],
+	}
+	var ch3_spawn := Ch3BootstrapClass.new()
+	var ch3_unit_layer := Node2D.new()
+	ch3_unit_layer.name = "UnitLayer"
+	ch3_spawn.add_child(ch3_unit_layer)
+	for unit_id: String in ch3_direct_assets.keys():
+		var spawned := ch3_spawn._make_unit_ret(unit_id, 0, Vector2i.ZERO)
+		var expected_assets: Array = ch3_direct_assets[unit_id]
+		_assert(spawned != null, "独立序章三可直接生成差异化单位：%s" % String(expected_assets[0]))
+		if spawned == null:
+			continue
+		_assert_eq(spawned.data.name, String(expected_assets[0]),
+			"独立序章三差异化单位名称覆盖生效：%s" % unit_id)
+		var sprite_node := spawned.get_node_or_null("Sprite") as Sprite2D
+		_assert(sprite_node != null and sprite_node.texture != null,
+			"独立序章三差异化单位已挂载地图精灵：%s" % spawned.data.name)
+		if sprite_node != null and sprite_node.texture != null:
+			_assert_eq(sprite_node.texture.resource_path, String(expected_assets[1]),
+				"独立序章三差异化单位使用独立地图精灵：%s" % spawned.data.name)
+		_assert_eq(String(spawned.get_meta("portrait_path", "")), String(expected_assets[2]),
+			"独立序章三差异化单位使用独立立绘：%s" % spawned.data.name)
 
 func _test_dialogue_portrait_mapping() -> void:
 	const DIALOGUE_SYSTEM_PATH := "res://scripts/dialogue/DialogueSystem.gd"
@@ -5859,18 +6249,25 @@ func _test_ch1_save_and_deploy_flow() -> void:
 		_assert("至少选择 1 名骑士" in confirm_btn.text, "部署界面未选人时确认按钮给出提示")
 	if mandatory_card != null:
 		var mandatory_name := mandatory_card.get_node_or_null("VBox/NameLabel") as Label
+		var mandatory_class := mandatory_card.get_node_or_null("VBox/ClassLabel") as Label
 		var mandatory_role := mandatory_card.get_node_or_null("VBox/RoleLabel") as Label
 		var mandatory_stats := mandatory_card.get_node_or_null("VBox/StatsLabel") as Label
+		var mandatory_matchup := mandatory_card.get_node_or_null("VBox/MatchupLabel") as Label
 		var mandatory_status := mandatory_card.get_node_or_null("VBox/StatusLabel") as Label
 		var mandatory_tag := mandatory_card.get_node_or_null("VBox/MandatoryTag") as Label
 		var mandatory_portrait := mandatory_card.get_node_or_null("VBox/Portrait") as TextureRect
 		if mandatory_name != null:
 			_assert_eq(mandatory_name.text, "奈德", "部署界面固定主将卡显示奈德")
+		if mandatory_class != null:
+			_assert("兵种：北境领主" in mandatory_class.text and "步行" in mandatory_class.text,
+				"部署界面固定主将卡显示兵种与移动标签")
 		if mandatory_role != null:
 			_assert("中轴突破" in mandatory_role.text, "部署界面固定主将卡说明中轴职责")
 		if mandatory_stats != null:
 			_assert("剑C" in mandatory_stats.text and "移动5" in mandatory_stats.text,
 				"部署界面固定主将卡显示武器等级与机动")
+		if mandatory_matchup != null:
+			_assert_eq(mandatory_matchup.text, "兵刃：克斧 / 惧枪", "部署界面固定主将卡显示剑系克制关系")
 		if mandatory_status != null:
 			_assert_eq(mandatory_status.text, "状态：固定出战", "部署界面固定主将卡状态明确")
 		if mandatory_tag != null:
@@ -5878,16 +6275,26 @@ func _test_ch1_save_and_deploy_flow() -> void:
 		if mandatory_portrait != null:
 			_assert(mandatory_portrait.texture != null, "部署界面固定主将卡加载立绘")
 	if optional_card != null:
+		var optional_name := optional_card.get_node_or_null("VBox/NameLabel") as Label
+		var optional_class := optional_card.get_node_or_null("VBox/ClassLabel") as Label
 		var optional_role := optional_card.get_node_or_null("VBox/RoleLabel") as Label
 		var optional_stats := optional_card.get_node_or_null("VBox/StatsLabel") as Label
+		var optional_matchup := optional_card.get_node_or_null("VBox/MatchupLabel") as Label
 		var optional_status := optional_card.get_node_or_null("VBox/StatusLabel") as Label
 		var optional_button := optional_card.get_node_or_null("VBox/SelectBtn") as Button
 		var optional_portrait := optional_card.get_node_or_null("VBox/Portrait") as TextureRect
+		if optional_name != null:
+			_assert_eq(optional_name.text, "破门斧卫", "部署界面首个候选卡显示差异化角色名")
+		if optional_class != null:
+			_assert("兵种：重击斧兵" in optional_class.text and "步行" in optional_class.text and "中甲" in optional_class.text,
+				"部署界面可选卡显示兵种、移动与护甲标签")
 		if optional_role != null:
 			_assert("黑水桥突破" in optional_role.text, "部署界面可选卡给出桥头职责")
 		if optional_stats != null:
 			_assert("斧D" in optional_stats.text and "移动4" in optional_stats.text,
 				"部署界面可选卡显示武器等级与机动")
+		if optional_matchup != null:
+			_assert_eq(optional_matchup.text, "兵刃：克枪 / 惧剑", "部署界面斧兵候选卡显示兵刃克制提示")
 		if optional_status != null:
 			_assert_eq(optional_status.text, "状态：待命", "部署界面可选卡默认处于待命")
 		if optional_button != null:
@@ -5905,6 +6312,49 @@ func _test_ch1_save_and_deploy_flow() -> void:
 			if button_style != null:
 				_assert_eq(button_style.bg_color, BattleChromeThemeClass.BUTTON_NORMAL_BG, "部署界面选择按钮使用统一按钮底色")
 				_assert_eq(button_style.border_color, BattleChromeThemeClass.BUTTON_NORMAL_BORDER, "部署界面选择按钮使用统一按钮边框")
+
+	var optional_card_2 := deploy.get_node_or_null("LayoutRoot/ContentVBox/RosterPanel/RosterVBox/UnitGrid/UnitCard_2") as PanelContainer
+	var optional_card_4 := deploy.get_node_or_null("LayoutRoot/ContentVBox/RosterPanel/RosterVBox/UnitGrid/UnitCard_4") as PanelContainer
+	var optional_card_5 := deploy.get_node_or_null("LayoutRoot/ContentVBox/RosterPanel/RosterVBox/UnitGrid/UnitCard_5") as PanelContainer
+	if optional_card_2 != null:
+		var name_2 := optional_card_2.get_node_or_null("VBox/NameLabel") as Label
+		var class_2 := optional_card_2.get_node_or_null("VBox/ClassLabel") as Label
+		var stats_2 := optional_card_2.get_node_or_null("VBox/StatsLabel") as Label
+		var matchup_2 := optional_card_2.get_node_or_null("VBox/MatchupLabel") as Label
+		if name_2 != null:
+			_assert_eq(name_2.text, "白港枪卫", "部署界面第二候选卡改为护桥枪卫")
+		if class_2 != null:
+			_assert("线列枪兵" in class_2.text and "重装" in class_2.text and "重甲" in class_2.text,
+				"部署界面第二候选卡显示护桥枪兵的防御标签")
+		if stats_2 != null:
+			_assert("枪D" in stats_2.text and "移动4" in stats_2.text,
+				"部署界面第二候选卡显示枪兵参数")
+		if matchup_2 != null:
+			_assert_eq(matchup_2.text, "兵刃：克剑 / 惧斧", "部署界面第二候选卡显示枪兵克制提示")
+	if optional_card_4 != null:
+		var name_4 := optional_card_4.get_node_or_null("VBox/NameLabel") as Label
+		var class_4 := optional_card_4.get_node_or_null("VBox/ClassLabel") as Label
+		var stats_4 := optional_card_4.get_node_or_null("VBox/StatsLabel") as Label
+		if name_4 != null:
+			_assert_eq(name_4.text, "侧翼游骑", "部署界面第四候选卡改为机动游骑")
+		if class_4 != null:
+			_assert("精英枪骑" in class_4.text and "骑乘" in class_4.text,
+				"部署界面第四候选卡显示骑兵机动标签")
+		if stats_4 != null:
+			_assert("枪D" in stats_4.text and "移动6" in stats_4.text,
+				"部署界面第四候选卡显示高机动枪骑参数")
+	if optional_card_5 != null:
+		var name_5 := optional_card_5.get_node_or_null("VBox/NameLabel") as Label
+		var class_5 := optional_card_5.get_node_or_null("VBox/ClassLabel") as Label
+		var stats_5 := optional_card_5.get_node_or_null("VBox/StatsLabel") as Label
+		if name_5 != null:
+			_assert_eq(name_5.text, "持旗老兵", "部署界面第五候选卡改为稳健副核老兵")
+		if class_5 != null:
+			_assert("战团统领" in class_5.text and "步行" in class_5.text,
+				"部署界面第五候选卡显示老兵统领标签")
+		if stats_5 != null:
+			_assert("斧C" in stats_5.text and "移动5" in stats_5.text,
+				"部署界面第五候选卡显示更稳健的斧兵参数")
 
 	if optional_card != null:
 		var optional_button_before := optional_card.get_node_or_null("VBox/SelectBtn") as Button
@@ -5927,7 +6377,6 @@ func _test_ch1_save_and_deploy_flow() -> void:
 				_assert_eq(optional_style_selected.border_color, BattleChromeThemeClass.PANEL_SELECTED_BORDER, "部署界面选中卡切换为统一高亮边框")
 
 	var optional_card_3 := deploy.get_node_or_null("LayoutRoot/ContentVBox/RosterPanel/RosterVBox/UnitGrid/UnitCard_3") as PanelContainer
-	var optional_card_5 := deploy.get_node_or_null("LayoutRoot/ContentVBox/RosterPanel/RosterVBox/UnitGrid/UnitCard_5") as PanelContainer
 	if optional_card_3 != null:
 		var button3 := optional_card_3.get_node_or_null("VBox/SelectBtn") as Button
 		if button3 != null:
@@ -5945,6 +6394,9 @@ func _test_ch1_save_and_deploy_flow() -> void:
 	deploy.test_confirm()
 	_assert_eq(GameState.deploy_selection.size(), 4, "部署确认后写入奈德+3名骑士")
 	_assert_eq(GameState.deploy_selection[0], "ned_stark.json", "部署列表首位固定为奈德")
+	_assert(GameState.deploy_selection.has("north_axebreaker"), "部署确认后记录差异化前锋候选")
+	_assert(GameState.deploy_selection.has("north_swiftsword"), "部署确认后记录差异化快剑候选")
+	_assert(GameState.deploy_selection.has("north_veteran"), "部署确认后记录差异化稳健候选")
 	_assert(deploy.recorded_scene_changes.has("res://scenes/battle/BattleMap.tscn"),
 		"部署确认后进入战斗场景")
 	SaveSystem.save_chapter_complete(1)
@@ -6019,6 +6471,27 @@ func _test_overlay_runtime_flow() -> void:
 	await create_timer(1.0).timeout
 	_assert_eq(cutscene_finish_events.size(), 2,
 		"重入播放后一次跳过只会结束最新过场一次")
+
+	cutscene.play("res://data/cutscenes/ch2_rhaegar_fall.json")
+	await create_timer(0.2).timeout
+	_assert(cutscene._scene_art.scale.x > 1.01,
+		"关键过场轻动画会给场景艺术施加镜头缩放")
+	_assert(not is_zero_approx(cutscene._scene_art.position.length()),
+		"关键过场轻动画会给场景艺术施加镜头位移")
+	_assert(cutscene._scene_art.overlay_tint.a > 0.0,
+		"关键过场轻动画会施加色调蒙层")
+	var motion_time_before: float = cutscene._scene_art.time
+	await create_timer(0.15).timeout
+	_assert(cutscene._scene_art.time > motion_time_before,
+		"关键过场轻动画会持续推进场景动画时间")
+	cutscene._skip_requested = true
+	await create_timer(0.5).timeout
+	_assert_eq(cutscene._scene_art.scale, Vector2.ONE,
+		"关键过场结束后场景艺术缩放会复位")
+	_assert_eq(cutscene._scene_art.position, Vector2.ZERO,
+		"关键过场结束后场景艺术位移会复位")
+	_assert_eq(cutscene._scene_art.overlay_tint, Color(1, 1, 1, 0),
+		"关键过场结束后场景艺术蒙层会复位")
 	cutscene.queue_free()
 	await process_frame
 

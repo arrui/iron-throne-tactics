@@ -7,6 +7,75 @@ signal cutscene_finished
 const FADE_DURATION := 0.6
 const TEXT_FADE_IN  := 0.4
 
+const CAMERA_STYLE_PRESETS := {
+	"steady": {
+		"zoom": 1.0,
+		"pan_x": 0.0,
+		"pan_y": 0.0,
+		"overlay": Color(1, 1, 1, 0),
+	},
+	"throne_push": {
+		"zoom": 1.08,
+		"pan_x": 0.0,
+		"pan_y": -10.0,
+		"overlay": Color(1.0, 0.84, 0.62, 0.05),
+	},
+	"execution_heat": {
+		"zoom": 1.04,
+		"pan_x": 0.0,
+		"pan_y": 6.0,
+		"overlay": Color(1.0, 0.34, 0.10, 0.08),
+	},
+	"battle_sway": {
+		"zoom": 1.06,
+		"pan_x": 10.0,
+		"pan_y": 4.0,
+		"overlay": Color(0.90, 0.94, 1.0, 0.03),
+	},
+	"fall_drift": {
+		"zoom": 1.12,
+		"pan_x": -8.0,
+		"pan_y": 12.0,
+		"overlay": Color(0.86, 0.14, 0.18, 0.08),
+	},
+	"desert_glide": {
+		"zoom": 1.03,
+		"pan_x": 14.0,
+		"pan_y": -2.0,
+		"overlay": Color(1.0, 0.88, 0.66, 0.04),
+	},
+	"candle_breath": {
+		"zoom": 1.05,
+		"pan_x": -3.0,
+		"pan_y": -5.0,
+		"overlay": Color(1.0, 0.90, 0.70, 0.05),
+	},
+	"snow_drift": {
+		"zoom": 1.02,
+		"pan_x": 8.0,
+		"pan_y": -4.0,
+		"overlay": Color(0.86, 0.92, 1.0, 0.04),
+	},
+}
+
+const SCENE_ART_STYLE_DEFAULTS := {
+	"throne_room": "throne_push",
+	"execution": "execution_heat",
+	"vale_castle": "steady",
+	"stormlands_road": "battle_sway",
+	"ruby_ford_duel": "battle_sway",
+	"ruby_ford_fall": "fall_drift",
+	"trident_muster": "battle_sway",
+	"tower_of_joy_gate": "desert_glide",
+	"tower_of_joy_fall": "fall_drift",
+	"lyanna_chamber": "candle_breath",
+	"kingslayer": "throne_push",
+	"throne_room_crowned": "throne_push",
+	"north_road": "snow_drift",
+	"winterfell_gate": "snow_drift",
+	"red_keep_breach": "battle_sway",
+}
+
 var _slides: Array = []
 var _current_index: int = 0
 var _is_playing: bool = false
@@ -23,6 +92,7 @@ var _play_id: int = 0
 func _ready() -> void:
 	# 为过场动画标签应用中文字体
 	_apply_cjk_font()
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	if _label:
 		_label.modulate    = Color(1, 1, 1, 0)
 	if _sublabel:
@@ -32,6 +102,12 @@ func _ready() -> void:
 	if _scene_art:
 		_scene_art.alpha = 0.0
 		_scene_art.modulate = Color(1, 1, 1, 0)
+		_scene_art.process_mode = Node.PROCESS_MODE_ALWAYS
+		_scene_art.set_process(true)
+
+func _process(_delta: float) -> void:
+	if _is_playing and _skip_requested and visible and not _slides.is_empty():
+		_abort_current_playback()
 
 func _apply_cjk_font() -> void:
 	# 直接加载内置 Arial Unicode 字体
@@ -80,6 +156,8 @@ func _input(event: InputEvent) -> void:
 		(event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT
 	if key_skip or mouse_skip:
 		_skip_requested = true
+		if visible and not _slides.is_empty():
+			_abort_current_playback()
 		get_viewport().set_input_as_handled()
 
 func _load_json(path: String) -> Dictionary:
@@ -110,10 +188,17 @@ func _play_slide(index: int, play_id: int) -> void:
 	var duration: float    = float(slide.get("duration", 3.5))
 	var image_path: String = slide.get("image", "")
 	var scene_art: String  = slide.get("scene_art", "")
+	var camera_style: String = str(slide.get("camera_style", ""))
+	if camera_style == "" and scene_art != "":
+		camera_style = str(SCENE_ART_STYLE_DEFAULTS.get(scene_art, "steady"))
 
 	# 优先：代码绘制场景（无需外部资源）
 	if _scene_art != null:
 		if scene_art != "":
+			_scene_art.reset_motion_state()
+			if camera_style == "":
+				camera_style = "steady"
+			_apply_camera_style(camera_style, duration, play_id)
 			_scene_art.scene_type = scene_art
 			_scene_art.queue_redraw()
 			await _fade_scene_art(0.0, 1.0, FADE_DURATION * 0.8, play_id)
@@ -125,6 +210,7 @@ func _play_slide(index: int, play_id: int) -> void:
 					FADE_DURATION * 0.5, play_id)
 				if play_id != _play_id: return
 			_scene_art.scene_type = ""
+			_scene_art.reset_motion_state()
 			_scene_art.queue_redraw()
 
 	# 备选：外部图片（如果提供且存在）
@@ -232,6 +318,61 @@ func _finish(play_id: int) -> void:
 	if _scene_art:
 		_scene_art.alpha = 0.0
 		_scene_art.scene_type = ""
+		_scene_art.reset_motion_state()
 		_scene_art.queue_redraw()
 	visible = false
 	cutscene_finished.emit()
+
+func _abort_current_playback() -> void:
+	if not _is_playing:
+		return
+	_play_id += 1
+	_is_playing = false
+	if _label:
+		_label.modulate = Color(1, 1, 1, 0)
+	if _sublabel:
+		_sublabel.modulate = Color(1, 1, 1, 0)
+	if _bg_image:
+		_bg_image.modulate = Color(1, 1, 1, 0)
+		_bg_image.texture = null
+	if _scene_art:
+		_scene_art.alpha = 0.0
+		_scene_art.scene_type = ""
+		_scene_art.reset_motion_state()
+		_scene_art.queue_redraw()
+	visible = false
+	cutscene_finished.emit()
+
+func _apply_camera_style(style_name: String, duration: float, play_id: int) -> void:
+	if _scene_art == null:
+		return
+	var preset: Dictionary = CAMERA_STYLE_PRESETS.get(style_name, CAMERA_STYLE_PRESETS["steady"])
+	var start_scale := _scene_art.scale
+	var target_scale := Vector2.ONE * float(preset.get("zoom", 1.0))
+	var start_position := _scene_art.position
+	var target_position := Vector2(float(preset.get("pan_x", 0.0)), float(preset.get("pan_y", 0.0)))
+	var start_overlay := _scene_art.overlay_tint
+	var target_overlay := preset.get("overlay", Color(1, 1, 1, 0)) as Color
+	var tween_duration := minf(duration * 0.7, 1.2)
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_method(func(weight: float) -> void:
+		if play_id != _play_id or _scene_art == null:
+			return
+		_scene_art.scale = start_scale.lerp(target_scale, weight),
+		0.0, 1.0, tween_duration)
+	tween.tween_method(func(weight: float) -> void:
+		if play_id != _play_id or _scene_art == null:
+			return
+		_scene_art.position = start_position.lerp(target_position, weight),
+		0.0, 1.0, tween_duration)
+	tween.tween_method(func(weight: float) -> void:
+		if play_id != _play_id or _scene_art == null:
+			return
+		_scene_art.overlay_tint = Color(
+			lerpf(start_overlay.r, target_overlay.r, weight),
+			lerpf(start_overlay.g, target_overlay.g, weight),
+			lerpf(start_overlay.b, target_overlay.b, weight),
+			lerpf(start_overlay.a, target_overlay.a, weight)
+		)
+		_scene_art.queue_redraw(), 0.0, 1.0, tween_duration)

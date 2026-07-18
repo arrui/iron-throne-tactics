@@ -11,6 +11,7 @@ const SPRITE_PATH        := "res://assets/units/"
 
 const PRE_DIALOGUE_PATH  := "res://data/dialogues/ch4_pre.json"
 const POST_DIALOGUE_PATH := "res://data/dialogues/ch4_post.json"
+const ClassCatalog := preload("res://scripts/data/ClassCatalog.gd")
 
 const UNIT_SPRITE_MAP := {
 	"ned_stark.json":          "ned_stark_map.png",
@@ -228,10 +229,10 @@ func _play_dialogue(path: String) -> void:
 
 # ── 单位生成 ─────────────────────────────────────────────
 func _spawn_player_units() -> void:
-	# 使用部署选择，默认奈德 + 2名骑士
+	# 使用部署选择，默认奈德 + 2名候选北境战士
 	var selection := GameState.deploy_selection.duplicate()
 	if selection.is_empty():
-		selection = ["ned_stark.json", "northern_knight.json", "northern_knight.json"]
+		selection = ["ned_stark.json", "north_axebreaker", "north_veteran"]
 
 	# 部署位置（南方出发区）
 	var spawn_positions: Array = [
@@ -275,7 +276,9 @@ func _make_unit(filename: String, team: int, pos: Vector2i) -> void:
 	_make_unit_ret(filename, team, pos)
 
 func _make_unit_ret(filename: String, team: int, pos: Vector2i) -> Unit:
-	var path: String = DATA_PATH + filename
+	var spawn_profile := ClassCatalog.get_spawn_profile(filename)
+	var source_file := str(spawn_profile.get("base_file", filename))
+	var path: String = DATA_PATH + source_file
 	if not FileAccess.file_exists(path):
 		push_error("BattleBootstrap_Ch4: 找不到 " + path)
 		return null
@@ -283,14 +286,31 @@ func _make_unit_ret(filename: String, team: int, pos: Vector2i) -> Unit:
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null or json.parse(file.get_as_text()) != OK: return null
 	if file: file.close()
+	var unit_dict := (json.data as Dictionary).duplicate(true)
+	for key: String in [
+		"name", "class", "class_id", "move_type", "armor_type", "animation_family",
+		"weapon_type", "weapon_rank", "max_hp", "hp", "pow", "spd", "def", "move"
+	]:
+		if spawn_profile.has(key):
+			unit_dict[key] = spawn_profile[key]
+	unit_dict["source_id"] = filename
 	var unit: Node2D = UNIT_SCENE.instantiate()
-	unit.setup(UnitData.from_dict(json.data), team, pos)
-	var sprite_file: String = UNIT_SPRITE_MAP.get(filename, "")
+	unit.setup(UnitData.from_dict(unit_dict, filename), team, pos)
+	unit.set_meta("source_id", filename)
+	var sprite_file: String = str(spawn_profile.get("sprite_file", ""))
+	if sprite_file == "":
+		var sprite_lookup := source_file if UNIT_SPRITE_MAP.has(source_file) else filename
+		sprite_file = UNIT_SPRITE_MAP.get(sprite_lookup, "")
 	if sprite_file != "":
 		var tex := load(SPRITE_PATH + sprite_file) as Texture2D
 		if tex != null:
 			var sprite: Sprite2D = unit.get_node("Sprite")
 			sprite.texture = tex; sprite.region_enabled = true
 			sprite.region_rect = Rect2(0, 0, 32, 32)
+	var portrait_path := str(spawn_profile.get("portrait_path", ""))
+	if portrait_path == "":
+		portrait_path = SPRITE_PATH + source_file.trim_suffix(".json") + "_portrait.png"
+	if FileAccess.file_exists(portrait_path):
+		unit.set_meta("portrait_path", portrait_path)
 	add_unit(unit)
 	return unit as Unit

@@ -11,6 +11,7 @@ const SPRITE_PATH        := "res://assets/units/"
 
 const PRE_DIALOGUE_PATH   := "res://data/dialogues/ch2_pre.json"
 const POST_DIALOGUE_PATH  := "res://data/dialogues/ch2_post.json"
+const ClassCatalog := preload("res://scripts/data/ClassCatalog.gd")
 
 const UNIT_SPRITE_MAP := {
 	"ned_stark.json":           "ned_stark_map.png",
@@ -186,25 +187,27 @@ func _play_dialogue(path: String) -> void:
 func _spawn_player_units() -> void:
 	_make_unit("robert_baratheon.json", 0, Vector2i(2, 9))   # 劳勃 — 主攻
 	_make_unit("ned_stark.json",        0, Vector2i(2, 5))   # 奈德 — 北翼
-	_make_unit("rebel_lord.json",       0, Vector2i(2, 13))  # 义军将领甲
-	_make_unit("rebel_lord.json",       0, Vector2i(3, 10))  # 义军将领乙
+	_make_unit("ch2_storm_vanguard",    0, Vector2i(2, 13))  # 风暴先锋
+	_make_unit("ch2_vale_veteran",      0, Vector2i(3, 10))  # 谷地宿卫
 
 func _spawn_enemy_units() -> void:
 	var rhaegar := _make_unit_ret("rhaegar_targaryen.json", 1, Vector2i(20, 9))
 	_rhaegar_unit = rhaegar
 	_make_unit("barristan_selmy.json",   1, Vector2i(17, 5))
-	_make_unit("targaryen_soldier.json", 1, Vector2i(14, 4))
-	_make_unit("targaryen_soldier.json", 1, Vector2i(14, 8))
-	_make_unit("targaryen_soldier.json", 1, Vector2i(14, 14))
-	_make_unit("targaryen_soldier.json", 1, Vector2i(18, 4))
-	_make_unit("targaryen_soldier.json", 1, Vector2i(22, 8))
-	_make_unit("targaryen_soldier.json", 1, Vector2i(18, 14))
+	_make_unit("ch2_dragon_guard",       1, Vector2i(14, 4))
+	_make_unit("ch2_ruby_lancer",        1, Vector2i(14, 8))
+	_make_unit("ch2_crown_phalanx",      1, Vector2i(14, 14))
+	_make_unit("ch2_dragon_guard",       1, Vector2i(18, 4))
+	_make_unit("ch2_ruby_lancer",        1, Vector2i(22, 8))
+	_make_unit("ch2_crown_phalanx",      1, Vector2i(18, 14))
 
 func _make_unit(filename: String, team: int, pos: Vector2i) -> void:
 	_make_unit_ret(filename, team, pos)
 
 func _make_unit_ret(filename: String, team: int, pos: Vector2i) -> Unit:
-	var path: String = DATA_PATH + filename
+	var spawn_profile := ClassCatalog.get_spawn_profile(filename)
+	var source_file := str(spawn_profile.get("base_file", filename))
+	var path: String = DATA_PATH + source_file
 	if not FileAccess.file_exists(path):
 		push_error("BattleBootstrap_Ch2: 找不到 " + path)
 		return null
@@ -214,14 +217,31 @@ func _make_unit_ret(filename: String, team: int, pos: Vector2i) -> Unit:
 		push_error("BattleBootstrap_Ch2: JSON 解析失败 " + filename)
 		return null
 	if file: file.close()
+	var unit_dict := (json.data as Dictionary).duplicate(true)
+	for key: String in [
+		"name", "class", "class_id", "move_type", "armor_type", "animation_family",
+		"weapon_type", "weapon_rank", "max_hp", "hp", "pow", "spd", "def", "move"
+	]:
+		if spawn_profile.has(key):
+			unit_dict[key] = spawn_profile[key]
+	unit_dict["source_id"] = filename
 	var unit: Node2D = UNIT_SCENE.instantiate()
-	unit.setup(UnitData.from_dict(json.data), team, pos)
-	var sprite_file: String = UNIT_SPRITE_MAP.get(filename, "")
+	unit.setup(UnitData.from_dict(unit_dict, filename), team, pos)
+	unit.set_meta("source_id", filename)
+	var sprite_file := str(spawn_profile.get("sprite_file", ""))
+	if sprite_file == "":
+		var sprite_lookup := source_file if UNIT_SPRITE_MAP.has(source_file) else filename
+		sprite_file = UNIT_SPRITE_MAP.get(sprite_lookup, "")
 	if sprite_file != "":
 		var tex := load(SPRITE_PATH + sprite_file) as Texture2D
 		if tex != null:
 			var sprite: Sprite2D = unit.get_node("Sprite")
 			sprite.texture = tex; sprite.region_enabled = true
 			sprite.region_rect = Rect2(0, 0, 32, 32)
+	var portrait_path := str(spawn_profile.get("portrait_path", ""))
+	if portrait_path == "":
+		portrait_path = SPRITE_PATH + source_file.trim_suffix(".json") + "_portrait.png"
+	if FileAccess.file_exists(portrait_path):
+		unit.set_meta("portrait_path", portrait_path)
 	add_unit(unit)
 	return unit as Unit

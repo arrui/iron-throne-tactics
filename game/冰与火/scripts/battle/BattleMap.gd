@@ -91,6 +91,7 @@ var _cancel_move_btn:  Button        = null
 var _predict_panel:    PanelContainer = null
 var _atk_line:         Label         = null
 var _def_line:         Label         = null
+var _triangle_line:    Label         = null
 var _double_line:      Label         = null
 var _confirm_btn:      Button        = null
 var _cancel_btn:       Button        = null
@@ -249,6 +250,7 @@ func _apply_dark_ui_theme() -> void:
 		var predict_title := predict_panel.get_node_or_null("VBox/Title") as Label
 		var predict_atk_line := predict_panel.get_node_or_null("VBox/AtkLine") as Label
 		var predict_def_line := predict_panel.get_node_or_null("VBox/DefLine") as Label
+		var predict_triangle_line := predict_panel.get_node_or_null("VBox/TriangleLine") as Label
 		var predict_double_line := predict_panel.get_node_or_null("VBox/DoubleLine") as Label
 		var predict_confirm_btn := predict_panel.get_node_or_null("VBox/Buttons/ConfirmBtn") as Button
 		if predict_title != null:
@@ -257,6 +259,8 @@ func _apply_dark_ui_theme() -> void:
 			predict_atk_line.add_theme_color_override("font_color", BattleChromeTheme.TEXT_STATUS)
 		if predict_def_line != null:
 			predict_def_line.add_theme_color_override("font_color", BattleChromeTheme.TEXT_GUIDANCE)
+		if predict_triangle_line != null:
+			predict_triangle_line.add_theme_color_override("font_color", BattleChromeTheme.TEXT_SECONDARY)
 		if predict_double_line != null:
 			predict_double_line.add_theme_color_override("font_color", BattleChromeTheme.TEXT_ACCENT)
 		if predict_confirm_btn != null:
@@ -433,6 +437,7 @@ func _bind_ui() -> void:
 	if _predict_panel:
 		_atk_line    = _predict_panel.get_node_or_null("VBox/AtkLine")             as Label
 		_def_line    = _predict_panel.get_node_or_null("VBox/DefLine")             as Label
+		_triangle_line = _predict_panel.get_node_or_null("VBox/TriangleLine")      as Label
 		_double_line = _predict_panel.get_node_or_null("VBox/DoubleLine")          as Label
 		_confirm_btn = _predict_panel.get_node_or_null("VBox/Buttons/ConfirmBtn")  as Button
 		_cancel_btn  = _predict_panel.get_node_or_null("VBox/Buttons/CancelBtn")   as Button
@@ -1931,6 +1936,11 @@ func _open_predict(attacker: Unit, defender: Unit) -> void:
 			terrain_str = "  [%s 防%+d 回%+d]" % [t_name, def_val, bonus.get("avoid", 0)]
 		_def_line.text = "防：%s  伤害%d  命中%d%%%s" % [
 			defender.data.name, pred["def_damage"], pred["def_hit"], terrain_str]
+	if _triangle_line:
+		var triangle_feedback := _build_triangle_feedback(attacker.weapon_key, defender.weapon_key)
+		_triangle_line.text = str(triangle_feedback.get("text", "兵刃态势：均势"))
+		_triangle_line.add_theme_color_override("font_color",
+			triangle_feedback.get("color", BattleChromeTheme.TEXT_SECONDARY))
 	if _double_line:
 		_double_line.text = "⚡ 可追击！" if pred["atk_double"] else ""
 
@@ -1938,6 +1948,38 @@ func _open_predict(attacker: Unit, defender: Unit) -> void:
 	_predict_panel.position = Vector2(vs.x * 0.5 - 140.0, vs.y * 0.5 - 90.0)
 	_predict_panel.visible  = true
 	player_state = PlayerState.PREDICT
+
+func _weapon_type_name_from_key(weapon_key: String) -> String:
+	match BattleCalculator._weapon_type(weapon_key):
+		"sword":
+			return "剑"
+		"axe":
+			return "斧"
+		"lance":
+			return "枪"
+		"fist":
+			return "徒手"
+		_:
+			return "兵刃"
+
+func _build_triangle_feedback(attacker_weapon: String, defender_weapon: String) -> Dictionary:
+	var triangle := BattleCalculator.weapon_triangle_atk(attacker_weapon, defender_weapon)
+	var atk_name := _weapon_type_name_from_key(attacker_weapon)
+	var def_name := _weapon_type_name_from_key(defender_weapon)
+	if triangle > 0:
+		return {
+			"text": "兵刃态势：克制（%s压%s，伤害+1 / 命中+5）" % [atk_name, def_name],
+			"color": BattleChromeTheme.TEXT_GOOD,
+		}
+	if triangle < 0:
+		return {
+			"text": "兵刃态势：被克制（%s受%s压制，伤害-1 / 命中-5）" % [atk_name, def_name],
+			"color": BattleChromeTheme.TEXT_STATUS,
+		}
+	return {
+		"text": "兵刃态势：均势（无兵刃修正）",
+		"color": BattleChromeTheme.TEXT_SECONDARY,
+	}
 
 func _on_confirm_attack() -> void:
 	_hide_all_panels()

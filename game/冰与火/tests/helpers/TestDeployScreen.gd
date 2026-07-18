@@ -10,8 +10,9 @@ func _record_scene_change(path: String) -> void:
 
 func test_confirm() -> void:
 	var selections: Array[String] = ["ned_stark.json"]
+	var available_units: Array = _available_units()
 	for idx: int in _selected:
-		selections.append(AVAILABLE_UNITS[idx]["file"])
+		selections.append(str((available_units[idx] as Dictionary).get("file", "")))
 	GameState.deploy_selection = selections
 	_record_scene_change(BATTLE_SCENE)
 
