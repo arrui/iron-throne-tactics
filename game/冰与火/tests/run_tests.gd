@@ -1867,6 +1867,26 @@ func _test_settings_menu() -> void:
 	_assert(menu.get_node_or_null("Dimmer/Panel/Margin/Content/Buttons/Close") is Button,
 		"设置菜单包含关闭按钮")
 	_assert(menu.has_signal("closed"), "设置菜单提供关闭信号")
+	var settings_dimmer := menu.get_node_or_null("Dimmer") as ColorRect
+	var settings_panel := menu.get_node_or_null("Dimmer/Panel") as PanelContainer
+	var settings_title := menu.get_node_or_null("Dimmer/Panel/Margin/Content/Title") as Label
+	var settings_hint := menu.get_node_or_null("Dimmer/Panel/Margin/Content/Hint") as Label
+	var settings_defaults_btn := menu.get_node_or_null(
+		"Dimmer/Panel/Margin/Content/Buttons/Defaults") as Button
+	var settings_close_btn := menu.get_node_or_null(
+		"Dimmer/Panel/Margin/Content/Buttons/Close") as Button
+	_assert_eq(settings_dimmer.color, BattleChromeThemeClass.OVERLAY_DIM,
+		"设置菜单遮罩使用统一模态暗色")
+	_assert_eq((settings_panel.get_theme_stylebox("panel") as StyleBoxFlat).bg_color,
+		BattleChromeThemeClass.PANEL_HIGHLIGHT_BG, "设置菜单面板使用高亮底色")
+	_assert_eq(settings_title.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_ACCENT,
+		"设置菜单标题使用强调色")
+	_assert_eq(settings_hint.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_MUTED,
+		"设置菜单提示使用弱化色")
+	_assert_eq(settings_defaults_btn.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_MUTED,
+		"恢复默认按钮使用弱化语义文字色")
+	_assert_eq(settings_close_btn.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_PRIMARY,
+		"保存并返回按钮使用中性文字色")
 	var global_settings := root.get_node_or_null("GameSettings")
 	var old_battle_animations: bool = global_settings.battle_animations_enabled
 	var old_auto_camera: bool = global_settings.auto_camera_enabled

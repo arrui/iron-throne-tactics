@@ -3,6 +3,12 @@ extends CanvasLayer
 
 signal closed
 
+const BattleChromeTheme := preload("res://scripts/ui/BattleChromeTheme.gd")
+
+@onready var _dimmer: ColorRect = $Dimmer
+@onready var _panel: PanelContainer = $Dimmer/Panel
+@onready var _title: Label = $Dimmer/Panel/Margin/Content/Title
+@onready var _hint: Label = $Dimmer/Panel/Margin/Content/Hint
 @onready var _battle_animations: CheckButton = $Dimmer/Panel/Margin/Content/BattleAnimations
 @onready var _auto_camera: CheckButton = $Dimmer/Panel/Margin/Content/AutoCamera
 @onready var _master_volume: HSlider = $Dimmer/Panel/Margin/Content/MasterVolume
@@ -20,10 +26,38 @@ func _ready() -> void:
 	if _settings == null:
 		_settings = load("res://scripts/systems/GameSettings.gd").new()
 		_settings.load_settings(false)
+	_apply_dark_ui_theme()
 	_sync_controls()
 	_master_volume.value_changed.connect(_on_volume_changed)
 	_defaults.pressed.connect(_on_defaults_pressed)
 	_close.pressed.connect(close)
+
+func _apply_dark_ui_theme() -> void:
+	if _dimmer != null:
+		_dimmer.color = BattleChromeTheme.OVERLAY_DIM
+	if _panel != null:
+		_panel.add_theme_stylebox_override("panel",
+			BattleChromeTheme.make_panel_style(
+				BattleChromeTheme.PANEL_HIGHLIGHT_BG,
+				BattleChromeTheme.PANEL_HIGHLIGHT_BORDER,
+				8,
+				2,
+				0
+			)
+		)
+	if _title != null:
+		_title.add_theme_color_override("font_color", BattleChromeTheme.TEXT_ACCENT)
+	if _hint != null:
+		_hint.add_theme_color_override("font_color", BattleChromeTheme.TEXT_MUTED)
+	if _defaults != null:
+		BattleChromeTheme.apply_button_palette(
+			_defaults,
+			BattleChromeTheme.BUTTON_MUTED_BG,
+			BattleChromeTheme.BUTTON_MUTED_BORDER,
+			BattleChromeTheme.TEXT_MUTED
+		)
+	if _close != null:
+		BattleChromeTheme.apply_button_theme(_close)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):

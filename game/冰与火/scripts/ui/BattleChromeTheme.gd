@@ -2,6 +2,7 @@ extends RefCounted
 class_name BattleChromeTheme
 
 const BACKGROUND_COLOR := Color(0.05, 0.05, 0.08, 0.97)
+const OVERLAY_DIM := Color(0.05, 0.05, 0.08, 0.82)
 
 const PANEL_BG := Color(0.10, 0.09, 0.08, 0.96)
 const PANEL_BORDER := Color(0.55, 0.46, 0.26, 1.00)

@@ -13,6 +13,9 @@
 # Claude Code (local tooling)
 .claude/
 
+# Local scratch / generation workspace (imagegen, review sheets, etc.)
+tmp/
+
 # Godot
 game/.godot/
 game/**/*.import

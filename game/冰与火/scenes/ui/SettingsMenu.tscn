@@ -1,18 +1,6 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/SettingsMenu.gd" id="1"]
-
-[sub_resource type="StyleBoxFlat" id="PanelStyle"]
-bg_color = Color(0.08, 0.075, 0.07, 0.98)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.65, 0.52, 0.25, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
 
 [node name="SettingsMenu" type="CanvasLayer"]
 layer = 120
@@ -22,7 +10,6 @@ script = ExtResource("1")
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.015, 0.015, 0.02, 0.82)
 mouse_filter = 0
 
 [node name="Panel" type="PanelContainer" parent="Dimmer"]
@@ -36,7 +23,6 @@ offset_left = -230.0
 offset_top = -245.0
 offset_right = 230.0
 offset_bottom = 245.0
-theme_override_styles/panel = SubResource("PanelStyle")
 
 [node name="Margin" type="MarginContainer" parent="Dimmer/Panel"]
 layout_mode = 2
@@ -51,7 +37,6 @@ theme_override_constants/separation = 14
 
 [node name="Title" type="Label" parent="Dimmer/Panel/Margin/Content"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.96, 0.82, 0.38, 1)
 theme_override_font_sizes/font_size = 28
 text = "设置"
 horizontal_alignment = 1
@@ -84,7 +69,6 @@ text = "全屏显示"
 
 [node name="Hint" type="Label" parent="Dimmer/Panel/Margin/Content"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.7, 0.68, 1)
 text = "关闭菜单后自动保存 · ESC 返回"
 horizontal_alignment = 1
 
