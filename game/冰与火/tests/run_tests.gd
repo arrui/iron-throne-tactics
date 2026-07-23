@@ -5106,6 +5106,19 @@ func _test_portrait_assets() -> void:
 			"立绘保持方形比例：%s" % portrait_name)
 
 func _test_map_sprite_assets_and_animation() -> void:
+	# 地图精灵由 design/map-sprites/generate.py 程序化生成（确定、无随机），
+	# 该脚本是 *_map.png 的唯一权威来源，必须随仓保存以免丢失重生成能力。
+	var generator_path := "res://../../design/map-sprites/generate.py"
+	var generator_global := ProjectSettings.globalize_path(generator_path)
+	_assert(FileAccess.file_exists(generator_global),
+		"地图精灵生成器 design/map-sprites/generate.py 入仓保存")
+	var generator_src := FileAccess.get_file_as_string(generator_global)
+	_assert(generator_src.contains("_map.png"),
+		"地图精灵生成器会输出运行时 *_map.png 精灵图集")
+	_assert(generator_src.contains("P = {"),
+		"地图精灵生成器以单位配置字典驱动逐单位生成")
+	_assert(generator_src.contains("def frame(cfg, phase)"),
+		"地图精灵生成器以三帧逐像素程序化绘制单位")
 	var expected_sprite_map := {
 		"arthur_dayne.json": "arthur_dayne_map.png",
 		"barristan_selmy.json": "barristan_selmy_map.png",
