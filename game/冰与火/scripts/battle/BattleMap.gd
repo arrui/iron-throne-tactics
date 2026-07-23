@@ -251,6 +251,7 @@ func _apply_dark_ui_theme() -> void:
 		var predict_def_line := predict_panel.get_node_or_null("VBox/DefLine") as Label
 		var predict_double_line := predict_panel.get_node_or_null("VBox/DoubleLine") as Label
 		var predict_confirm_btn := predict_panel.get_node_or_null("VBox/Buttons/ConfirmBtn") as Button
+		var predict_cancel_btn := predict_panel.get_node_or_null("VBox/Buttons/CancelBtn") as Button
 		if predict_title != null:
 			predict_title.add_theme_color_override("font_color", BattleChromeTheme.TEXT_ACCENT)
 		if predict_atk_line != null:
@@ -265,6 +266,13 @@ func _apply_dark_ui_theme() -> void:
 				BattleChromeTheme.BUTTON_DANGER_BG,
 				BattleChromeTheme.BUTTON_DANGER_BORDER,
 				BattleChromeTheme.TEXT_STATUS
+			)
+		if predict_cancel_btn != null:
+			BattleChromeTheme.apply_button_palette(
+				predict_cancel_btn,
+				BattleChromeTheme.BUTTON_MUTED_BG,
+				BattleChromeTheme.BUTTON_MUTED_BORDER,
+				BattleChromeTheme.TEXT_MUTED
 			)
 	var result_state_won := true
 	var result_title := get_node_or_null("UI/ResultPanel/VBox/ResultTitle") as Label

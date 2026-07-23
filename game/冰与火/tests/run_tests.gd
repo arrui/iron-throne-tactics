@@ -4309,6 +4309,10 @@ func _test_visual_style_unification() -> void:
 		"确认攻击按钮区别于取消按钮")
 	_assert_eq(predict_confirm_btn.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_STATUS,
 		"确认攻击按钮使用进攻语义文字色")
+	_assert_eq(predict_cancel_btn.get_theme_color("font_color"), BattleChromeThemeClass.TEXT_MUTED,
+		"取消预测按钮使用弱化语义文字色")
+	_assert_eq(predict_cancel_style.bg_color, BattleChromeThemeClass.BUTTON_MUTED_BG,
+		"取消预测按钮使用弱化语义底色")
 
 	var result_panel := themed_battle.get_node("UI/ResultPanel") as PanelContainer
 	var result_title := result_panel.get_node("VBox/ResultTitle") as Label
