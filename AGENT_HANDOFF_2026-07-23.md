@@ -62,7 +62,17 @@ CI：`.github/workflows/godot-tests.yml` 已接入，push / PR 触发跑 `test.s
 
 - **手玩过四章验证体验通顺**：自动化绿 ≠ 体验通。需人工验证 Ch3 是否有唯一解、Ch4 后期清兵是否拖沓、各章结算→跳章的交互残留是否彻底
 - **数值与关卡节奏平衡**：Ch1 是否过平、Ch2 三桥压力、Ch3 唯一解、Ch4 后期节奏——需手玩反馈 + 数据回归一起做
-- **地图精灵仍占位**：`*_map.png` 是占位；`tmp/map-sprites/` 与 `tmp/imagegen/review/current_map_sprites.png` 是之前会话的地图精灵生成工作痕迹（未入库，需用 imagegen 继续）
+
+### 地图精灵（07-23 核实：非占位，已完成）
+
+`*_map.png` **不是占位**，而是 16 个单位各具独立剪影/调色板/武器的程序化像素艺术（96×32 横向三帧待机动画）。07-23 已将生成器作为权威来源入仓：
+
+- `design/map-sprites/generate.py`：唯一权威生成器，确定、无随机，reproduce 当前 runtime 精灵逐字节一致
+- `design/map-sprites/README.md`：配置字段、阵营色彩语言、重生成流程
+- `design/map-sprites/review/map_sprites_contact_sheet.png`：放大预览
+- 回归测试 `_test_map_sprite_assets_and_animation` 已覆盖：16 单位一对一映射、96×32 三帧、各帧可见像素、运行时动画切换、生成器入仓保存
+
+进一步精灵美化需在游戏中肉眼检视后改 `generate.py` 重生成（流程已打通），不宜盲改。
 
 ### 中优先级
 
@@ -80,7 +90,7 @@ CI：`.github/workflows/godot-tests.yml` 已接入，push / PR 触发跑 `test.s
 **不要再回头核实 07-14 handoff 的旧待办**——它们已完成（见上）。真实下一步按可用资源分：
 
 1. **若有手玩时间**：从 Opening 跑完整四章，记录 Ch3 唯一解、Ch4 后期节奏、跳章残留等问题，再据此修。
-2. **若可调用 imagegen**：继续 `tmp/map-sprites/` 的地图精灵升级工作（占位→有辨识度简化图标），复用 `design/portraits/` 已建立的风格语言。
+2. **若要美化地图精灵**：在游戏中肉眼检视 `*_map.png` 后，改 `design/map-sprites/generate.py` 重生成（流程已打通，跑 `./scripts/test.sh` 验证）。不建议盲改。
 3. **若纯代码推进**：可考虑建关卡数据回归基线（回合数/伤亡/资源消耗），为数值平衡提供自动护栏；或开始第一幕罗柏线的设计文档与骨架。
 
 ## 建议执行流程
