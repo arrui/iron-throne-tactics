@@ -4,9 +4,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PROJECT_DIR="$ROOT_DIR/game/冰与火"
 
-export HOME="${HOME:-/private/tmp}"
+export HOME="${HOME:-/tmp}"
 if [[ ! -d "$HOME" || ! -w "$HOME" ]]; then
-  export HOME="/private/tmp"
+  export HOME="/tmp"
 fi
 
 cd "$PROJECT_DIR"
