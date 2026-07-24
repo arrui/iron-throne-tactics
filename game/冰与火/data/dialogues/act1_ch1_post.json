@@ -1,0 +1,9 @@
+{
+  "id": "act1_ch1_post",
+  "lines": [
+    {"speaker": "黑鱼", "text": "詹姆·兰尼斯特。活捉的。", "next": 1},
+    {"speaker": "罗柏", "text": "杀了他就再没筹码了。", "next": 2},
+    {"speaker": "詹姆", "text": "……你以为关得住我？", "next": 3},
+    {"speaker": "黑鱼", "text": "第一仗，调度得不错，小子。", "next": 4}
+  ]
+}

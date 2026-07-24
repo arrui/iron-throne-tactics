@@ -23,12 +23,15 @@ const BootstrapClass         := preload("res://scripts/battle/BattleBootstrap.gd
 const Ch2BootstrapClass      := preload("res://scripts/battle/BattleBootstrap_Ch2.gd")
 const Ch3BootstrapClass      := preload("res://scripts/battle/BattleBootstrap_Ch3.gd")
 const Ch4BootstrapClass      := preload("res://scripts/battle/BattleBootstrap_Ch4.gd")
+const A1C1BootstrapClass     := preload("res://scripts/battle/BattleBootstrap_A1C1.gd")
+const Act1ChapterBriefsClass := preload("res://scripts/chapter/Act1ChapterBriefs.gd")
 const PrologueChapterBriefsClass := preload("res://scripts/chapter/PrologueChapterBriefs.gd")
 const Ch4BattleBriefClass    := preload("res://scripts/chapter/Ch4BattleBrief.gd")
 const BattleChromeThemeClass := preload("res://scripts/ui/BattleChromeTheme.gd")
 const TestBootstrapClass     := preload("res://tests/helpers/TestBattleBootstrap.gd")
 const TestOpeningClass       := preload("res://tests/helpers/TestOpening.gd")
 const TestDeployScreenClass  := preload("res://tests/helpers/TestDeployScreen.gd")
+const FogSystemClass         := preload("res://scripts/systems/FogSystem.gd")
 
 class TestCh3Bootstrap extends Ch3BootstrapClass:
 	func _ready() -> void:
@@ -69,6 +72,56 @@ class TestCh4EndingBootstrap extends Ch4BootstrapClass:
 
 	func _advance_chapter() -> void:
 		pass
+
+# A1C1 测试子类：自包含 bootstrap，需自建场景树节点（仿 TestBattleBootstrap），
+# 阻断过场/对话/章节推进并记录调用，_ready 置空以阻止自动 setup。
+class TestA1C1Bootstrap extends A1C1BootstrapClass:
+	var recorded_dialogues: Array[String] = []
+	var recorded_cutscenes: Array[String] = []
+	var recorded_advances: Array[int] = []
+
+	func _enter_tree() -> void:
+		if get_node_or_null("HighlightLayer") == null:
+			var hl := Node2D.new()
+			hl.name = "HighlightLayer"
+			add_child(hl)
+		if get_node_or_null("Camera2D") == null:
+			var cam := Camera2D.new()
+			cam.name = "Camera2D"
+			add_child(cam)
+		if get_node_or_null("UnitLayer") == null:
+			var unit_layer := Node2D.new()
+			unit_layer.name = "UnitLayer"
+			add_child(unit_layer)
+		if get_node_or_null("UI") == null:
+			var ui := CanvasLayer.new()
+			ui.name = "UI"
+			add_child(ui)
+
+	func _ready() -> void:
+		pass
+
+	func _setup_autopilot_ui() -> void:
+		pass
+
+	func _setup_minimap() -> void:
+		pass
+
+	func _play_dialogue(path: String) -> void:
+		recorded_dialogues.append(path)
+
+	func _play_cutscene(path: String) -> void:
+		recorded_cutscenes.append(path)
+
+	func _advance_to(next_chapter: int) -> void:
+		recorded_advances.append(next_chapter)
+
+	# 记录 HUD 状态文案（仿 TestBattleBootstrap.recorded_statuses），用于断言开场目标摘要
+	var recorded_statuses: Array[String] = []
+
+	func _set_status(msg: String) -> void:
+		recorded_statuses.append(msg)
+		super._set_status(msg)
 
 var _pass_count: int = 0
 var _fail_count: int = 0
@@ -125,6 +178,9 @@ func _run_all_tests() -> void:
 		["章节事件流程回归", _test_chapter_event_flow],
 		["Ch1 / 存档 / 部署行为回归", _test_ch1_save_and_deploy_flow],
 		["关键浮层真实调用链", _test_overlay_runtime_flow],
+		["章节幕结构(act)与存档兼容", _test_chapter_act_structure],
+		["战争迷雾系统", _test_fog_system],
+		["A1C1 呓语森林之战", _test_act1_ch1_whispering_wood],
 		["测试脚本可靠性", _test_test_script_reliability],
 	]
 	for suite: Array in suites:
@@ -694,6 +750,8 @@ func _test_dialogue_json() -> void:
 	var files := [
 		"res://data/dialogues/prologue_1_pre.json",
 		"res://data/dialogues/prologue_1_post.json",
+		"res://data/dialogues/act1_ch1_pre.json",
+		"res://data/dialogues/act1_ch1_post.json",
 	]
 
 	for path: String in files:
@@ -731,11 +789,13 @@ func _test_dialogue_json() -> void:
 				all_valid = false; break
 		_assert(all_valid, "每行包含speaker和text：" + path.get_file())
 
-		# 最后一行应为 -1 或无next（表示结束）
+		# 最后一行应标记对话结束：next=-1（序章约定）或 next 越界（act1 约定，
+		# DialogueSystem._show_line 对越界索引调用 _finish，二者语义等价）
 		if lines.size() > 0:
 			var last: Dictionary = lines[-1] as Dictionary
 			var next_val: int = last.get("next", -1)
-			_assert(next_val == -1, "最后一行next=-1（对话结束）：" + path.get_file())
+			_assert(next_val == -1 or next_val >= lines.size(),
+				"最后一行next标记对话结束（-1 或越界）：" + path.get_file())
 
 # ══════════════════════════════════════════════════════════
 # 测试套件 8.5：Ch1 叙事基线一致性
@@ -788,6 +848,8 @@ func _test_cutscene_json() -> void:
 		"res://data/cutscenes/prologue_opening.json",
 		"res://data/cutscenes/prologue_mad_king.json",
 		"res://data/cutscenes/prologue_uprising.json",
+		"res://data/cutscenes/act1_ch1_opening.json",
+		"res://data/cutscenes/act1_ch1_jaime_capture.json",
 	]
 
 	for path: String in files:
@@ -1748,13 +1810,13 @@ func _test_save_system() -> void:
 	ss.delete_save()
 	ss._write_json({"chapter": 2, "completed_chapters": "legacy"})
 	_assert(ss.get_completed_chapters().is_empty(), "损坏的已完成章节字段安全降级为空列表")
-	ss.save_chapter_complete(2)
+	ss.save_chapter_complete(0, 2)
 	_assert_eq(ss.load_current_chapter(), 3, "损坏存档恢复后仍可继续保存章节进度")
 	_assert(ss.get_completed_chapters().has(2), "损坏存档恢复后记录新完成章节")
 	ss.delete_save()
 
 	# 保存第1章完成
-	ss.save_chapter_complete(1)
+	ss.save_chapter_complete(0, 1)
 	_assert(ss.has_save(),                 "保存后has_save=true")
 	_assert_eq(ss.load_current_chapter(), 2, "完成Ch1后下次从Ch2开始")
 
@@ -1763,7 +1825,7 @@ func _test_save_system() -> void:
 	_assert(not completed.has(2),          "章节2未完成")
 
 	# 保存第2章完成
-	ss.save_chapter_complete(2)
+	ss.save_chapter_complete(0, 2)
 	_assert_eq(ss.load_current_chapter(), 3, "完成Ch2后下次从Ch3开始")
 
 	var completed2: Array = ss.get_completed_chapters()
@@ -1771,7 +1833,7 @@ func _test_save_system() -> void:
 	_assert(completed2.has(2),             "已完成列表包含2")
 
 	# 重复保存同章节不重复计
-	ss.save_chapter_complete(1)
+	ss.save_chapter_complete(0, 1)
 	var completed3: Array = ss.get_completed_chapters()
 	var count := 0
 	for v in completed3:
@@ -1780,9 +1842,9 @@ func _test_save_system() -> void:
 	_assert_eq(ss.load_current_chapter(), 3, "重复完成较早章节不会让存档进度倒退")
 
 	# 完成终章后进度保留在序章完成态，回顾旧章也不得覆盖。
-	ss.save_chapter_complete(4)
+	ss.save_chapter_complete(0, 4)
 	_assert_eq(ss.load_current_chapter(), 5, "完成Ch4后存档进入序章完成态")
-	ss.save_chapter_complete(2)
+	ss.save_chapter_complete(0, 2)
 	_assert_eq(ss.load_current_chapter(), 5, "序章完成后回顾旧章不会让存档进度倒退")
 	var completed4: Array = ss.get_completed_chapters()
 	_assert(completed4.has(4),             "已完成章节列表包含终章")
@@ -2161,18 +2223,22 @@ func _test_opening_main_menu() -> void:
 			continued.queue_free()
 		await process_frame
 
-	SaveSystem.save_chapter_complete(4)
+	SaveSystem.save_chapter_complete(0, 4)
+	# 序章四章全完成 → 推进到 act1.ch1（不再停留在序章完成态）
+	var prog_after_prologue := SaveSystem.load_progress()
+	_assert_eq(int(prog_after_prologue["act"]), 1, "序章全完成推进到 act1")
+	_assert_eq(int(prog_after_prologue["chapter"]), 1, "序章全完成推进到 act1.ch1")
 	var completed_opening := scene.instantiate()
 	root.add_child(completed_opening)
 	await process_frame
 	var completed_continue := completed_opening.get_node_or_null("MainMenu/MenuPanel/MenuContent/ContinueButton") as Button
 	var completed_progress := completed_opening.get_node_or_null("MainMenu/MenuPanel/MenuContent/ProgressLabel") as Label
-	_assert(completed_continue != null and completed_continue.disabled,
-		"序章全部完成后禁用继续游戏")
-	_assert(completed_continue != null and completed_continue.text == "序章已完成",
-		"序章全部完成后继续按钮显示完成状态")
-	_assert(completed_progress != null and completed_progress.text == "序章战役已完成",
-		"序章全部完成后进度文案显示完成状态")
+	_assert(completed_continue != null and not completed_continue.disabled,
+		"序章全部完成后进入第一幕，继续游戏按钮启用")
+	_assert(completed_continue != null and completed_continue.text == "继续游戏 · 第一幕·一 呓语森林",
+		"序章全部完成后继续按钮显示第一幕第一章入口")
+	_assert(completed_progress != null and completed_progress.text == "当前进度：第一幕·一 呓语森林",
+		"序章全部完成后进度文案显示第一幕第一章")
 	if is_instance_valid(completed_opening):
 		completed_opening.queue_free()
 	await process_frame
@@ -2180,8 +2246,10 @@ func _test_opening_main_menu() -> void:
 	root.add_child(completed_route)
 	await process_frame
 	completed_route.run_continue_game()
-	_assert(not completed_route.played_chapter_1 and completed_route.recorded_scene_changes.is_empty(),
+	_assert(not completed_route.played_chapter_1,
 		"序章全部完成后继续入口不会误重开第一章")
+	_assert(completed_route.recorded_scene_changes.has("res://scenes/chapter/Act1_Ch1_Opening.tscn"),
+		"序章全部完成后继续入口路由到第一幕第一章开场")
 	completed_route.queue_free()
 	await process_frame
 	SaveSystem.delete_save()
@@ -5083,6 +5151,25 @@ func _test_map_visual_language_spec() -> void:
 		ch4.queue_free()
 	await process_frame
 
+	# A1C1 呓语森林：纳入地图视觉规范回归（出生点可通行 + 到胜利格可达）
+	var a1c1 := TestA1C1Bootstrap.new()
+	root.add_child(a1c1)
+	a1c1.fog_enabled = true
+	await process_frame
+	a1c1._setup_act1_ch1()
+	await process_frame
+	_assert(a1c1._robb_unit != null, "A1C1 语义回归：罗柏存在")
+	if a1c1._robb_unit != null:
+		_assert(a1c1.is_passable(a1c1._robb_unit.grid_pos),
+			"A1C1 语义回归：出生点可通行")
+		_assert(_path_exists_on_passable_grid(a1c1, a1c1._robb_unit.grid_pos, a1c1.victory_pos),
+			"A1C1 语义回归：罗柏到胜利格存在可达路径")
+		_assert(a1c1.is_passable(a1c1.victory_pos),
+			"A1C1 规范回归：胜利格可通行")
+	if is_instance_valid(a1c1):
+		a1c1.queue_free()
+	await process_frame
+
 func _test_portrait_assets() -> void:
 	var portrait_map: Dictionary = BootstrapClass.UNIT_PORTRAIT_MAP
 	_assert(portrait_map.size() >= 13, "主要角色与兵种立绘映射已扩展")
@@ -5165,6 +5252,9 @@ func _test_map_sprite_assets_and_animation() -> void:
 	# 詹姆与史林特暂未拥有单位 JSON，但预制同规格资源供后续章节直接接入。
 	sprite_names.append("jaime_lannister_map.png")
 	sprite_names.append("janos_slynt_map.png")
+	sprite_names.append("robb_stark_map.png")
+	sprite_names.append("brynden_tully_map.png")
+	sprite_names.append("golden_lion_knight_map.png")
 	for sprite_name: String in sprite_names:
 		var path := "res://assets/units/" + sprite_name
 		_assert(FileAccess.file_exists(path), "地图精灵资源存在：%s" % sprite_name)
@@ -5481,6 +5571,29 @@ func _test_chapter_opening_configuration() -> void:
 	_assert("PrologueChapterBriefs" in ch2_opening_src, "Opening_Ch2 通过统一章节简报常量提供目标")
 	_assert("PrologueChapterBriefs" in ch3_opening_src, "Opening_Ch3 通过统一章节简报常量提供目标")
 	_assert("PrologueChapterBriefs" in ch4_opening_src, "Opening_Ch4 通过统一章节简报常量提供目标")
+
+	# 第一幕第一章 Opening 配置
+	var act1_ch1_script := load("res://scripts/chapter/Opening_A1C1.gd")
+	_assert(act1_ch1_script != null, "Opening_A1C1 脚本可加载")
+	if act1_ch1_script != null:
+		var a1c1_opening = act1_ch1_script.new()
+		a1c1_opening._setup()
+		_assert_eq(a1c1_opening._chapter_num, "第一幕·一", "A1C1 Opening 配置正确章节编号")
+		_assert_eq(a1c1_opening._chapter_title, "呓语森林", "A1C1 Opening 配置正确标题")
+		_assert_eq(a1c1_opening._chapter_sub_label, "夜袭章节 / 视野受限", "A1C1 Opening 配置正确副标题")
+		_assert_eq(a1c1_opening._chapter_objective, Act1ChapterBriefsClass.A1C1_OBJECTIVE_SUMMARY,
+			"A1C1 Opening 通过统一章节简报常量提供目标")
+		_assert_eq(a1c1_opening._battle_scene, "res://scenes/battle/BattleMap_A1C1.tscn",
+			"A1C1 Opening 指向第一幕第一章战斗场景")
+		_assert_eq(a1c1_opening._cutscene_files.size(), 1, "A1C1 Opening 仅配置一段开场过场")
+		_assert_eq(a1c1_opening._cutscene_files[0], "res://data/cutscenes/act1_ch1_opening.json",
+			"A1C1 Opening 使用正确过场文件")
+		a1c1_opening.free()
+	var act1_ch1_scene := load("res://scenes/chapter/Act1_Ch1_Opening.tscn") as PackedScene
+	_assert(act1_ch1_scene != null, "Act1_Ch1_Opening 场景可加载")
+	var act1_ch1_src := FileAccess.get_file_as_string("res://scenes/chapter/Act1_Ch1_Opening.tscn")
+	_assert("Opening_A1C1.gd" in act1_ch1_src, "Act1_Ch1_Opening 场景挂载 Opening_A1C1 脚本")
+
 	ch2_opening.free()
 	ch3_opening.free()
 	ch4_opening.free()
@@ -5738,7 +5851,7 @@ func _test_ch1_save_and_deploy_flow() -> void:
 		opening_fresh.queue_free()
 	await process_frame
 
-	SaveSystem.save_chapter_complete(2) # 当前章节应为3
+	SaveSystem.save_chapter_complete(0, 2) # 当前章节应为3
 	var opening_saved := TestOpeningClass.new()
 	root.add_child(opening_saved)
 	await process_frame
@@ -5984,7 +6097,7 @@ func _test_ch1_save_and_deploy_flow() -> void:
 	_assert_eq(GameState.deploy_selection[0], "ned_stark.json", "部署列表首位固定为奈德")
 	_assert(deploy.recorded_scene_changes.has("res://scenes/battle/BattleMap.tscn"),
 		"部署确认后进入战斗场景")
-	SaveSystem.save_chapter_complete(1)
+	SaveSystem.save_chapter_complete(0, 1)
 	_assert(SaveSystem.has_save(), "为测试新游戏按钮先创建存档")
 	deploy.test_new_game()
 	_assert(not SaveSystem.has_save(), "部署界面新游戏按钮会清除存档")
@@ -6313,6 +6426,141 @@ func _test_overlay_runtime_flow() -> void:
 	_assert(is_equal_approx(dialogue._prompt_icon.modulate.a, 1.0),
 		"DialogueSystem 完成后继续提示保持完整透明度")
 	dialogue.queue_free()
+	await process_frame
+
+func _test_chapter_act_structure() -> void:
+	# global_chapter_id 映射
+	GameState.set_prologue(3)
+	_assert_eq(GameState.act, 0, "set_prologue 设置 act=0")
+	_assert_eq(GameState.chapter, 3, "set_prologue 设置 chapter")
+	_assert_eq(GameState.current_chapter, 3, "序章兼容别名 current_chapter 正常")
+	_assert_eq(GameState.global_chapter_id(), "prologue.3", "序章 global_chapter_id")
+	GameState.set_act(1, 1)
+	_assert_eq(GameState.act, 1, "set_act 设置 act")
+	_assert_eq(GameState.chapter, 1, "set_act 设置 chapter")
+	_assert_eq(GameState.global_chapter_id(), "act1.1", "正篇 global_chapter_id")
+	# 存档兼容：旧 {chapter:N} 能读
+	SaveSystem.delete_save()
+	SaveSystem._write_json_for_test({"chapter": 3, "completed_chapters": [1, 2]})
+	var prog := SaveSystem.load_progress()
+	_assert_eq(prog["act"], 0, "旧存档兼容读出 act=0")
+	_assert_eq(prog["chapter"], 3, "旧存档兼容读出 chapter=3")
+	var completed := SaveSystem.get_completed_ids()
+	_assert(completed.has("prologue.1") and completed.has("prologue.2"),
+		"旧 completed_chapters 映射为 prologue.N")
+	# 新存档写读
+	SaveSystem.delete_save()
+	SaveSystem.save_chapter_complete(0, 2)
+	prog = SaveSystem.load_progress()
+	_assert_eq(prog["act"], 0, "新存档写读 act")
+	_assert_eq(int(prog["chapter"]), 3, "save_chapter_complete 推进到下一章")
+	# 序章别名不破坏现有读取
+	_assert_eq(SaveSystem.load_current_chapter(), 3, "load_current_chapter 兼容保留")
+	GameState.set_prologue(1)
+
+# ══════════════════════════════════════════════════════════
+# 测试套件：战争迷雾系统（方案 C：地形全知、敌军显隐）
+# 纯坐标接口：observer = {"pos": Vector2i, "vision": int}
+# ══════════════════════════════════════════════════════════
+func _test_fog_system() -> void:
+	var fog := FogSystemClass.new()
+	# 视野计算：单位在 (5,5)，move=5 → vision=7，切比雪夫距离≤7 可见
+	fog.compute_visibility([{"pos": Vector2i(5,5), "vision": 7}], Vector2i(20,20), {})
+	_assert(fog.is_tile_visible(Vector2i(5,5)), "单位自身格可见")
+	_assert(fog.is_tile_visible(Vector2i(12,5)), "视野半径内格可见(距离7)")
+	_assert(not fog.is_tile_visible(Vector2i(13,5)), "视野半径外格不可见(距离8)")
+	_assert(fog.is_tile_explored(Vector2i(12,5)), "可见格同时标记已探索")
+	# 多单位视野合并
+	fog.compute_visibility([{"pos": Vector2i(5,5), "vision": 7}, {"pos": Vector2i(15,15), "vision": 7}], Vector2i(20,20), {})
+	_assert(fog.is_tile_visible(Vector2i(15,15)), "第二单位视野合并")
+	# 视野加成 override（key 为 observer pos，覆盖 vision）
+	fog.compute_visibility([{"pos": Vector2i(5,5), "vision": 7}], Vector2i(20,20), {Vector2i(5,5): 10})
+	_assert(fog.is_tile_visible(Vector2i(15,5)), "视野加成 override 生效(距离10)")
+	# 敌军显隐
+	fog.compute_visibility([{"pos": Vector2i(5,5), "vision": 7}], Vector2i(20,20), {})
+	_assert(fog.is_enemy_visible(Vector2i(6,6)), "视野内敌军可见")
+	_assert(not fog.is_enemy_visible(Vector2i(18,18)), "视野外敌军不可见")
+	var vis: Array = fog.get_visible_enemy_positions([Vector2i(6,6), Vector2i(18,18)])
+	_assert_eq(vis.size(), 1, "get_visible_enemy_positions 仅返回可见敌军")
+	# reset
+	fog.reset()
+	_assert(not fog.is_tile_visible(Vector2i(5,5)), "reset 清空可见格")
+
+	# ── 集成断言：序章 fog_enabled=false 时危险区不过滤敌军（回归保护）──
+	# 用 TestBootstrap 实例化真实序章战斗，验证 fog 关闭时 _filter_enemies_by_fog 原样返回。
+	var old_chapter := GameState.current_chapter
+	GameState.current_chapter = 1   # 序章·一《风暴地》
+	var prologue_battle := TestBootstrapClass.new()
+	root.add_child(prologue_battle)
+	await process_frame
+	_assert(not prologue_battle.fog_enabled, "序章默认 fog_enabled=false")
+	var all_enemies := prologue_battle.enemy_units.duplicate()
+	_assert(all_enemies.size() > 0, "序章战斗已生成敌军用于迷雾回归断言")
+	var filtered: Array = prologue_battle._filter_enemies_by_fog(all_enemies)
+	_assert_eq(filtered.size(), all_enemies.size(),
+		"序章 fog 关闭时敌军不被迷雾过滤")
+	prologue_battle.queue_free()
+	await process_frame
+	GameState.current_chapter = old_chapter
+
+# ══════════════════════════════════════════════════════════
+# 测试套件：A1C1 呓语森林之战（迷雾 + 生擒詹姆）
+# ══════════════════════════════════════════════════════════
+func _test_act1_ch1_whispering_wood() -> void:
+	var battle := TestA1C1Bootstrap.new()
+	root.add_child(battle)
+	battle.fog_enabled = true
+	await process_frame
+	battle._setup_act1_ch1()
+	await process_frame
+	# 地图尺寸
+	_assert_eq(battle.map_width, 22, "A1C1 地图宽 22")
+	_assert_eq(battle.map_height, 16, "A1C1 地图高 16")
+	# 迷雾启用
+	_assert(battle.fog_enabled and battle._fog != null, "A1C1 启用战争迷雾")
+	# 罗柏与詹姆生成
+	_assert(battle._robb_unit != null and not battle._robb_unit.is_dead(), "罗柏已生成")
+	_assert(battle._jaime_unit != null, "詹姆已生成")
+	_assert_eq(battle._jaime_unit.data.min_hp, 1, "詹姆 min_hp=1（生擒底板）")
+	_assert(battle._robb_unit.data.is_protagonist, "罗柏为主角")
+	# 可达路径：罗柏到詹姆位存在通路
+	_assert(_path_exists_on_passable_grid(battle,
+			battle._robb_unit.grid_pos, battle._jaime_unit.grid_pos),
+		"A1C1 罗柏到詹姆存在可达路径")
+	# 迷雾（夜袭）：开局詹姆在北方营地（row 2），罗柏在南（row 13），
+	# 罗柏视野 move(6)+2+1(主角)=9，切比雪夫距离 max(|11-10|,|2-13|)=11 > 9 → 不可见
+	_assert(not battle._fog.is_enemy_visible(battle._jaime_unit.grid_pos),
+		"A1C1 开局詹姆隐于迷雾（夜袭：罗柏视野未及北方营地）")
+	_assert(not battle._filter_enemies_by_fog(battle.enemy_units).has(battle._jaime_unit),
+		"A1C1 开局迷雾过滤掉詹姆（不可被锁定）")
+	# 动态迷雾重算：罗柏推进至 (11,6)（森林=1，可通行），切比雪夫距离
+	# max(|11-11|,|6-2|)=4 ≤ 视野9 → 詹姆进入视野可被锁定。
+	# _recalc_fog 直接读取 u.grid_pos（见 BattleMap._recalc_fog），故直接赋值即可生效。
+	battle._robb_unit.grid_pos = Vector2i(11, 6)
+	battle._recalc_fog()
+	_assert(battle._fog.is_enemy_visible(battle._jaime_unit.grid_pos),
+		"A1C1 罗柏推进后詹姆进入视野可见")
+	_assert(battle._filter_enemies_by_fog(battle.enemy_units).has(battle._jaime_unit),
+		"A1C1 罗柏推进后詹姆可被迷雾过滤锁定")
+	# 开场 HUD 文案：目标摘要由统一章节简报常量提供（对照序章 OBJECTIVE_SUMMARY 回归）
+	_assert(battle.recorded_statuses.has(Act1ChapterBriefsClass.A1C1_OBJECTIVE_SUMMARY),
+		"A1C1 开场 HUD 状态使用统一目标摘要")
+	_assert(battle.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("目标：")),
+		"A1C1 开场 HUD 状态采用目标前缀")
+	# 生擒流程：詹姆 HP 触底 → 触发捕获 → 不再重复
+	battle._jaime_unit.data.hp = 1
+	battle._check_victory()
+	_assert(battle._capture_triggered, "詹姆 HP 触底触发生擒")
+	_assert(battle.recorded_cutscenes.has("res://data/cutscenes/act1_ch1_jaime_capture.json"),
+		"生擒触发捕获过场")
+	_assert(battle.recorded_advances.has(2), "生擒后推进到 act1.ch2")
+	# 再次调用 _check_victory 不应重复触发（_capture_triggered 守卫）
+	var cutscene_count_before := battle.recorded_cutscenes.size()
+	battle._check_victory()
+	_assert_eq(battle.recorded_cutscenes.size(), cutscene_count_before,
+		"生擒仅触发一次（守卫生效）")
+	# 罗柏死亡 → GameOver（通过 is_protagonist，基类 _check_defeat 处理，仅断言不崩）
+	battle.queue_free()
 	await process_frame
 
 func _test_test_script_reliability() -> void:

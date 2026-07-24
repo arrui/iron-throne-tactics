@@ -1,0 +1,9 @@
+{
+  "id": "act1_ch1_opening",
+  "slides": [
+    {"text": "奔流城外，军帐。", "subtext": "篡夺者战争之后十五年。\n罗柏·史塔克，十五岁。", "duration": 4.0, "scene_art": ""},
+    {"text": "詹姆·兰尼斯特的军队扎营于呓语森林，", "subtext": "三倍于罗柏的兵力，\n围困奔流城。", "duration": 5.0, "scene_art": ""},
+    {"text": "凯特琳与黑鱼劝他稳守。", "subtext": "罗柏看着地图，\n手指停在那片密林上。", "duration": 5.0, "scene_art": ""},
+    {"text": "“今夜，我们进林子。”", "subtext": "这是他第一次独自下注。", "duration": 4.0, "scene_art": ""}
+  ]
+}

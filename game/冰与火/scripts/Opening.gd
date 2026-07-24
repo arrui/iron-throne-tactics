@@ -24,6 +24,10 @@ const CHAPTER_SCENE_MAP := {
 	4: "res://scenes/chapter/Ch4_Opening.tscn",
 }
 
+const ACT1_CH1_OPENING := "res://scenes/chapter/Act1_Ch1_Opening.tscn"
+const ACT1_CH1_CONTINUE_LABEL := "继续游戏 · 第一幕·一 呓语森林"
+const ACT1_CH1_PROGRESS_LABEL := "当前进度：第一幕·一 呓语森林"
+
 var _cutscene: CutscenePlayer = null
 var _transition: Node = null
 
@@ -53,6 +57,9 @@ func _bind_main_menu() -> void:
 	for chapter in range(1, 5):
 		var button := debug_buttons.get_node("DebugChapter%dButton" % chapter) as Button
 		button.pressed.connect(_open_debug_chapter.bind(chapter))
+	var debug_act1_ch1 := debug_buttons.get_node_or_null("DebugAct1Ch1Button") as Button
+	if debug_act1_ch1 != null:
+		debug_act1_ch1.pressed.connect(_open_debug_act1_ch1)
 	if _new_game_confirm != null:
 		_new_game_confirm.confirmed.connect(_start_new_game)
 
@@ -67,8 +74,17 @@ func _refresh_main_menu() -> void:
 		_continue_button.text = "继续游戏"
 		_progress_label.text = "尚无战役记录"
 		return
-	var chapter := SaveSystem.load_current_chapter()
+	var prog := SaveSystem.load_progress()
+	var act := int(prog["act"])
+	var chapter := int(prog["chapter"])
+	if act >= 1:
+		# 正篇：进入第一幕，继续按钮启用并指向 Act1_Ch1_Opening
+		_continue_button.disabled = false
+		_continue_button.text = ACT1_CH1_CONTINUE_LABEL
+		_progress_label.text = ACT1_CH1_PROGRESS_LABEL
+		return
 	if chapter > 4:
+		# 旧存档序章完成态（act=0, chapter=5）兼容
 		_continue_button.disabled = true
 		_continue_button.text = "序章已完成"
 		_progress_label.text = "序章战役已完成"
@@ -100,7 +116,14 @@ func _on_continue_pressed() -> void:
 	_continue_game()
 
 func _continue_game() -> void:
-	var chapter := SaveSystem.load_current_chapter()
+	var prog := SaveSystem.load_progress()
+	var act := int(prog["act"])
+	var chapter := int(prog["chapter"])
+	if act >= 1:
+		# 正篇：路由到第一幕第一章开场
+		_hide_main_menu()
+		_change_scene(ACT1_CH1_OPENING)
+		return
 	if chapter > 4:
 		return
 	GameState.current_chapter = chapter
@@ -119,6 +142,12 @@ func _open_debug_chapter(chapter: int) -> void:
 		_play_chapter_1()
 	elif CHAPTER_SCENE_MAP.has(chapter):
 		_change_scene(CHAPTER_SCENE_MAP[chapter] as String)
+
+func _open_debug_act1_ch1() -> void:
+	GameState.set_act(1, 1)
+	GameState.deploy_selection = []
+	_hide_main_menu()
+	_change_scene(ACT1_CH1_OPENING)
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()

@@ -92,7 +92,7 @@ func _play_cutscene(path: String) -> void:
 
 func _advance_to(next_chapter: int) -> void:
 	recorded_advances.append(next_chapter)
-	SaveSystem.save_chapter_complete(GameState.current_chapter)
+	SaveSystem.save_chapter_complete(0, GameState.current_chapter)
 	GameState.current_chapter = 1 if next_chapter <= 0 else next_chapter
 
 func _set_status(msg: String) -> void:

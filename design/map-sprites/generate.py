@@ -43,6 +43,9 @@ P = {
  'rebel_lord': dict(skin='#bd8665', hair='#5a3929', armor='#6b4434', trim='#b07948', cape='#49352e', leg='#352b29', weapon='axe', accent='#d1a25d', broad=True),
  'royal_soldier': dict(skin='#ba8667', hair='#514032', armor='#777f83', trim='#c5aa55', cape='#5b3430', leg='#44484a', weapon='spear_shield', accent='#d8bd62', helmet=True),
  'targaryen_soldier': dict(skin='#b67f65', hair='#3a2c2d', armor='#302d35', trim='#9f2c32', cape='#70242b', leg='#24242a', weapon='spear_shield', accent='#c99f4e', helmet=True),
+ 'robb_stark': dict(skin='#c49068', hair='#5a3a2a', armor='#3e4a54', trim='#8fa2ad', cape='#27333b', leg='#25282c', weapon='sword', accent='#aab7bd', broad=False),
+ 'brynden_tully': dict(skin='#b8855f', hair='#88807a', armor='#4a5a4a', trim='#8a9a7a', cape='#33402f', leg='#2c3326', weapon='spear_shield', accent='#aeb878', plume='#c9d0a0'),
+ 'golden_lion_knight': dict(skin='#c4926d', hair='#4a3a2a', armor='#a7312d', trim='#d5a83e', cape='#8f2425', leg='#552728', weapon='spear_shield', accent='#f0c95b', helmet=True),
 }
 
 OUTLINE = '#17181b'

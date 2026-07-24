@@ -1,0 +1,27 @@
+{
+  "name": "黑鱼",
+  "class": "枪骑士",
+  "level": 3,
+  "hp": 38,
+  "max_hp": 38,
+  "pow": 13,
+  "spd": 9,
+  "skl": 11,
+  "def": 12,
+  "lck": 6,
+  "con": 11,
+  "move": 5,
+  "weapon_type": "lance",
+  "weapon_rank": "C",
+  "weapon_uses": 30,
+  "weapon_max_uses": 30,
+  "weapon_stats": {
+    "might": 10,
+    "hit": 80,
+    "weight": 8
+  },
+  "is_protagonist": false,
+  "is_boss": false,
+  "min_hp": 0,
+  "items": []
+}

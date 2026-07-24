@@ -1,0 +1,27 @@
+{
+  "name": "金狮骑士",
+  "class": "重枪兵",
+  "level": 4,
+  "hp": 30,
+  "max_hp": 30,
+  "pow": 12,
+  "spd": 7,
+  "skl": 9,
+  "def": 13,
+  "lck": 4,
+  "con": 12,
+  "move": 4,
+  "weapon_type": "lance",
+  "weapon_rank": "C",
+  "weapon_uses": 30,
+  "weapon_max_uses": 30,
+  "weapon_stats": {
+    "might": 10,
+    "hit": 75,
+    "weight": 9
+  },
+  "is_protagonist": false,
+  "is_boss": false,
+  "min_hp": 0,
+  "items": []
+}

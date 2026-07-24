@@ -149,7 +149,7 @@ func _on_battle_won_ch2() -> void:
 func _advance_chapter() -> void:
 	const SAVE_SYS_PATH := "res://scripts/systems/SaveSystem.gd"
 	if ResourceLoader.exists(SAVE_SYS_PATH):
-		load(SAVE_SYS_PATH).save_chapter_complete(2)
+		load(SAVE_SYS_PATH).save_chapter_complete(0, 2)
 	const CH3_SCENE := "res://scenes/chapter/Ch3_Opening.tscn"
 	if ResourceLoader.exists(CH3_SCENE):
 		get_tree().change_scene_to_file(CH3_SCENE)

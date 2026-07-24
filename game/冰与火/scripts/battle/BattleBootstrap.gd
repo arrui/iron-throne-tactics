@@ -897,7 +897,7 @@ func _advance_to(next_chapter: int) -> void:
 	const SAVE_SYS_PATH := "res://scripts/systems/SaveSystem.gd"
 	var current := GameState.current_chapter
 	if ResourceLoader.exists(SAVE_SYS_PATH):
-		load(SAVE_SYS_PATH).save_chapter_complete(current)
+		load(SAVE_SYS_PATH).save_chapter_complete(0, current)
 	if next_chapter <= 0:
 		GameState.current_chapter = 1
 		get_tree().change_scene_to_file("res://scenes/Opening.tscn")

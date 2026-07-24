@@ -1,0 +1,27 @@
+{
+  "name": "詹姆",
+  "class": "剑骑士",
+  "level": 7,
+  "hp": 44,
+  "max_hp": 44,
+  "pow": 15,
+  "spd": 14,
+  "skl": 14,
+  "def": 11,
+  "lck": 7,
+  "con": 10,
+  "move": 6,
+  "weapon_type": "sword",
+  "weapon_rank": "B",
+  "weapon_uses": 40,
+  "weapon_max_uses": 40,
+  "weapon_stats": {
+    "might": 11,
+    "hit": 90,
+    "weight": 7
+  },
+  "is_protagonist": false,
+  "is_boss": true,
+  "min_hp": 1,
+  "items": []
+}

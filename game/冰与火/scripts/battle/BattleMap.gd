@@ -13,6 +13,7 @@ const SETTINGS_SCENE     := preload("res://scenes/ui/SettingsMenu.tscn")
 const GAME_OVER_PATH     := "res://scenes/ui/GameOver.tscn"
 const SUPPORT_POPUP_PATH := "res://scenes/ui/SupportPopup.tscn"
 const BattleChromeTheme := preload("res://scripts/ui/BattleChromeTheme.gd")
+const FogSystemClass    := preload("res://scripts/systems/FogSystem.gd")
 
 # 专用高亮层（在 TileLayer 之上、UnitLayer 之下）
 @onready var _hl: Node2D = $HighlightLayer
@@ -58,6 +59,8 @@ var _path_preview:  Array[Vector2i] = []          # 路径预览
 var _last_hover:    Vector2i = Vector2i(-1, -1)   # 悬停跟踪
 var _danger_tiles:  Dictionary = {}               # 敌方威胁格
 var _show_danger:   bool = false                  # 危险区开关
+var fog_enabled:    bool = false                  # 战争迷雾开关（序章=false，零行为变化）
+var _fog:           FogSystem = null              # 迷雾系统实例（fog_enabled=true 时创建）
 var _turn_count:    int  = 1                      # 回合计数
 
 # ── 敌方单位安全距离预览（点击敌方单位时显示）────────────
@@ -131,6 +134,9 @@ func _ready() -> void:
 	_update_turn_label()
 	_update_danger_zone()
 	# 统一后的地图完全依赖程序化地形渲染，已不再需要旧 TileMap 贴图层。
+	# 战争迷雾：子类可在 super._ready() 前置 fog_enabled=true 启用；序章保持 false。
+	if fog_enabled:
+		_fog = FogSystemClass.new()
 
 var _cjk_font: Font = null
 
@@ -1442,7 +1448,7 @@ func get_terrain_name(pos: Vector2i) -> String:
 # ── 危险区 ───────────────────────────────────────────────
 func _update_danger_zone() -> void:
 	_danger_tiles.clear()
-	for candidate: Variant in enemy_units:
+	for candidate: Variant in _filter_enemies_by_fog(enemy_units):
 		if not is_instance_valid(candidate): continue
 		var enemy := candidate as Unit
 		if enemy == null or enemy.is_dead(): continue
@@ -1452,6 +1458,37 @@ func _update_danger_zone() -> void:
 				var ap: Vector2i = pos + d
 				if is_passable(ap):
 					_danger_tiles[ap] = true
+
+# ── 战争迷雾 ─────────────────────────────────────────────
+# 重算本回合可见格（基于玩家单位视野）。fog 关闭时为空操作。
+# 必须在 _update_danger_zone() 之前调用，因危险区现已按迷雾过滤。
+func _recalc_fog() -> void:
+	if not fog_enabled or _fog == null:
+		return
+	var observers: Array = []
+	for candidate: Variant in player_units:
+		if not is_instance_valid(candidate): continue
+		var u := candidate as Unit
+		if u == null or u.is_dead(): continue
+		var vision: int = u.data.move + 2
+		if u.data.is_protagonist:
+			vision += 1   # 主角视野加成
+		observers.append({"pos": u.grid_pos, "vision": vision})
+	_fog.compute_visibility(observers, Vector2i(map_width, map_height), {})
+	queue_redraw()
+
+# 按迷雾过滤敌军列表。fog 关闭或 _fog 未创建时原样返回（零行为变化）。
+func _filter_enemies_by_fog(enemies: Array) -> Array:
+	if not fog_enabled or _fog == null:
+		return enemies
+	var result: Array = []
+	for candidate: Variant in enemies:
+		if not is_instance_valid(candidate): continue
+		var e := candidate as Unit
+		if e == null or e.is_dead(): continue
+		if _fog.is_enemy_visible(e.grid_pos):
+			result.append(e)
+	return result
 
 # ── 悬停跟踪（路径预览 + 地形信息）─────────────────────
 func _update_hover() -> void:
@@ -1821,6 +1858,9 @@ func _deselect() -> void:
 # ── 敌方安全距离预览 ─────────────────────────────────────
 func _show_enemy_preview(unit: Unit) -> void:
 	if not is_instance_valid(unit) or unit.is_dead(): return
+	# 战争迷雾：不预览不可见的敌军（fog 关闭时此条件恒为假，零行为变化）
+	if fog_enabled and _fog != null and not _fog.is_enemy_visible(unit.grid_pos):
+		return
 	_preview_enemy = unit
 	_preview_move_range   = _calc_move_range(unit)
 	_preview_attack_tiles = _calc_attack_tiles(_preview_move_range)
@@ -2258,6 +2298,7 @@ func _start_player_turn() -> void:
 			_restore_unit_color(u)
 	current_phase = Phase.PLAYER_TURN
 	_update_turn_label()
+	_recalc_fog()       # 迷雾须在危险区之前重算（危险区按迷雾过滤）
 	_update_danger_zone()
 	_check_defeat()
 	_redraw_all()

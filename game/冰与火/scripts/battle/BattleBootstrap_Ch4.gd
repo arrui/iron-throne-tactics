@@ -200,7 +200,7 @@ func _trigger_throne_arrival() -> void:
 func _advance_chapter() -> void:
 	const SAVE_SYS_PATH := "res://scripts/systems/SaveSystem.gd"
 	if ResourceLoader.exists(SAVE_SYS_PATH):
-		load(SAVE_SYS_PATH).save_chapter_complete(4)
+		load(SAVE_SYS_PATH).save_chapter_complete(0, 4)
 	# 序章全部完成 — 返回主菜单（正篇未实现）
 	get_tree().change_scene_to_file("res://scenes/Opening.tscn")
 
