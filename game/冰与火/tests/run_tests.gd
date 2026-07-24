@@ -29,6 +29,7 @@ const BattleChromeThemeClass := preload("res://scripts/ui/BattleChromeTheme.gd")
 const TestBootstrapClass     := preload("res://tests/helpers/TestBattleBootstrap.gd")
 const TestOpeningClass       := preload("res://tests/helpers/TestOpening.gd")
 const TestDeployScreenClass  := preload("res://tests/helpers/TestDeployScreen.gd")
+const FogSystemClass         := preload("res://scripts/systems/FogSystem.gd")
 
 class TestCh3Bootstrap extends Ch3BootstrapClass:
 	func _ready() -> void:
@@ -126,6 +127,7 @@ func _run_all_tests() -> void:
 		["Ch1 / 存档 / 部署行为回归", _test_ch1_save_and_deploy_flow],
 		["关键浮层真实调用链", _test_overlay_runtime_flow],
 		["章节幕结构(act)与存档兼容", _test_chapter_act_structure],
+		["战争迷雾系统", _test_fog_system],
 		["测试脚本可靠性", _test_test_script_reliability],
 	]
 	for suite: Array in suites:
@@ -6345,6 +6347,34 @@ func _test_chapter_act_structure() -> void:
 	# 序章别名不破坏现有读取
 	_assert_eq(SaveSystem.load_current_chapter(), 3, "load_current_chapter 兼容保留")
 	GameState.set_prologue(1)
+
+# ══════════════════════════════════════════════════════════
+# 测试套件：战争迷雾系统（方案 C：地形全知、敌军显隐）
+# 纯坐标接口：observer = {"pos": Vector2i, "vision": int}
+# ══════════════════════════════════════════════════════════
+func _test_fog_system() -> void:
+	var fog := FogSystemClass.new()
+	# 视野计算：单位在 (5,5)，move=5 → vision=7，切比雪夫距离≤7 可见
+	fog.compute_visibility([{"pos": Vector2i(5,5), "vision": 7}], Vector2i(20,20), {})
+	_assert(fog.is_tile_visible(Vector2i(5,5)), "单位自身格可见")
+	_assert(fog.is_tile_visible(Vector2i(12,5)), "视野半径内格可见(距离7)")
+	_assert(not fog.is_tile_visible(Vector2i(13,5)), "视野半径外格不可见(距离8)")
+	_assert(fog.is_tile_explored(Vector2i(12,5)), "可见格同时标记已探索")
+	# 多单位视野合并
+	fog.compute_visibility([{"pos": Vector2i(5,5), "vision": 7}, {"pos": Vector2i(15,15), "vision": 7}], Vector2i(20,20), {})
+	_assert(fog.is_tile_visible(Vector2i(15,15)), "第二单位视野合并")
+	# 视野加成 override（key 为 observer pos，覆盖 vision）
+	fog.compute_visibility([{"pos": Vector2i(5,5), "vision": 7}], Vector2i(20,20), {Vector2i(5,5): 10})
+	_assert(fog.is_tile_visible(Vector2i(15,5)), "视野加成 override 生效(距离10)")
+	# 敌军显隐
+	fog.compute_visibility([{"pos": Vector2i(5,5), "vision": 7}], Vector2i(20,20), {})
+	_assert(fog.is_enemy_visible(Vector2i(6,6)), "视野内敌军可见")
+	_assert(not fog.is_enemy_visible(Vector2i(18,18)), "视野外敌军不可见")
+	var vis: Array = fog.get_visible_enemy_positions([Vector2i(6,6), Vector2i(18,18)])
+	_assert_eq(vis.size(), 1, "get_visible_enemy_positions 仅返回可见敌军")
+	# reset
+	fog.reset()
+	_assert(not fog.is_tile_visible(Vector2i(5,5)), "reset 清空可见格")
 
 func _test_test_script_reliability() -> void:
 	var test_script := _read_repo_root_text("scripts/test.sh")
