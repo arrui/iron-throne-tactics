@@ -2211,17 +2211,21 @@ func _test_opening_main_menu() -> void:
 		await process_frame
 
 	SaveSystem.save_chapter_complete(0, 4)
+	# 序章四章全完成 → 推进到 act1.ch1（不再停留在序章完成态）
+	var prog_after_prologue := SaveSystem.load_progress()
+	_assert_eq(int(prog_after_prologue["act"]), 1, "序章全完成推进到 act1")
+	_assert_eq(int(prog_after_prologue["chapter"]), 1, "序章全完成推进到 act1.ch1")
 	var completed_opening := scene.instantiate()
 	root.add_child(completed_opening)
 	await process_frame
 	var completed_continue := completed_opening.get_node_or_null("MainMenu/MenuPanel/MenuContent/ContinueButton") as Button
 	var completed_progress := completed_opening.get_node_or_null("MainMenu/MenuPanel/MenuContent/ProgressLabel") as Label
-	_assert(completed_continue != null and completed_continue.disabled,
-		"序章全部完成后禁用继续游戏")
-	_assert(completed_continue != null and completed_continue.text == "序章已完成",
-		"序章全部完成后继续按钮显示完成状态")
-	_assert(completed_progress != null and completed_progress.text == "序章战役已完成",
-		"序章全部完成后进度文案显示完成状态")
+	_assert(completed_continue != null and not completed_continue.disabled,
+		"序章全部完成后进入第一幕，继续游戏按钮启用")
+	_assert(completed_continue != null and completed_continue.text == "继续游戏 · 第一幕·一 呓语森林",
+		"序章全部完成后继续按钮显示第一幕第一章入口")
+	_assert(completed_progress != null and completed_progress.text == "当前进度：第一幕·一 呓语森林",
+		"序章全部完成后进度文案显示第一幕第一章")
 	if is_instance_valid(completed_opening):
 		completed_opening.queue_free()
 	await process_frame
@@ -2229,8 +2233,10 @@ func _test_opening_main_menu() -> void:
 	root.add_child(completed_route)
 	await process_frame
 	completed_route.run_continue_game()
-	_assert(not completed_route.played_chapter_1 and completed_route.recorded_scene_changes.is_empty(),
+	_assert(not completed_route.played_chapter_1,
 		"序章全部完成后继续入口不会误重开第一章")
+	_assert(completed_route.recorded_scene_changes.has("res://scenes/chapter/Act1_Ch1_Opening.tscn"),
+		"序章全部完成后继续入口路由到第一幕第一章开场")
 	completed_route.queue_free()
 	await process_frame
 	SaveSystem.delete_save()
@@ -5533,6 +5539,29 @@ func _test_chapter_opening_configuration() -> void:
 	_assert("PrologueChapterBriefs" in ch2_opening_src, "Opening_Ch2 通过统一章节简报常量提供目标")
 	_assert("PrologueChapterBriefs" in ch3_opening_src, "Opening_Ch3 通过统一章节简报常量提供目标")
 	_assert("PrologueChapterBriefs" in ch4_opening_src, "Opening_Ch4 通过统一章节简报常量提供目标")
+
+	# 第一幕第一章 Opening 配置
+	var act1_ch1_script := load("res://scripts/chapter/Opening_A1C1.gd")
+	_assert(act1_ch1_script != null, "Opening_A1C1 脚本可加载")
+	if act1_ch1_script != null:
+		var a1c1_opening = act1_ch1_script.new()
+		a1c1_opening._setup()
+		_assert_eq(a1c1_opening._chapter_num, "第一幕·一", "A1C1 Opening 配置正确章节编号")
+		_assert_eq(a1c1_opening._chapter_title, "呓语森林", "A1C1 Opening 配置正确标题")
+		_assert_eq(a1c1_opening._chapter_sub_label, "夜袭章节 / 视野受限", "A1C1 Opening 配置正确副标题")
+		_assert_eq(a1c1_opening._chapter_objective, Act1ChapterBriefsClass.A1C1_OBJECTIVE_SUMMARY,
+			"A1C1 Opening 通过统一章节简报常量提供目标")
+		_assert_eq(a1c1_opening._battle_scene, "res://scenes/battle/BattleMap_A1C1.tscn",
+			"A1C1 Opening 指向第一幕第一章战斗场景")
+		_assert_eq(a1c1_opening._cutscene_files.size(), 1, "A1C1 Opening 仅配置一段开场过场")
+		_assert_eq(a1c1_opening._cutscene_files[0], "res://data/cutscenes/act1_ch1_opening.json",
+			"A1C1 Opening 使用正确过场文件")
+		a1c1_opening.free()
+	var act1_ch1_scene := load("res://scenes/chapter/Act1_Ch1_Opening.tscn") as PackedScene
+	_assert(act1_ch1_scene != null, "Act1_Ch1_Opening 场景可加载")
+	var act1_ch1_src := FileAccess.get_file_as_string("res://scenes/chapter/Act1_Ch1_Opening.tscn")
+	_assert("Opening_A1C1.gd" in act1_ch1_src, "Act1_Ch1_Opening 场景挂载 Opening_A1C1 脚本")
+
 	ch2_opening.free()
 	ch3_opening.free()
 	ch4_opening.free()

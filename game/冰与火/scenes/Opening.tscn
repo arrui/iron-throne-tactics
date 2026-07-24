@@ -179,6 +179,11 @@ custom_minimum_size = Vector2(176, 34)
 layout_mode = 2
 text = "序章四 · 铁王座"
 
+[node name="DebugAct1Ch1Button" type="Button" parent="MainMenu/MenuPanel/MenuContent/DebugSection/DebugChapters"]
+custom_minimum_size = Vector2(176, 34)
+layout_mode = 2
+text = "第一幕·一 · 呓语森林"
+
 [node name="QuitButton" type="Button" parent="MainMenu/MenuPanel/MenuContent"]
 custom_minimum_size = Vector2(360, 38)
 layout_mode = 2
