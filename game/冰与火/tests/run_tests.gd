@@ -23,6 +23,8 @@ const BootstrapClass         := preload("res://scripts/battle/BattleBootstrap.gd
 const Ch2BootstrapClass      := preload("res://scripts/battle/BattleBootstrap_Ch2.gd")
 const Ch3BootstrapClass      := preload("res://scripts/battle/BattleBootstrap_Ch3.gd")
 const Ch4BootstrapClass      := preload("res://scripts/battle/BattleBootstrap_Ch4.gd")
+const A1C1BootstrapClass     := preload("res://scripts/battle/BattleBootstrap_A1C1.gd")
+const Act1ChapterBriefsClass := preload("res://scripts/chapter/Act1ChapterBriefs.gd")
 const PrologueChapterBriefsClass := preload("res://scripts/chapter/PrologueChapterBriefs.gd")
 const Ch4BattleBriefClass    := preload("res://scripts/chapter/Ch4BattleBrief.gd")
 const BattleChromeThemeClass := preload("res://scripts/ui/BattleChromeTheme.gd")
@@ -70,6 +72,49 @@ class TestCh4EndingBootstrap extends Ch4BootstrapClass:
 
 	func _advance_chapter() -> void:
 		pass
+
+# A1C1 测试子类：自包含 bootstrap，需自建场景树节点（仿 TestBattleBootstrap），
+# 阻断过场/对话/章节推进并记录调用，_ready 置空以阻止自动 setup。
+class TestA1C1Bootstrap extends A1C1BootstrapClass:
+	var recorded_dialogues: Array[String] = []
+	var recorded_cutscenes: Array[String] = []
+	var recorded_advances: Array[int] = []
+
+	func _enter_tree() -> void:
+		if get_node_or_null("HighlightLayer") == null:
+			var hl := Node2D.new()
+			hl.name = "HighlightLayer"
+			add_child(hl)
+		if get_node_or_null("Camera2D") == null:
+			var cam := Camera2D.new()
+			cam.name = "Camera2D"
+			add_child(cam)
+		if get_node_or_null("UnitLayer") == null:
+			var unit_layer := Node2D.new()
+			unit_layer.name = "UnitLayer"
+			add_child(unit_layer)
+		if get_node_or_null("UI") == null:
+			var ui := CanvasLayer.new()
+			ui.name = "UI"
+			add_child(ui)
+
+	func _ready() -> void:
+		pass
+
+	func _setup_autopilot_ui() -> void:
+		pass
+
+	func _setup_minimap() -> void:
+		pass
+
+	func _play_dialogue(path: String) -> void:
+		recorded_dialogues.append(path)
+
+	func _play_cutscene(path: String) -> void:
+		recorded_cutscenes.append(path)
+
+	func _advance_to(next_chapter: int) -> void:
+		recorded_advances.append(next_chapter)
 
 var _pass_count: int = 0
 var _fail_count: int = 0
@@ -128,6 +173,7 @@ func _run_all_tests() -> void:
 		["关键浮层真实调用链", _test_overlay_runtime_flow],
 		["章节幕结构(act)与存档兼容", _test_chapter_act_structure],
 		["战争迷雾系统", _test_fog_system],
+		["A1C1 呓语森林之战", _test_act1_ch1_whispering_wood],
 		["测试脚本可靠性", _test_test_script_reliability],
 	]
 	for suite: Array in suites:
@@ -6395,6 +6441,46 @@ func _test_fog_system() -> void:
 	prologue_battle.queue_free()
 	await process_frame
 	GameState.current_chapter = old_chapter
+
+# ══════════════════════════════════════════════════════════
+# 测试套件：A1C1 呓语森林之战（迷雾 + 生擒詹姆）
+# ══════════════════════════════════════════════════════════
+func _test_act1_ch1_whispering_wood() -> void:
+	var battle := TestA1C1Bootstrap.new()
+	root.add_child(battle)
+	battle.fog_enabled = true
+	await process_frame
+	battle._setup_act1_ch1()
+	await process_frame
+	# 地图尺寸
+	_assert_eq(battle.map_width, 22, "A1C1 地图宽 22")
+	_assert_eq(battle.map_height, 16, "A1C1 地图高 16")
+	# 迷雾启用
+	_assert(battle.fog_enabled and battle._fog != null, "A1C1 启用战争迷雾")
+	# 罗柏与詹姆生成
+	_assert(battle._robb_unit != null and not battle._robb_unit.is_dead(), "罗柏已生成")
+	_assert(battle._jaime_unit != null, "詹姆已生成")
+	_assert_eq(battle._jaime_unit.data.min_hp, 1, "詹姆 min_hp=1（生擒底板）")
+	_assert(battle._robb_unit.data.is_protagonist, "罗柏为主角")
+	# 可达路径：罗柏到詹姆位存在通路
+	_assert(_path_exists_on_passable_grid(battle,
+			battle._robb_unit.grid_pos, battle._jaime_unit.grid_pos),
+		"A1C1 罗柏到詹姆存在可达路径")
+	# 生擒流程：詹姆 HP 触底 → 触发捕获 → 不再重复
+	battle._jaime_unit.data.hp = 1
+	battle._check_victory()
+	_assert(battle._capture_triggered, "詹姆 HP 触底触发生擒")
+	_assert(battle.recorded_cutscenes.has("res://data/cutscenes/act1_ch1_jaime_capture.json"),
+		"生擒触发捕获过场")
+	_assert(battle.recorded_advances.has(2), "生擒后推进到 act1.ch2")
+	# 再次调用 _check_victory 不应重复触发（_capture_triggered 守卫）
+	var cutscene_count_before := battle.recorded_cutscenes.size()
+	battle._check_victory()
+	_assert_eq(battle.recorded_cutscenes.size(), cutscene_count_before,
+		"生擒仅触发一次（守卫生效）")
+	# 罗柏死亡 → GameOver（通过 is_protagonist，基类 _check_defeat 处理，仅断言不崩）
+	battle.queue_free()
+	await process_frame
 
 func _test_test_script_reliability() -> void:
 	var test_script := _read_repo_root_text("scripts/test.sh")
