@@ -4,6 +4,7 @@ extends CanvasLayer
 signal closed
 
 const BattleChromeTheme := preload("res://scripts/ui/BattleChromeTheme.gd")
+const CJKFontHelper := preload("res://scripts/ui/CJKFontHelper.gd")
 
 @onready var _dimmer: ColorRect = $Dimmer
 @onready var _panel: PanelContainer = $Dimmer/Panel
@@ -22,6 +23,7 @@ var _settings: Node = null
 func _ready() -> void:
 	# 设置入口既可在正常运行的主菜单/战场打开，也应兼容暂停态。
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_apply_chinese_font()
 	_settings = get_node_or_null("/root/GameSettings")
 	if _settings == null:
 		_settings = load("res://scripts/systems/GameSettings.gd").new()
@@ -58,6 +60,17 @@ func _apply_dark_ui_theme() -> void:
 		)
 	if _close != null:
 		BattleChromeTheme.apply_button_theme(_close)
+
+func _get_cjk_font() -> Font:
+	return CJKFontHelper.get_font()
+
+func _apply_chinese_font() -> void:
+	var font := _get_cjk_font()
+	CJKFontHelper.apply_to_node_recursive(self, font)
+	call_deferred("_apply_font_to_controls", self, font)
+
+func _apply_font_to_controls(node: Node, font: Font = null) -> void:
+	CJKFontHelper.apply_to_node_recursive(node, font)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):

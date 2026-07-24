@@ -4,19 +4,14 @@ extends CanvasLayer
 
 const Ch4BattleBrief := preload("res://scripts/chapter/Ch4BattleBrief.gd")
 const BattleChromeTheme := preload("res://scripts/ui/BattleChromeTheme.gd")
+const CJKFontHelper := preload("res://scripts/ui/CJKFontHelper.gd")
+const ClassCatalog := preload("res://scripts/data/ClassCatalog.gd")
 
 const MAX_KNIGHTS := 4
 const BATTLE_SCENE := "res://scenes/battle/BattleMap.tscn"
 const DATA_PATH    := "res://data/units/"
 
-const AVAILABLE_UNITS := [
-	{"file": "ned_stark.json",       "mandatory": true},
-	{"file": "northern_knight.json", "mandatory": false},
-	{"file": "northern_knight.json", "mandatory": false},
-	{"file": "northern_knight.json", "mandatory": false},
-	{"file": "northern_knight.json", "mandatory": false},
-	{"file": "northern_knight.json", "mandatory": false},
-]
+var AVAILABLE_UNITS: Array = ClassCatalog.get_ch4_deploy_options()
 
 const CHAPTER_PREMISE := Ch4BattleBrief.CHAPTER_PREMISE
 const OBJECTIVE_SUMMARY := Ch4BattleBrief.OBJECTIVE_SUMMARY
@@ -24,23 +19,15 @@ const FACTION_SUMMARY := Ch4BattleBrief.FACTION_SUMMARY
 const DEPLOY_SUMMARY := Ch4BattleBrief.DEPLOY_SUMMARY
 const DEPLOY_ADVICE := Ch4BattleBrief.DEPLOY_ADVICE
 const BATTLE_FLOW_STEPS := Ch4BattleBrief.BATTLE_FLOW_STEPS
-const PORTRAIT_PATH_MAP := {
-	"ned_stark.json": "res://assets/units/ned_stark_portrait.png",
-	"northern_knight.json": "res://assets/units/northern_knight_portrait.png",
-}
-const SLOT_ROLE_HINTS := {
-	0: "职责：主将 / 中轴突破",
-	1: "职责：前锋 / 黑水桥突破",
-	2: "职责：左翼 / 护桥牵制",
-	3: "职责：右翼 / 护桥牵制",
-	4: "职责：前压 / 城门冲击",
-	5: "职责：预备 / 红堡补位",
-}
-
 var _selected: Array[int] = []  # 已选骑士的索引（不含奈德）
 var _unit_cards: Array = []
 var _confirm_btn: Button = null
 var _count_label: Label = null
+
+func _available_units() -> Array:
+	if AVAILABLE_UNITS.is_empty():
+		AVAILABLE_UNITS = ClassCatalog.get_ch4_deploy_options()
+	return AVAILABLE_UNITS
 
 func _apply_dark_ui_theme() -> void:
 	BattleChromeTheme.apply_dark_chrome_recursive(self)
@@ -53,9 +40,10 @@ func _apply_dark_ui_theme() -> void:
 	var roster_panel := get_node_or_null("LayoutRoot/ContentVBox/RosterPanel") as PanelContainer
 	if roster_panel != null:
 		roster_panel.add_theme_stylebox_override("panel", _make_summary_style())
+	var available_units := _available_units()
 	for i: int in _unit_cards.size():
 		if _unit_cards[i] is PanelContainer:
-			_refresh_card_visual(_unit_cards[i] as PanelContainer, i, bool(AVAILABLE_UNITS[i].get("mandatory", false)))
+			_refresh_card_visual(_unit_cards[i] as PanelContainer, i, bool((available_units[i] as Dictionary).get("mandatory", false)))
 	var flow_grid := get_node_or_null("LayoutRoot/ContentVBox/BattleFlowPanel/BattleFlowVBox/FlowGrid") as GridContainer
 	if flow_grid != null:
 		for child in flow_grid.get_children():
@@ -94,22 +82,10 @@ func _style_section_header(label: Label) -> void:
 	label.add_theme_color_override("font_color", BattleChromeTheme.TEXT_OBJECTIVE)
 
 func _get_cjk_font() -> Font:
-	const BUNDLED := "res://assets/fonts/ArialUnicode.ttf"
-	if ResourceLoader.exists(BUNDLED):
-		var f := load(BUNDLED) as Font
-		if f != null: return f
-	var sf := SystemFont.new()
-	sf.font_names = PackedStringArray(["Heiti SC", "Arial Unicode MS", "Microsoft YaHei"])
-	return sf
+	return CJKFontHelper.get_font()
 
 func _apply_cjk_font_to_node(node: Node) -> void:
-	var font := _get_cjk_font()
-	if node is Label:
-		(node as Label).add_theme_font_override("font", font)
-	elif node is Button:
-		(node as Button).add_theme_font_override("font", font)
-	for child in node.get_children():
-		_apply_cjk_font_to_node(child)
+	CJKFontHelper.apply_to_node_recursive(node, _get_cjk_font())
 
 func _load_portrait_texture(path: String) -> Texture2D:
 	if path == "" or not ResourceLoader.exists(path):
@@ -127,17 +103,70 @@ func _weapon_type_label(weapon_type: String) -> String:
 		_:
 			return weapon_type
 
+func _move_type_label(move_type: String) -> String:
+	match move_type:
+		"cavalry":
+			return "骑乘"
+		"guard":
+			return "重装"
+		_:
+			return "步行"
+
+func _armor_type_label(armor_type: String) -> String:
+	match armor_type:
+		"light":
+			return "轻甲"
+		"heavy":
+			return "重甲"
+		_:
+			return "中甲"
+
+func _weapon_matchup_hint(weapon_type: String) -> String:
+	match weapon_type:
+		"sword":
+			return "兵刃：克斧 / 惧枪"
+		"axe":
+			return "兵刃：克枪 / 惧剑"
+		"lance":
+			return "兵刃：克剑 / 惧斧"
+		_:
+			return "兵刃：均势"
+
+func _class_summary(preview: Dictionary) -> String:
+	return "兵种：%s · %s · %s" % [
+		str(preview.get("class_display", preview.get("class", "步兵"))),
+		_move_type_label(str(preview.get("move_type", "foot"))),
+		_armor_type_label(str(preview.get("armor_type", "medium"))),
+	]
+
+func _trait_summary(preview: Dictionary) -> String:
+	var trait_name := str(preview.get("trait_name", ""))
+	var trait_desc := str(preview.get("trait_desc", ""))
+	if trait_name == "" and trait_desc == "":
+		return "兵种特性：暂无"
+	if trait_desc == "":
+		return "兵种特性：%s" % trait_name
+	return "兵种特性：%s · %s" % [trait_name, trait_desc]
+
 func _load_unit_preview(idx: int, entry: Dictionary) -> Dictionary:
 	var file_name := str(entry.get("file", ""))
-	var file_path: String = DATA_PATH + file_name
+	var source_file := str(entry.get("base_file", file_name))
+	var file_path: String = DATA_PATH + source_file
 	var preview := {
 		"file": file_name,
-		"name": "北境骑士",
-		"class": "骑士",
-		"role": str(SLOT_ROLE_HINTS.get(idx, "职责：机动支援")),
+		"base_file": source_file,
+		"name": str(entry.get("name", "北境骑士")),
+		"class": str(entry.get("class", "骑士")),
+		"role": str(entry.get("role", "职责：机动支援")),
 		"summary": "斧D · 移动4\nHP30 武11 速8 防9",
 		"mandatory": bool(entry.get("mandatory", false)),
-		"portrait_path": str(PORTRAIT_PATH_MAP.get(file_name, "")),
+		"portrait_path": str(entry.get("portrait_path", "")),
+		"class_id": str(entry.get("class_id", "")),
+		"move_type": str(entry.get("move_type", "foot")),
+		"armor_type": str(entry.get("armor_type", "medium")),
+		"trait_name": str(entry.get("trait_name", "")),
+		"trait_desc": str(entry.get("trait_desc", "")),
+		"matchup_hint": "兵刃：均势",
 	}
 	if FileAccess.file_exists(file_path):
 		var f := FileAccess.open(file_path, FileAccess.READ)
@@ -145,8 +174,13 @@ func _load_unit_preview(idx: int, entry: Dictionary) -> Dictionary:
 		f.close()
 		if result is Dictionary:
 			var d := result as Dictionary
+			var inferred_meta := ClassCatalog.get_unit_defaults(file_name, d)
 			preview["name"] = str(d.get("name", preview["name"]))
 			preview["class"] = str(d.get("class", preview["class"]))
+			preview["class_id"] = str(inferred_meta.get("class_id", preview["class_id"]))
+			preview["move_type"] = str(inferred_meta.get("move_type", preview["move_type"]))
+			preview["armor_type"] = str(inferred_meta.get("armor_type", preview["armor_type"]))
+			preview["matchup_hint"] = _weapon_matchup_hint(str(d.get("weapon_type", "sword")))
 			preview["summary"] = "%s%s · 移动%d\nHP%d 武%d 速%d 防%d" % [
 				_weapon_type_label(str(d.get("weapon_type", ""))),
 				str(d.get("weapon_rank", "E")),
@@ -156,6 +190,24 @@ func _load_unit_preview(idx: int, entry: Dictionary) -> Dictionary:
 				int(d.get("spd", 5)),
 				int(d.get("def", 5)),
 			]
+	for key: String in ["name", "class", "role", "portrait_path", "class_id", "move_type", "armor_type"]:
+		if entry.has(key):
+			preview[key] = entry[key]
+	if entry.has("weapon_type"):
+		preview["summary"] = "%s%s · 移动%d\nHP%d 武%d 速%d 防%d" % [
+			_weapon_type_label(str(entry.get("weapon_type", ""))),
+			str(entry.get("weapon_rank", "E")),
+			int(entry.get("move", 5)),
+			int(entry.get("max_hp", 20)),
+			int(entry.get("pow", 5)),
+			int(entry.get("spd", 5)),
+			int(entry.get("def", 5)),
+		]
+	preview["matchup_hint"] = _weapon_matchup_hint(str(entry.get("weapon_type", "sword")))
+	var class_template := ClassCatalog.get_class_template(str(preview.get("class_id", "")))
+	preview["class_display"] = str(class_template.get("display_name", preview.get("class", "步兵")))
+	preview["trait_name"] = str(class_template.get("trait_name", preview.get("trait_name", "")))
+	preview["trait_desc"] = str(class_template.get("trait_desc", preview.get("trait_desc", "")))
 	return preview
 
 func _make_card_style(is_selected: bool, is_mandatory: bool) -> StyleBoxFlat:
@@ -434,8 +486,9 @@ func _build_ui() -> void:
 	grid.add_theme_constant_override("v_separation", 16)
 	roster_vbox.add_child(grid)
 
-	for i: int in AVAILABLE_UNITS.size():
-		var entry: Dictionary = AVAILABLE_UNITS[i]
+	var available_units := _available_units()
+	for i: int in available_units.size():
+		var entry: Dictionary = available_units[i]
 		var card := _make_unit_card(i, entry)
 		grid.add_child(card)
 		_unit_cards.append(card)
@@ -494,6 +547,15 @@ func _make_unit_card(idx: int, entry: Dictionary) -> PanelContainer:
 		name_lbl.add_theme_color_override("font_color", BattleChromeTheme.TEXT_OBJECTIVE)
 	vb.add_child(name_lbl)
 
+	var class_lbl := Label.new()
+	class_lbl.name = "ClassLabel"
+	class_lbl.text = _class_summary(preview)
+	class_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	class_lbl.add_theme_font_size_override("font_size", 11)
+	class_lbl.add_theme_color_override("font_color", BattleChromeTheme.TEXT_OBJECTIVE)
+	class_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(class_lbl)
+
 	var role_lbl := Label.new()
 	role_lbl.name = "RoleLabel"
 	role_lbl.text = str(preview.get("role", "职责：机动支援"))
@@ -512,6 +574,24 @@ func _make_unit_card(idx: int, entry: Dictionary) -> PanelContainer:
 	stats_lbl.add_theme_color_override("font_color", BattleChromeTheme.TEXT_SECONDARY)
 	stats_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(stats_lbl)
+
+	var matchup_lbl := Label.new()
+	matchup_lbl.name = "MatchupLabel"
+	matchup_lbl.text = str(preview.get("matchup_hint", "兵刃：均势"))
+	matchup_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	matchup_lbl.add_theme_font_size_override("font_size", 11)
+	matchup_lbl.add_theme_color_override("font_color", BattleChromeTheme.TEXT_ACCENT)
+	matchup_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(matchup_lbl)
+
+	var trait_lbl := Label.new()
+	trait_lbl.name = "TraitLabel"
+	trait_lbl.text = _trait_summary(preview)
+	trait_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	trait_lbl.add_theme_font_size_override("font_size", 10)
+	trait_lbl.add_theme_color_override("font_color", BattleChromeTheme.TEXT_GOOD)
+	trait_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vb.add_child(trait_lbl)
 
 	var status_lbl := Label.new()
 	status_lbl.name = "StatusLabel"
@@ -549,8 +629,9 @@ func _on_card_toggled(idx: int, pressed: bool, btn: Button) -> void:
 		_selected.append(idx)
 	else:
 		_selected.erase(idx)
+	var available_units := _available_units()
 	if idx >= 0 and idx < _unit_cards.size() and _unit_cards[idx] is PanelContainer:
-		_refresh_card_visual(_unit_cards[idx] as PanelContainer, idx, bool(AVAILABLE_UNITS[idx].get("mandatory", false)))
+		_refresh_card_visual(_unit_cards[idx] as PanelContainer, idx, bool((available_units[idx] as Dictionary).get("mandatory", false)))
 	_refresh_deploy_summary()
 
 func _on_new_game() -> void:
@@ -562,7 +643,8 @@ func _on_new_game() -> void:
 func _on_confirm() -> void:
 	# 保存部署选择到 BattleBootstrap_Ch4
 	var selections: Array[String] = ["ned_stark.json"]
+	var available_units := _available_units()
 	for idx: int in _selected:
-		selections.append(AVAILABLE_UNITS[idx]["file"])
+		selections.append(str((available_units[idx] as Dictionary).get("file", "")))
 	GameState.deploy_selection = selections
 	get_tree().change_scene_to_file(BATTLE_SCENE)

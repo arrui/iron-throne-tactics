@@ -5,25 +5,29 @@
       "text": "塔室昏暗，\n玫瑰的香气已经败了，\n只剩下血和蜡烛的气味。",
       "subtext": "",
       "duration": 5.5,
-      "scene_art": ""
+	  "scene_art": "lyanna_chamber",
+	  "camera_style": "candle_breath"
     },
     {
       "text": "「奈德……」",
       "subtext": "那声音很低，\n低到他几乎以为是自己的幻觉。\n但他听到了。",
       "duration": 6.0,
-      "scene_art": ""
+	  "scene_art": "lyanna_chamber",
+	  "camera_style": "candle_breath"
     },
     {
       "text": "「答应我，奈德……\n答应我……」",
       "subtext": "他跪下去，握住那双手。\n「我答应你。」\n他说。\n「我答应你。」",
       "duration": 7.0,
-      "scene_art": ""
+	  "scene_art": "lyanna_chamber",
+	  "camera_style": "candle_breath"
     },
     {
       "text": "婴儿的哭声，\n从某处传来。",
       "subtext": "——黑屏。",
       "duration": 5.0,
-      "scene_art": ""
+	  "scene_art": "lyanna_chamber",
+	  "camera_style": "candle_breath"
     }
   ]
 }

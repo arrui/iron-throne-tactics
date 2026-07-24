@@ -1,6 +1,6 @@
 [gd_scene format=4 uid="uid://bm0ewhvtovw10"]
 
-[ext_resource type="Script" uid="uid://dx75rvhf3h8vo" path="res://scripts/battle/BattleBootstrap.gd" id="1"]
+[ext_resource type="Script" uid="uid://cyfo5giwruwto" path="res://scripts/battle/BattleBootstrap.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/battle/HighlightLayer.gd" id="3_hl"]
 [node name="BattleMap" type="Node2D" unique_id=1594060771]
 script = ExtResource("1")
@@ -142,7 +142,7 @@ text = "🎒 使用道具"
 [node name="PredictPanel" type="PanelContainer" parent="UI" unique_id=2130539311]
 visible = false
 offset_right = 280.0
-offset_bottom = 180.0
+offset_bottom = 206.0
 
 [node name="VBox" type="VBoxContainer" parent="UI/PredictPanel" unique_id=1669515753]
 layout_mode = 2
@@ -162,10 +162,22 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 13
 text = "防：王军  伤害 3  命中 55%"
 
+[node name="TriangleLine" type="Label" parent="UI/PredictPanel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "兵刃态势：均势"
+
 [node name="DoubleLine" type="Label" parent="UI/PredictPanel/VBox" unique_id=300538588]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.9, 0.3, 1)
 theme_override_font_sizes/font_size = 11
+
+[node name="TraitLine" type="Label" parent="UI/PredictPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.74, 0.92, 0.76, 1)
+theme_override_font_sizes/font_size = 11
+text = "兵种特性：本轮未触发"
+autowrap_mode = 2
 
 [node name="Buttons" type="HBoxContainer" parent="UI/PredictPanel/VBox" unique_id=1700513298]
 layout_mode = 2

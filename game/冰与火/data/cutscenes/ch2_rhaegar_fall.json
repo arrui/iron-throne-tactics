@@ -3,27 +3,31 @@
   "slides": [
     {
       "text": "战锤落下。",
-      "subtext": "那声音压过了所有的喧嚣，\n压过了三叉戟的水声，\n压过了一个男人的名字。",
+	  "subtext": "那声音压过了所有的喧嚣，\n压过了三叉戟的水声，\n也压过了王朝最后一次反扑。",
       "duration": 5.0,
-      "scene_art": ""
+	  "scene_art": "ruby_ford_duel",
+	  "camera_style": "battle_sway"
     },
     {
       "text": "铠甲上的红宝石随之迸裂，\n四散于水流之中。",
-      "subtext": "后世将在河床打捞这些碎片，\n称之为「红宝石滩」。\n这一切都将成为传说。\n但此刻，只有一个男人跌落在浅水里。",
+	  "subtext": "后世将在河床打捞这些碎片，\n称之为「红宝石滩」。\n但在此刻，\n它们只是随着血水一同被河流卷走。",
       "duration": 6.5,
-      "scene_art": ""
+	  "scene_art": "ruby_ford_fall",
+	  "camera_style": "fall_drift"
     },
     {
       "text": "雷加·坦格利安，\n龙石岛王子，\n低声说了最后一句话。",
-      "subtext": "「……莱安娜……」",
+	  "subtext": "他仰面倒在冰冷浅滩里。\n红宝石还在甲胄间发亮，\n像一场来不及结束的夏天。\n「……莱安娜……」",
       "duration": 6.0,
-      "scene_art": ""
+	  "scene_art": "ruby_ford_aftermath",
+	  "camera_style": "river_requiem"
     },
     {
       "text": "劳勃也随之倒下。\n伤口深入肋骨，血流如注。",
-      "subtext": "他依然睁着眼睛，\n望向远处什么都没有的地方。",
+	  "subtext": "他依然睁着眼睛，\n望向河对岸与硝烟更深处。\n胜负已定，\n可战争还没有结束。",
       "duration": 5.0,
-      "scene_art": ""
+	  "scene_art": "ruby_ford_aftermath",
+	  "camera_style": "river_requiem"
     }
   ]
 }

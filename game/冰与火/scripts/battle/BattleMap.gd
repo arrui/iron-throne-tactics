@@ -14,6 +14,7 @@ const GAME_OVER_PATH     := "res://scenes/ui/GameOver.tscn"
 const SUPPORT_POPUP_PATH := "res://scenes/ui/SupportPopup.tscn"
 const BattleChromeTheme := preload("res://scripts/ui/BattleChromeTheme.gd")
 const FogSystemClass    := preload("res://scripts/systems/FogSystem.gd")
+const CJKFontHelper := preload("res://scripts/ui/CJKFontHelper.gd")
 
 # 专用高亮层（在 TileLayer 之上、UnitLayer 之下）
 @onready var _hl: Node2D = $HighlightLayer
@@ -94,7 +95,9 @@ var _cancel_move_btn:  Button        = null
 var _predict_panel:    PanelContainer = null
 var _atk_line:         Label         = null
 var _def_line:         Label         = null
+var _triangle_line:    Label         = null
 var _double_line:      Label         = null
+var _trait_line:       Label         = null
 var _confirm_btn:      Button        = null
 var _cancel_btn:       Button        = null
 var _result_panel:     PanelContainer = null
@@ -138,66 +141,15 @@ func _ready() -> void:
 	if fog_enabled:
 		_fog = FogSystemClass.new()
 
-var _cjk_font: Font = null
-
 func _get_cjk_font() -> Font:
-	if _cjk_font != null:
-		return _cjk_font
-	# 方案一：加载项目内置 Arial Unicode 字体（最可靠）
-	const BUNDLED_FONT := "res://assets/fonts/ArialUnicode.ttf"
-	if ResourceLoader.exists(BUNDLED_FONT):
-		var ff := load(BUNDLED_FONT) as Font
-		if ff != null:
-			_cjk_font = ff
-			return _cjk_font
-	# 方案二：直接加载系统字体文件（优先 .ttf 格式）
-	var os_font_paths := [
-		"/System/Library/Fonts/Supplemental/Arial Unicode.ttf",  # macOS，含全套CJK
-		"/Library/Fonts/Arial Unicode.ttf",           # macOS 备选路径
-		"/System/Library/Fonts/STHeiti Medium.ttc",   # macOS 简体中文黑体
-		"/System/Library/Fonts/Hiragino Sans GB.ttc", # macOS 备选
-		"C:/Windows/Fonts/msyh.ttc",                  # Windows 微软雅黑
-		"C:/Windows/Fonts/simhei.ttf",                # Windows 黑体
-		"/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",  # Linux
-	]
-	for path in os_font_paths:
-		if FileAccess.file_exists(path):
-			var ff := load(path) as Font
-			if ff != null:
-				_cjk_font = ff
-				return _cjk_font
-	# 方案二：使用 SystemFont（名称匹配）
-	var sf := SystemFont.new()
-	sf.font_names = PackedStringArray([
-		"Heiti SC",          # macOS 简体中文黑体（fc-list 确认名称）
-		"Hiragino Sans GB",  # macOS 备选中文字体
-		"Arial Unicode MS",  # 通用 Unicode 字体（含 CJK）
-		"Microsoft YaHei",   # Windows 微软雅黑
-		"PingFang SC",       # macOS 苹方（新版）
-		"STHeitiSC-Medium",  # macOS 华文黑体（PostScript 名）
-		"WenQuanYi Micro Hei", # Linux 文泉驿
-		"Noto Sans CJK SC",  # Linux/Android Noto
-	])
-	_cjk_font = sf
-	return _cjk_font
+	return CJKFontHelper.get_font()
 
 # 递归给所有 Label/Button 节点设置中文字体（最可靠的方案）
 func _apply_font_to_controls(node: Node) -> void:
-	if node is Label:
-		(node as Label).add_theme_font_override("font", _get_cjk_font())
-	elif node is Button:
-		(node as Button).add_theme_font_override("font", _get_cjk_font())
-	for child in node.get_children():
-		_apply_font_to_controls(child)
+	CJKFontHelper.apply_to_node_recursive(node, _get_cjk_font())
 
 func _apply_battle_font() -> void:
-	var font := _get_cjk_font()
-	ThemeDB.fallback_font      = font
-	ThemeDB.fallback_font_size = 14
-	var theme := ThemeDB.get_project_theme()
-	if theme != null:
-		theme.default_font      = font
-		theme.default_font_size = 14
+	CJKFontHelper.apply_global_theme(14)
 	call_deferred("_apply_font_to_controls", self)
 	call_deferred("_apply_dark_ui_theme")
 	# 深色全局背景（GDD色盘：接近黑）
@@ -255,7 +207,9 @@ func _apply_dark_ui_theme() -> void:
 		var predict_title := predict_panel.get_node_or_null("VBox/Title") as Label
 		var predict_atk_line := predict_panel.get_node_or_null("VBox/AtkLine") as Label
 		var predict_def_line := predict_panel.get_node_or_null("VBox/DefLine") as Label
+		var predict_triangle_line := predict_panel.get_node_or_null("VBox/TriangleLine") as Label
 		var predict_double_line := predict_panel.get_node_or_null("VBox/DoubleLine") as Label
+		var predict_trait_line := predict_panel.get_node_or_null("VBox/TraitLine") as Label
 		var predict_confirm_btn := predict_panel.get_node_or_null("VBox/Buttons/ConfirmBtn") as Button
 		var predict_cancel_btn := predict_panel.get_node_or_null("VBox/Buttons/CancelBtn") as Button
 		if predict_title != null:
@@ -264,8 +218,12 @@ func _apply_dark_ui_theme() -> void:
 			predict_atk_line.add_theme_color_override("font_color", BattleChromeTheme.TEXT_STATUS)
 		if predict_def_line != null:
 			predict_def_line.add_theme_color_override("font_color", BattleChromeTheme.TEXT_GUIDANCE)
+		if predict_triangle_line != null:
+			predict_triangle_line.add_theme_color_override("font_color", BattleChromeTheme.TEXT_SECONDARY)
 		if predict_double_line != null:
 			predict_double_line.add_theme_color_override("font_color", BattleChromeTheme.TEXT_ACCENT)
+		if predict_trait_line != null:
+			predict_trait_line.add_theme_color_override("font_color", BattleChromeTheme.TEXT_GOOD)
 		if predict_confirm_btn != null:
 			BattleChromeTheme.apply_button_palette(
 				predict_confirm_btn,
@@ -447,7 +405,9 @@ func _bind_ui() -> void:
 	if _predict_panel:
 		_atk_line    = _predict_panel.get_node_or_null("VBox/AtkLine")             as Label
 		_def_line    = _predict_panel.get_node_or_null("VBox/DefLine")             as Label
+		_triangle_line = _predict_panel.get_node_or_null("VBox/TriangleLine")      as Label
 		_double_line = _predict_panel.get_node_or_null("VBox/DoubleLine")          as Label
+		_trait_line  = _predict_panel.get_node_or_null("VBox/TraitLine")           as Label
 		_confirm_btn = _predict_panel.get_node_or_null("VBox/Buttons/ConfirmBtn")  as Button
 		_cancel_btn  = _predict_panel.get_node_or_null("VBox/Buttons/CancelBtn")   as Button
 		if _confirm_btn and not _confirm_btn.pressed.is_connected(_on_confirm_attack):
@@ -1932,7 +1892,9 @@ func _on_wait_pressed() -> void:
 	selected_unit.mark_acted()
 	_refresh_unit_color(selected_unit)
 	_deselect()
-	_check_all_acted()
+	_check_victory()
+	if not _battle_over:
+		_check_all_acted()
 
 func _on_cancel_move_pressed() -> void:
 	if not is_instance_valid(selected_unit):
@@ -1979,13 +1941,59 @@ func _open_predict(attacker: Unit, defender: Unit) -> void:
 			terrain_str = "  [%s 防%+d 回%+d]" % [t_name, def_val, bonus.get("avoid", 0)]
 		_def_line.text = "防：%s  伤害%d  命中%d%%%s" % [
 			defender.data.name, pred["def_damage"], pred["def_hit"], terrain_str]
+	if _triangle_line:
+		var triangle_feedback := _build_triangle_feedback(attacker.weapon_key, defender.weapon_key)
+		_triangle_line.text = str(triangle_feedback.get("text", "兵刃态势：均势"))
+		_triangle_line.add_theme_color_override("font_color",
+			triangle_feedback.get("color", BattleChromeTheme.TEXT_SECONDARY))
 	if _double_line:
 		_double_line.text = "⚡ 可追击！" if pred["atk_double"] else ""
+	if _trait_line:
+		var trait_lines: Array[String] = []
+		var atk_trait := str(pred.get("atk_trait_summary", ""))
+		var def_trait := str(pred.get("def_trait_summary", ""))
+		if atk_trait != "":
+			trait_lines.append("攻方特性：%s" % atk_trait)
+		if def_trait != "":
+			trait_lines.append("守方特性：%s" % def_trait)
+		_trait_line.text = "兵种特性：\n%s" % "\n".join(trait_lines) if not trait_lines.is_empty() else "兵种特性：本轮未触发"
 
 	var vs := get_viewport().get_visible_rect().size
-	_predict_panel.position = Vector2(vs.x * 0.5 - 140.0, vs.y * 0.5 - 90.0)
+	_predict_panel.position = Vector2(vs.x * 0.5 - 140.0, vs.y * 0.5 - 112.0)
 	_predict_panel.visible  = true
 	player_state = PlayerState.PREDICT
+
+func _weapon_type_name_from_key(weapon_key: String) -> String:
+	match BattleCalculator._weapon_type(weapon_key):
+		"sword":
+			return "剑"
+		"axe":
+			return "斧"
+		"lance":
+			return "枪"
+		"fist":
+			return "徒手"
+		_:
+			return "兵刃"
+
+func _build_triangle_feedback(attacker_weapon: String, defender_weapon: String) -> Dictionary:
+	var triangle := BattleCalculator.weapon_triangle_atk(attacker_weapon, defender_weapon)
+	var atk_name := _weapon_type_name_from_key(attacker_weapon)
+	var def_name := _weapon_type_name_from_key(defender_weapon)
+	if triangle > 0:
+		return {
+			"text": "兵刃态势：克制（%s压%s，伤害+1 / 命中+5）" % [atk_name, def_name],
+			"color": BattleChromeTheme.TEXT_GOOD,
+		}
+	if triangle < 0:
+		return {
+			"text": "兵刃态势：被克制（%s受%s压制，伤害-1 / 命中-5）" % [atk_name, def_name],
+			"color": BattleChromeTheme.TEXT_STATUS,
+		}
+	return {
+		"text": "兵刃态势：均势（无兵刃修正）",
+		"color": BattleChromeTheme.TEXT_SECONDARY,
+	}
 
 func _on_confirm_attack() -> void:
 	_hide_all_panels()

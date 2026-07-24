@@ -5,25 +5,29 @@
       "text": "君临城。\n篡夺者战争，终章。",
       "subtext": "",
       "duration": 3.5,
-      "scene_art": "throne_room"
+      "scene_art": "red_keep_breach",
+      "camera_style": "battle_sway"
     },
     {
       "text": "城门破了。\n不是被攻破的——\n是被打开的。",
       "subtext": "泰温·兰尼斯特的旗帜，\n金色之狮，\n出现在金色的城楼上。",
       "duration": 5.5,
-      "scene_art": "throne_room"
+      "scene_art": "red_keep_breach",
+      "camera_style": "battle_sway"
     },
     {
       "text": "城内，王室守卫仍在抵抗。\n混战在街道与宫殿的廊柱之间蔓延。",
       "subtext": "奈德勒住缰绳。\n「保护平民。向前。」",
       "duration": 5.0,
-      "scene_art": "throne_room"
+      "scene_art": "red_keep_breach",
+      "camera_style": "battle_sway"
     },
     {
       "text": "序章·四",
       "subtext": "铁王座",
       "duration": 4.0,
-      "scene_art": "throne_room"
+      "scene_art": "red_keep_breach",
+      "camera_style": "battle_sway"
     }
   ]
 }

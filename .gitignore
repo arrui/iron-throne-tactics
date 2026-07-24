@@ -19,7 +19,6 @@ tmp/
 # Godot
 game/.godot/
 game/**/*.import
-game/**/*.uid
 
 # Editor
 .vscode/

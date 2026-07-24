@@ -5,19 +5,22 @@
       "text": "霍兰从侧翼突入。",
       "subtext": "没有人知道他是怎么绕过去的——\n也许连他自己也不确定。",
       "duration": 4.5,
-      "scene_art": ""
+	  "scene_art": "tower_of_joy_gate",
+	  "camera_style": "battle_sway"
     },
     {
       "text": "晓光落地。\n亚瑟·戴恩爵士缓缓跪下，\n而后侧身倒去。",
       "subtext": "「……对不起，爵士。」\n霍兰·里德的声音很轻，\n轻到像是说给自己听的。",
       "duration": 6.0,
-      "scene_art": ""
+	  "scene_art": "tower_of_joy_fall",
+	  "camera_style": "fall_drift"
     },
     {
       "text": "奈德没有停步，\n径直走向塔门。",
       "subtext": "",
       "duration": 3.5,
-      "scene_art": ""
+	  "scene_art": "tower_of_joy_fall",
+	  "camera_style": "fall_drift"
     }
   ]
 }

@@ -1,0 +1,602 @@
+class_name ClassCatalog
+extends RefCounted
+
+const CLASS_TEMPLATES := {
+	"lord_blade": {
+		"display_name": "北境领主",
+		"move_type": "foot",
+		"armor_type": "medium",
+		"animation_family": "lord_sword",
+		"trait_key": "command_aura",
+		"trait_name": "中轴统军",
+		"trait_desc": "相邻支援加成预留位：当前版本先强化兵种辨识与部署提示。",
+	},
+	"scout_spear": {
+		"display_name": "游猎枪手",
+		"move_type": "foot",
+		"armor_type": "light",
+		"animation_family": "light_spear",
+		"trait_key": "harrier",
+		"trait_name": "游猎侦袭",
+		"trait_desc": "对轻甲单位命中 +10，适合点杀游兵与快剑。",
+	},
+	"line_spear": {
+		"display_name": "线列枪兵",
+		"move_type": "foot",
+		"armor_type": "medium",
+		"animation_family": "guard_spear",
+		"trait_key": "spear_wall",
+		"trait_name": "枪墙",
+		"trait_desc": "被先手攻击时承伤-2，适合桥头与窄口卡位。",
+	},
+	"lancer_elite": {
+		"display_name": "精英枪骑",
+		"move_type": "cavalry",
+		"armor_type": "medium",
+		"animation_family": "elite_lance_charge",
+		"trait_key": "charge",
+		"trait_name": "冲锋",
+		"trait_desc": "主动发起战斗时伤害 +2，适合侧翼穿插。",
+	},
+	"raider_axe": {
+		"display_name": "重击斧兵",
+		"move_type": "foot",
+		"armor_type": "medium",
+		"animation_family": "heavy_axe",
+		"trait_key": "armor_breaker",
+		"trait_name": "破甲",
+		"trait_desc": "对重甲单位伤害 +2，用于撕开盾墙。",
+	},
+	"captain_axe": {
+		"display_name": "战团统领",
+		"move_type": "foot",
+		"armor_type": "medium",
+		"animation_family": "captain_axe",
+		"trait_key": "battle_command",
+		"trait_name": "督战",
+		"trait_desc": "反击命中 +8，适合站中线打反手。",
+	},
+	"duelist_sword": {
+		"display_name": "王卫决斗者",
+		"move_type": "foot",
+		"armor_type": "medium",
+		"animation_family": "duelist_sword",
+		"trait_key": "first_strike",
+		"trait_name": "先手",
+		"trait_desc": "主动攻击时命中 +8、暴击 +6，适合切后排。",
+	},
+	"heavy_guard_sword": {
+		"display_name": "重卫统领",
+		"move_type": "guard",
+		"armor_type": "heavy",
+		"animation_family": "heavy_guard_sword",
+		"trait_key": "bulwark",
+		"trait_name": "坚垒",
+		"trait_desc": "被先手攻击时承伤 -3，是守门与护王核心。",
+	},
+	"legend_swordmaster": {
+		"display_name": "传奇剑圣",
+		"move_type": "foot",
+		"armor_type": "light",
+		"animation_family": "legend_sword",
+		"trait_key": "dawn_blade",
+		"trait_name": "黎明之刃",
+		"trait_desc": "主动攻击时暴击 +12，突出传奇决斗压迫感。",
+	},
+}
+
+const UNIT_DEFAULTS := {
+	"ned_stark.json": {
+		"class_id": "lord_blade",
+	},
+	"howland_reed.json": {
+		"class_id": "scout_spear",
+	},
+	"royal_soldier.json": {
+		"class_id": "line_spear",
+	},
+	"targaryen_soldier.json": {
+		"class_id": "line_spear",
+	},
+	"dorne_knight.json": {
+		"class_id": "lancer_elite",
+	},
+	"rhaegar_targaryen.json": {
+		"class_id": "lancer_elite",
+	},
+	"lannister_soldier.json": {
+		"class_id": "raider_axe",
+	},
+	"robert_baratheon.json": {
+		"class_id": "raider_axe",
+	},
+	"rebel_lord.json": {
+		"class_id": "captain_axe",
+	},
+	"barristan_selmy.json": {
+		"class_id": "duelist_sword",
+	},
+	"royal_guard_captain.json": {
+		"class_id": "heavy_guard_sword",
+	},
+	"arthur_dayne.json": {
+		"class_id": "legend_swordmaster",
+	},
+	"northern_knight.json": {
+		"class_id": "raider_axe",
+	},
+}
+
+const CH4_DEPLOY_OPTIONS := [
+	{
+		"file": "ned_stark.json",
+		"base_file": "ned_stark.json",
+		"mandatory": true,
+		"role": "职责：主将 / 中轴突破",
+		"portrait_path": "res://assets/units/ned_stark_portrait.png",
+	},
+	{
+		"file": "north_axebreaker",
+		"base_file": "northern_knight.json",
+		"mandatory": false,
+		"name": "破门斧卫",
+		"class": "重击斧兵",
+		"class_id": "raider_axe",
+		"move_type": "foot",
+		"armor_type": "medium",
+		"animation_family": "heavy_axe",
+		"role": "职责：前锋 / 黑水桥突破",
+		"portrait_path": "res://assets/units/north_axebreaker_portrait.png",
+		"sprite_file": "north_axebreaker_map.png",
+		"weapon_type": "axe",
+		"weapon_rank": "D",
+		"max_hp": 30,
+		"hp": 30,
+		"pow": 11,
+		"spd": 8,
+		"def": 9,
+		"move": 4,
+	},
+	{
+		"file": "north_spearwall",
+		"base_file": "northern_knight.json",
+		"mandatory": false,
+		"name": "白港枪卫",
+		"class": "线列枪兵",
+		"class_id": "line_spear",
+		"move_type": "guard",
+		"armor_type": "heavy",
+		"animation_family": "guard_spear",
+		"role": "职责：左翼 / 护桥牵制",
+		"portrait_path": "res://assets/units/north_spearwall_portrait.png",
+		"sprite_file": "north_spearwall_map.png",
+		"weapon_type": "lance",
+		"weapon_rank": "D",
+		"max_hp": 32,
+		"hp": 32,
+		"pow": 10,
+		"spd": 6,
+		"def": 11,
+		"move": 4,
+	},
+	{
+		"file": "north_swiftsword",
+		"base_file": "northern_knight.json",
+		"mandatory": false,
+		"name": "林地快剑",
+		"class": "王卫决斗者",
+		"class_id": "duelist_sword",
+		"move_type": "foot",
+		"armor_type": "light",
+		"animation_family": "duelist_sword",
+		"role": "职责：右翼 / 侧巷清剿",
+		"portrait_path": "res://assets/units/north_swiftsword_portrait.png",
+		"sprite_file": "north_swiftsword_map.png",
+		"weapon_type": "sword",
+		"weapon_rank": "D",
+		"max_hp": 26,
+		"hp": 26,
+		"pow": 10,
+		"spd": 11,
+		"def": 6,
+		"move": 5,
+	},
+	{
+		"file": "north_rider",
+		"base_file": "northern_knight.json",
+		"mandatory": false,
+		"name": "侧翼游骑",
+		"class": "精英枪骑",
+		"class_id": "lancer_elite",
+		"move_type": "cavalry",
+		"armor_type": "medium",
+		"animation_family": "elite_lance_charge",
+		"role": "职责：前压 / 城门穿插",
+		"portrait_path": "res://assets/units/north_rider_portrait.png",
+		"sprite_file": "north_rider_map.png",
+		"weapon_type": "lance",
+		"weapon_rank": "D",
+		"max_hp": 28,
+		"hp": 28,
+		"pow": 9,
+		"spd": 9,
+		"def": 7,
+		"move": 6,
+	},
+	{
+		"file": "north_veteran",
+		"base_file": "northern_knight.json",
+		"mandatory": false,
+		"name": "持旗老兵",
+		"class": "战团统领",
+		"class_id": "captain_axe",
+		"move_type": "foot",
+		"armor_type": "medium",
+		"animation_family": "captain_axe",
+		"role": "职责：预备 / 红堡补位",
+		"portrait_path": "res://assets/units/north_veteran_portrait.png",
+		"sprite_file": "north_veteran_map.png",
+		"weapon_type": "axe",
+		"weapon_rank": "C",
+		"max_hp": 34,
+		"hp": 34,
+		"pow": 11,
+		"spd": 8,
+		"def": 9,
+		"move": 5,
+	},
+]
+
+const CH4_DEPLOY_INDEX := {
+	"north_axebreaker": 1,
+	"north_spearwall": 2,
+	"north_swiftsword": 3,
+	"north_rider": 4,
+	"north_veteran": 5,
+}
+
+const CHAPTER_VARIANT_PROFILES := {
+	"ch2_storm_vanguard": {
+		"file": "ch2_storm_vanguard",
+		"base_file": "rebel_lord.json",
+		"name": "风暴先锋",
+		"class": "重击斧兵",
+		"class_id": "raider_axe",
+		"move_type": "foot",
+		"armor_type": "medium",
+		"animation_family": "heavy_axe",
+		"portrait_path": "res://assets/units/ch2_storm_vanguard_portrait.png",
+		"sprite_file": "ch2_storm_vanguard_map.png",
+		"weapon_type": "axe",
+		"weapon_rank": "D",
+		"max_hp": 32,
+		"hp": 32,
+		"pow": 10,
+		"spd": 7,
+		"def": 7,
+		"move": 5,
+	},
+	"ch2_vale_veteran": {
+		"file": "ch2_vale_veteran",
+		"base_file": "rebel_lord.json",
+		"name": "谷地宿卫",
+		"class": "线列枪兵",
+		"class_id": "line_spear",
+		"move_type": "guard",
+		"armor_type": "heavy",
+		"animation_family": "guard_spear",
+		"portrait_path": "res://assets/units/ch2_vale_veteran_portrait.png",
+		"sprite_file": "ch2_vale_veteran_map.png",
+		"weapon_type": "lance",
+		"weapon_rank": "D",
+		"max_hp": 31,
+		"hp": 31,
+		"pow": 8,
+		"spd": 6,
+		"def": 9,
+		"move": 4,
+	},
+	"ch2_river_captain": {
+		"file": "ch2_river_captain",
+		"base_file": "rebel_lord.json",
+		"name": "河间队长",
+		"class": "北境领主",
+		"class_id": "lord_blade",
+		"move_type": "foot",
+		"armor_type": "medium",
+		"animation_family": "lord_sword",
+		"portrait_path": "res://assets/units/ch2_river_captain_portrait.png",
+		"sprite_file": "ch2_river_captain_map.png",
+		"weapon_type": "sword",
+		"weapon_rank": "D",
+		"max_hp": 30,
+		"hp": 30,
+		"pow": 9,
+		"spd": 8,
+		"def": 7,
+		"move": 5,
+	},
+	"ch2_dragon_guard": {
+		"file": "ch2_dragon_guard",
+		"base_file": "targaryen_soldier.json",
+		"name": "龙焰卫",
+		"class": "线列枪兵",
+		"class_id": "line_spear",
+		"move_type": "guard",
+		"armor_type": "medium",
+		"animation_family": "guard_spear",
+		"portrait_path": "res://assets/units/ch2_dragon_guard_portrait.png",
+		"sprite_file": "ch2_dragon_guard_map.png",
+		"weapon_type": "lance",
+		"weapon_rank": "D",
+		"max_hp": 18,
+		"hp": 18,
+		"pow": 7,
+		"spd": 5,
+		"def": 5,
+		"move": 4,
+	},
+	"ch2_ruby_lancer": {
+		"file": "ch2_ruby_lancer",
+		"base_file": "targaryen_soldier.json",
+		"name": "赤宝枪卫",
+		"class": "游猎枪手",
+		"class_id": "scout_spear",
+		"move_type": "foot",
+		"armor_type": "light",
+		"animation_family": "light_spear",
+		"portrait_path": "res://assets/units/ch2_ruby_lancer_portrait.png",
+		"sprite_file": "ch2_ruby_lancer_map.png",
+		"weapon_type": "lance",
+		"weapon_rank": "D",
+		"max_hp": 16,
+		"hp": 16,
+		"pow": 8,
+		"spd": 7,
+		"def": 4,
+		"move": 5,
+	},
+	"ch2_crown_phalanx": {
+		"file": "ch2_crown_phalanx",
+		"base_file": "targaryen_soldier.json",
+		"name": "王冠方阵",
+		"class": "重卫枪兵",
+		"class_id": "line_spear",
+		"move_type": "guard",
+		"armor_type": "heavy",
+		"animation_family": "guard_spear",
+		"portrait_path": "res://assets/units/ch2_crown_phalanx_portrait.png",
+		"sprite_file": "ch2_crown_phalanx_map.png",
+		"weapon_type": "lance",
+		"weapon_rank": "D",
+		"max_hp": 20,
+		"hp": 20,
+		"pow": 7,
+		"spd": 4,
+		"def": 7,
+		"move": 4,
+	},
+	"ch3_frost_axe": {
+		"file": "ch3_frost_axe",
+		"base_file": "northern_knight.json",
+		"name": "霜斧侍从",
+		"class": "重击斧兵",
+		"class_id": "raider_axe",
+		"move_type": "foot",
+		"armor_type": "medium",
+		"animation_family": "heavy_axe",
+		"portrait_path": "res://assets/units/ch3_frost_axe_portrait.png",
+		"sprite_file": "ch3_frost_axe_map.png",
+		"weapon_type": "axe",
+		"weapon_rank": "D",
+		"max_hp": 30,
+		"hp": 30,
+		"pow": 11,
+		"spd": 8,
+		"def": 9,
+		"move": 4,
+	},
+	"ch3_white_blade": {
+		"file": "ch3_white_blade",
+		"base_file": "northern_knight.json",
+		"name": "白刃近卫",
+		"class": "王卫决斗者",
+		"class_id": "duelist_sword",
+		"move_type": "foot",
+		"armor_type": "light",
+		"animation_family": "duelist_sword",
+		"portrait_path": "res://assets/units/ch3_white_blade_portrait.png",
+		"sprite_file": "ch3_white_blade_map.png",
+		"weapon_type": "sword",
+		"weapon_rank": "D",
+		"max_hp": 27,
+		"hp": 27,
+		"pow": 10,
+		"spd": 10,
+		"def": 7,
+		"move": 5,
+	},
+	"ch3_greymark_veteran": {
+		"file": "ch3_greymark_veteran",
+		"base_file": "northern_knight.json",
+		"name": "灰痕老兵",
+		"class": "战团统领",
+		"class_id": "captain_axe",
+		"move_type": "foot",
+		"armor_type": "medium",
+		"animation_family": "captain_axe",
+		"portrait_path": "res://assets/units/ch3_greymark_veteran_portrait.png",
+		"sprite_file": "ch3_greymark_veteran_map.png",
+		"weapon_type": "axe",
+		"weapon_rank": "C",
+		"max_hp": 32,
+		"hp": 32,
+		"pow": 11,
+		"spd": 8,
+		"def": 9,
+		"move": 4,
+	},
+	"ch3_red_sand_lancer": {
+		"file": "ch3_red_sand_lancer",
+		"base_file": "dorne_knight.json",
+		"name": "赤沙枪骑",
+		"class": "精英枪骑",
+		"class_id": "lancer_elite",
+		"move_type": "cavalry",
+		"armor_type": "medium",
+		"animation_family": "elite_lance_charge",
+		"portrait_path": "res://assets/units/ch3_red_sand_lancer_portrait.png",
+		"sprite_file": "ch3_red_sand_lancer_map.png",
+		"weapon_type": "lance",
+		"weapon_rank": "D",
+		"max_hp": 22,
+		"hp": 22,
+		"pow": 8,
+		"spd": 8,
+		"def": 6,
+		"move": 6,
+	},
+	"ch3_sunfire_lancer": {
+		"file": "ch3_sunfire_lancer",
+		"base_file": "dorne_knight.json",
+		"name": "耀阳枪骑",
+		"class": "精英枪骑",
+		"class_id": "lancer_elite",
+		"move_type": "cavalry",
+		"armor_type": "medium",
+		"animation_family": "elite_lance_charge",
+		"portrait_path": "res://assets/units/ch3_sunfire_lancer_portrait.png",
+		"sprite_file": "ch3_sunfire_lancer_map.png",
+		"weapon_type": "lance",
+		"weapon_rank": "D",
+		"max_hp": 21,
+		"hp": 21,
+		"pow": 9,
+		"spd": 8,
+		"def": 5,
+		"move": 6,
+	},
+	"ch3_dune_guard": {
+		"file": "ch3_dune_guard",
+		"base_file": "dorne_knight.json",
+		"name": "沙丘护卫",
+		"class": "线列枪兵",
+		"class_id": "line_spear",
+		"move_type": "guard",
+		"armor_type": "heavy",
+		"animation_family": "guard_spear",
+		"portrait_path": "res://assets/units/ch3_dune_guard_portrait.png",
+		"sprite_file": "ch3_dune_guard_map.png",
+		"weapon_type": "lance",
+		"weapon_rank": "D",
+		"max_hp": 24,
+		"hp": 24,
+		"pow": 8,
+		"spd": 6,
+		"def": 7,
+		"move": 5,
+	},
+	"ch3_goldcloak_captain": {
+		"file": "ch3_goldcloak_captain",
+		"base_file": "royal_soldier.json",
+		"name": "金袍队长",
+		"class": "重卫统领",
+		"class_id": "heavy_guard_sword",
+		"move_type": "guard",
+		"armor_type": "heavy",
+		"animation_family": "heavy_guard_sword",
+		"portrait_path": "res://assets/units/ch3_goldcloak_captain_portrait.png",
+		"sprite_file": "ch3_goldcloak_captain_map.png",
+		"weapon_type": "sword",
+		"weapon_rank": "D",
+		"max_hp": 22,
+		"hp": 22,
+		"pow": 9,
+		"spd": 6,
+		"def": 7,
+		"move": 4,
+	},
+	"ch3_gate_goldcloak": {
+		"file": "ch3_gate_goldcloak",
+		"base_file": "royal_soldier.json",
+		"name": "城门金袍",
+		"class": "线列枪兵",
+		"class_id": "line_spear",
+		"move_type": "guard",
+		"armor_type": "medium",
+		"animation_family": "guard_spear",
+		"portrait_path": "res://assets/units/ch3_gate_goldcloak_portrait.png",
+		"sprite_file": "ch3_gate_goldcloak_map.png",
+		"weapon_type": "lance",
+		"weapon_rank": "D",
+		"max_hp": 20,
+		"hp": 20,
+		"pow": 8,
+		"spd": 6,
+		"def": 6,
+		"move": 4,
+	},
+}
+
+static func get_class_template(class_id: String) -> Dictionary:
+	if CLASS_TEMPLATES.has(class_id):
+		return (CLASS_TEMPLATES[class_id] as Dictionary).duplicate(true)
+	return {}
+
+static func _entry_by_file(file_id: String) -> Dictionary:
+	if CHAPTER_VARIANT_PROFILES.has(file_id):
+		return (CHAPTER_VARIANT_PROFILES[file_id] as Dictionary).duplicate(true)
+	for entry: Dictionary in CH4_DEPLOY_OPTIONS:
+		if str(entry.get("file", "")) == file_id:
+			return entry.duplicate(true)
+	return {}
+
+static func get_spawn_profile(unit_id: String) -> Dictionary:
+	var entry := _entry_by_file(unit_id)
+	if not entry.is_empty():
+		return entry
+	return {
+		"file": unit_id,
+		"base_file": unit_id,
+		"overrides": {},
+	}
+
+static func get_ch4_deploy_options() -> Array:
+	var result: Array = []
+	for entry: Dictionary in CH4_DEPLOY_OPTIONS:
+		result.append(entry.duplicate(true))
+	return result
+
+static func get_ch4_deploy_entry(file_id: String) -> Dictionary:
+	return _entry_by_file(file_id)
+
+static func get_unit_defaults(source_id: String, d: Dictionary = {}) -> Dictionary:
+	var merged: Dictionary = {}
+	if UNIT_DEFAULTS.has(source_id):
+		merged.merge((UNIT_DEFAULTS[source_id] as Dictionary).duplicate(true), true)
+	var entry := _entry_by_file(source_id)
+	if not entry.is_empty():
+		for key: String in ["class_id", "move_type", "armor_type", "animation_family"]:
+			if entry.has(key):
+				merged[key] = entry[key]
+	if merged.is_empty():
+		var weapon_type := str(d.get("weapon_type", "sword"))
+		var move := int(d.get("move", 5))
+		var unit_class := str(d.get("class", ""))
+		if "剑圣" in unit_class:
+			merged["class_id"] = "legend_swordmaster"
+		elif "王卫" in unit_class or "近卫" in unit_class:
+			merged["class_id"] = "duelist_sword" if weapon_type == "sword" else "line_spear"
+		elif weapon_type == "lance" and move >= 6:
+			merged["class_id"] = "lancer_elite"
+		elif weapon_type == "lance":
+			merged["class_id"] = "line_spear"
+		elif weapon_type == "axe" and int(d.get("pow", 0)) >= 11:
+			merged["class_id"] = "raider_axe"
+		elif weapon_type == "axe":
+			merged["class_id"] = "captain_axe"
+		else:
+			merged["class_id"] = "lord_blade"
+	var template := get_class_template(str(merged.get("class_id", "")))
+	merged.merge(template, false)
+	return merged

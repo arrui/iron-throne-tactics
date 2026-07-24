@@ -4,6 +4,8 @@
 class_name TutorialManager
 extends CanvasLayer
 
+const CJKFontHelper := preload("res://scripts/ui/CJKFontHelper.gd")
+
 signal all_steps_done
 signal _step_done(index: int)
 
@@ -128,14 +130,7 @@ func _input(event: InputEvent) -> void:
 # ════════════════════════════════════════════════════════
 
 func _get_cjk_font() -> Font:
-	const BUNDLED := "res://assets/fonts/ArialUnicode.ttf"
-	if ResourceLoader.exists(BUNDLED):
-		var f := load(BUNDLED) as Font
-		if f != null: return f
-	var sf := SystemFont.new()
-	sf.font_names = PackedStringArray(["Heiti SC", "Arial Unicode MS", "Microsoft YaHei",
-		"PingFang SC", "STHeitiSC-Medium", "Noto Sans CJK SC"])
-	return sf
+	return CJKFontHelper.get_font()
 
 func _apply_font(lbl: Label, size: int) -> void:
 	var f := _get_cjk_font()

@@ -1,8 +1,11 @@
 # UnitData.gd — 单位数据结构（支持武器耐久、道具栏、Boss底板、主角标记）
 class_name UnitData
 
+const ClassCatalog := preload("res://scripts/data/ClassCatalog.gd")
+
 var name: String
 var unit_class: String
+var class_id: String
 var level: int
 var hp: int
 var max_hp: int
@@ -15,6 +18,13 @@ var con: int    # 体魄
 var move: int   # 移动力
 var weapon_type: String
 var weapon_rank: String
+var move_type: String = "foot"
+var armor_type: String = "medium"
+var animation_family: String = ""
+var trait_key: String = ""
+var trait_name: String = ""
+var trait_desc: String = ""
+var source_id: String = ""
 
 # ── 武器耐久（-1 = 无限）────────────────────────────────
 var weapon_uses:     int = -1
@@ -64,10 +74,13 @@ func use_item(idx: int) -> Dictionary:
 	return item
 
 # ── 工厂方法 ──────────────────────────────────────────────
-static func from_dict(d: Dictionary) -> UnitData:
+static func from_dict(d: Dictionary, source_id: String = "") -> UnitData:
 	var data := UnitData.new()
+	var resolved_source := source_id if source_id != "" else str(d.get("source_id", ""))
+	var defaults := ClassCatalog.get_unit_defaults(resolved_source, d)
 	data.name        = d.get("name",        "未知")
 	data.unit_class  = d.get("class",       "步兵")
+	data.class_id    = d.get("class_id",    str(defaults.get("class_id", "lord_blade")))
 	data.level       = d.get("level",       1)
 	data.max_hp      = d.get("max_hp",      20)
 	data.hp          = d.get("hp",          data.max_hp)
@@ -80,6 +93,16 @@ static func from_dict(d: Dictionary) -> UnitData:
 	data.move        = d.get("move",        5)
 	data.weapon_type = d.get("weapon_type", "sword")
 	data.weapon_rank = d.get("weapon_rank", "E")
+	data.move_type = d.get("move_type", str(defaults.get("move_type", "foot")))
+	data.armor_type = d.get("armor_type", str(defaults.get("armor_type", "medium")))
+	data.animation_family = d.get(
+		"animation_family",
+		str(defaults.get("animation_family", data.class_id))
+	)
+	data.trait_key = d.get("trait_key", str(defaults.get("trait_key", "")))
+	data.trait_name = d.get("trait_name", str(defaults.get("trait_name", "")))
+	data.trait_desc = d.get("trait_desc", str(defaults.get("trait_desc", "")))
+	data.source_id = resolved_source
 	data.weapon_uses     = d.get("weapon_uses",     -1)
 	data.weapon_max_uses = d.get("weapon_max_uses", -1)
 	data.is_protagonist  = d.get("is_protagonist",  false)
