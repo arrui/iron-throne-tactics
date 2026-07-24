@@ -6376,6 +6376,23 @@ func _test_fog_system() -> void:
 	fog.reset()
 	_assert(not fog.is_tile_visible(Vector2i(5,5)), "reset 清空可见格")
 
+	# ── 集成断言：序章 fog_enabled=false 时危险区不过滤敌军（回归保护）──
+	# 用 TestBootstrap 实例化真实序章战斗，验证 fog 关闭时 _filter_enemies_by_fog 原样返回。
+	var old_chapter := GameState.current_chapter
+	GameState.current_chapter = 1   # 序章·一《风暴地》
+	var prologue_battle := TestBootstrapClass.new()
+	root.add_child(prologue_battle)
+	await process_frame
+	_assert(not prologue_battle.fog_enabled, "序章默认 fog_enabled=false")
+	var all_enemies := prologue_battle.enemy_units.duplicate()
+	_assert(all_enemies.size() > 0, "序章战斗已生成敌军用于迷雾回归断言")
+	var filtered: Array = prologue_battle._filter_enemies_by_fog(all_enemies)
+	_assert_eq(filtered.size(), all_enemies.size(),
+		"序章 fog 关闭时敌军不被迷雾过滤")
+	prologue_battle.queue_free()
+	await process_frame
+	GameState.current_chapter = old_chapter
+
 func _test_test_script_reliability() -> void:
 	var test_script := _read_repo_root_text("scripts/test.sh")
 	_assert(test_script.contains("godot --headless --path . --import"),
