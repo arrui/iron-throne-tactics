@@ -116,6 +116,13 @@ class TestA1C1Bootstrap extends A1C1BootstrapClass:
 	func _advance_to(next_chapter: int) -> void:
 		recorded_advances.append(next_chapter)
 
+	# 记录 HUD 状态文案（仿 TestBattleBootstrap.recorded_statuses），用于断言开场目标摘要
+	var recorded_statuses: Array[String] = []
+
+	func _set_status(msg: String) -> void:
+		recorded_statuses.append(msg)
+		super._set_status(msg)
+
 var _pass_count: int = 0
 var _fail_count: int = 0
 var _current_suite: String = ""
@@ -743,6 +750,8 @@ func _test_dialogue_json() -> void:
 	var files := [
 		"res://data/dialogues/prologue_1_pre.json",
 		"res://data/dialogues/prologue_1_post.json",
+		"res://data/dialogues/act1_ch1_pre.json",
+		"res://data/dialogues/act1_ch1_post.json",
 	]
 
 	for path: String in files:
@@ -780,11 +789,13 @@ func _test_dialogue_json() -> void:
 				all_valid = false; break
 		_assert(all_valid, "每行包含speaker和text：" + path.get_file())
 
-		# 最后一行应为 -1 或无next（表示结束）
+		# 最后一行应标记对话结束：next=-1（序章约定）或 next 越界（act1 约定，
+		# DialogueSystem._show_line 对越界索引调用 _finish，二者语义等价）
 		if lines.size() > 0:
 			var last: Dictionary = lines[-1] as Dictionary
 			var next_val: int = last.get("next", -1)
-			_assert(next_val == -1, "最后一行next=-1（对话结束）：" + path.get_file())
+			_assert(next_val == -1 or next_val >= lines.size(),
+				"最后一行next标记对话结束（-1 或越界）：" + path.get_file())
 
 # ══════════════════════════════════════════════════════════
 # 测试套件 8.5：Ch1 叙事基线一致性
@@ -837,6 +848,8 @@ func _test_cutscene_json() -> void:
 		"res://data/cutscenes/prologue_opening.json",
 		"res://data/cutscenes/prologue_mad_king.json",
 		"res://data/cutscenes/prologue_uprising.json",
+		"res://data/cutscenes/act1_ch1_opening.json",
+		"res://data/cutscenes/act1_ch1_jaime_capture.json",
 	]
 
 	for path: String in files:
@@ -5138,6 +5151,23 @@ func _test_map_visual_language_spec() -> void:
 		ch4.queue_free()
 	await process_frame
 
+	# A1C1 呓语森林：纳入地图视觉规范回归（出生点可通行 + 到胜利格可达）
+	var a1c1 := TestA1C1Bootstrap.new()
+	root.add_child(a1c1)
+	a1c1.fog_enabled = true
+	await process_frame
+	a1c1._setup_act1_ch1()
+	await process_frame
+	_assert(a1c1._robb_unit != null, "A1C1 语义回归：罗柏存在")
+	if a1c1._robb_unit != null:
+		_assert(a1c1.is_passable(a1c1._robb_unit.grid_pos),
+			"A1C1 语义回归：出生点可通行")
+		_assert(_path_exists_on_passable_grid(a1c1, a1c1._robb_unit.grid_pos, a1c1.victory_pos),
+			"A1C1 语义回归：罗柏到胜利格存在可达路径")
+	if is_instance_valid(a1c1):
+		a1c1.queue_free()
+	await process_frame
+
 func _test_portrait_assets() -> void:
 	var portrait_map: Dictionary = BootstrapClass.UNIT_PORTRAIT_MAP
 	_assert(portrait_map.size() >= 13, "主要角色与兵种立绘映射已扩展")
@@ -6495,6 +6525,17 @@ func _test_act1_ch1_whispering_wood() -> void:
 	_assert(_path_exists_on_passable_grid(battle,
 			battle._robb_unit.grid_pos, battle._jaime_unit.grid_pos),
 		"A1C1 罗柏到詹姆存在可达路径")
+	# 迷雾（夜袭）：开局詹姆在北方营地（row 2），罗柏在南（row 13），
+	# 罗柏视野 move(6)+2+1(主角)=9，切比雪夫距离 max(|11-10|,|2-13|)=11 > 9 → 不可见
+	_assert(not battle._fog.is_enemy_visible(battle._jaime_unit.grid_pos),
+		"A1C1 开局詹姆隐于迷雾（夜袭：罗柏视野未及北方营地）")
+	_assert(not battle._filter_enemies_by_fog(battle.enemy_units).has(battle._jaime_unit),
+		"A1C1 开局迷雾过滤掉詹姆（不可被锁定）")
+	# 开场 HUD 文案：目标摘要由统一章节简报常量提供（对照序章 OBJECTIVE_SUMMARY 回归）
+	_assert(battle.recorded_statuses.has(Act1ChapterBriefsClass.A1C1_OBJECTIVE_SUMMARY),
+		"A1C1 开场 HUD 状态使用统一目标摘要")
+	_assert(battle.recorded_statuses.any(func(msg: String) -> bool: return msg.begins_with("目标：")),
+		"A1C1 开场 HUD 状态采用目标前缀")
 	# 生擒流程：詹姆 HP 触底 → 触发捕获 → 不再重复
 	battle._jaime_unit.data.hp = 1
 	battle._check_victory()

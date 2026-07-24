@@ -74,6 +74,22 @@ CI：`.github/workflows/godot-tests.yml` 已接入，push / PR 触发跑 `test.s
 
 进一步精灵美化需在游戏中肉眼检视后改 `generate.py` 重生成（流程已打通），不宜盲改。
 
+## 第一幕第一章《呓语森林之战》（已实现）
+
+A1C1 已可玩并通过章节流程/地图规范回归。本节是序章纵切片之外的第一幕首关落地。
+
+- **迷雾系统（方案 C）**：`scripts/systems/FogSystem.gd`（纯逻辑，地形全知、敌军显隐、单向）；`BattleMap` 持有 `_fog`，`fog_enabled=true` 启用，`_recalc_fog` 以 `player_units` 的 `move+2`（主角 +1）为视野切比雪夫半径，`_filter_enemies_by_fog` 过滤锁定目标。序章 `fog_enabled=false`，零行为变化。
+- **幕结构**：`GameState.set_act(act, chapter)` / `global_chapter_id`；`SaveSystem.save_chapter_complete(act, chapter)`；`Opening_A1C1` 经统一 Opening 分发进入 `BattleMap_A1C1.tscn`。
+- **生擒胜利**：詹姆 `min_hp=1`，`_check_victory` 在 HP 触底时 `_capture_triggered=true` → 捕获过场 → 战后对话 → `_advance_to(2)`。守卫防重复触发。
+- **资产**：单位 json（robb_stark/brynden_tully/northern_knight/jaime_lannister/golden_lion_knight/lannister_soldier）+ 地图精灵已生成；立绘为占位。简报/对话/过场 JSON 齐全（`act1_ch1_pre/post`、`act1_ch1_opening/jaime_capture`），已纳入 dialogue/cutscene JSON 回归。
+- **回归覆盖**：`_test_act1_ch1_whispering_wood`（地图尺寸/迷雾/单位/生擒流程/夜袭视野不可见/开场 HUD 目标摘要）、`_test_map_visual_language_spec`（A1C1 出生点可通行 + 到胜利格可达）。
+
+### 暂缓（A1C1 后续）
+
+- 视觉迷雾叠加层（当前仅逻辑迷雾，无暗色/未探索贴图遮罩）
+- `act1.ch2` 场景（`_advance_to(2)` 目前保存进度后回主菜单 Opening）
+- 罗柏/黑鱼正式立绘（当前占位）
+
 ### 中优先级
 
 - ChapterTransition / GameOver / SupportPopup 的 tscn 仍有少量硬编码颜色与脚本覆盖重复（双源），视觉无影响，属洁癖项，低优先
