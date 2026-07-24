@@ -5164,6 +5164,8 @@ func _test_map_visual_language_spec() -> void:
 			"A1C1 语义回归：出生点可通行")
 		_assert(_path_exists_on_passable_grid(a1c1, a1c1._robb_unit.grid_pos, a1c1.victory_pos),
 			"A1C1 语义回归：罗柏到胜利格存在可达路径")
+		_assert(a1c1.is_passable(a1c1.victory_pos),
+			"A1C1 规范回归：胜利格可通行")
 	if is_instance_valid(a1c1):
 		a1c1.queue_free()
 	await process_frame
@@ -6531,6 +6533,15 @@ func _test_act1_ch1_whispering_wood() -> void:
 		"A1C1 开局詹姆隐于迷雾（夜袭：罗柏视野未及北方营地）")
 	_assert(not battle._filter_enemies_by_fog(battle.enemy_units).has(battle._jaime_unit),
 		"A1C1 开局迷雾过滤掉詹姆（不可被锁定）")
+	# 动态迷雾重算：罗柏推进至 (11,6)（森林=1，可通行），切比雪夫距离
+	# max(|11-11|,|6-2|)=4 ≤ 视野9 → 詹姆进入视野可被锁定。
+	# _recalc_fog 直接读取 u.grid_pos（见 BattleMap._recalc_fog），故直接赋值即可生效。
+	battle._robb_unit.grid_pos = Vector2i(11, 6)
+	battle._recalc_fog()
+	_assert(battle._fog.is_enemy_visible(battle._jaime_unit.grid_pos),
+		"A1C1 罗柏推进后詹姆进入视野可见")
+	_assert(battle._filter_enemies_by_fog(battle.enemy_units).has(battle._jaime_unit),
+		"A1C1 罗柏推进后詹姆可被迷雾过滤锁定")
 	# 开场 HUD 文案：目标摘要由统一章节简报常量提供（对照序章 OBJECTIVE_SUMMARY 回归）
 	_assert(battle.recorded_statuses.has(Act1ChapterBriefsClass.A1C1_OBJECTIVE_SUMMARY),
 		"A1C1 开场 HUD 状态使用统一目标摘要")
