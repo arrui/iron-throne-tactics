@@ -144,7 +144,7 @@ func _trigger_tower_sequence() -> void:
 func _advance_chapter() -> void:
 	const SAVE_SYS_PATH := "res://scripts/systems/SaveSystem.gd"
 	if ResourceLoader.exists(SAVE_SYS_PATH):
-		load(SAVE_SYS_PATH).save_chapter_complete(3)
+		load(SAVE_SYS_PATH).save_chapter_complete(0, 3)
 	const CH4_SCENE := "res://scenes/chapter/Ch4_Opening.tscn"
 	if ResourceLoader.exists(CH4_SCENE):
 		get_tree().change_scene_to_file(CH4_SCENE)

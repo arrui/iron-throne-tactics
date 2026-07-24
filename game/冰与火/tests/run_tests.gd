@@ -125,6 +125,7 @@ func _run_all_tests() -> void:
 		["章节事件流程回归", _test_chapter_event_flow],
 		["Ch1 / 存档 / 部署行为回归", _test_ch1_save_and_deploy_flow],
 		["关键浮层真实调用链", _test_overlay_runtime_flow],
+		["章节幕结构(act)与存档兼容", _test_chapter_act_structure],
 		["测试脚本可靠性", _test_test_script_reliability],
 	]
 	for suite: Array in suites:
@@ -1748,13 +1749,13 @@ func _test_save_system() -> void:
 	ss.delete_save()
 	ss._write_json({"chapter": 2, "completed_chapters": "legacy"})
 	_assert(ss.get_completed_chapters().is_empty(), "损坏的已完成章节字段安全降级为空列表")
-	ss.save_chapter_complete(2)
+	ss.save_chapter_complete(0, 2)
 	_assert_eq(ss.load_current_chapter(), 3, "损坏存档恢复后仍可继续保存章节进度")
 	_assert(ss.get_completed_chapters().has(2), "损坏存档恢复后记录新完成章节")
 	ss.delete_save()
 
 	# 保存第1章完成
-	ss.save_chapter_complete(1)
+	ss.save_chapter_complete(0, 1)
 	_assert(ss.has_save(),                 "保存后has_save=true")
 	_assert_eq(ss.load_current_chapter(), 2, "完成Ch1后下次从Ch2开始")
 
@@ -1763,7 +1764,7 @@ func _test_save_system() -> void:
 	_assert(not completed.has(2),          "章节2未完成")
 
 	# 保存第2章完成
-	ss.save_chapter_complete(2)
+	ss.save_chapter_complete(0, 2)
 	_assert_eq(ss.load_current_chapter(), 3, "完成Ch2后下次从Ch3开始")
 
 	var completed2: Array = ss.get_completed_chapters()
@@ -1771,7 +1772,7 @@ func _test_save_system() -> void:
 	_assert(completed2.has(2),             "已完成列表包含2")
 
 	# 重复保存同章节不重复计
-	ss.save_chapter_complete(1)
+	ss.save_chapter_complete(0, 1)
 	var completed3: Array = ss.get_completed_chapters()
 	var count := 0
 	for v in completed3:
@@ -1780,9 +1781,9 @@ func _test_save_system() -> void:
 	_assert_eq(ss.load_current_chapter(), 3, "重复完成较早章节不会让存档进度倒退")
 
 	# 完成终章后进度保留在序章完成态，回顾旧章也不得覆盖。
-	ss.save_chapter_complete(4)
+	ss.save_chapter_complete(0, 4)
 	_assert_eq(ss.load_current_chapter(), 5, "完成Ch4后存档进入序章完成态")
-	ss.save_chapter_complete(2)
+	ss.save_chapter_complete(0, 2)
 	_assert_eq(ss.load_current_chapter(), 5, "序章完成后回顾旧章不会让存档进度倒退")
 	var completed4: Array = ss.get_completed_chapters()
 	_assert(completed4.has(4),             "已完成章节列表包含终章")
@@ -2161,7 +2162,7 @@ func _test_opening_main_menu() -> void:
 			continued.queue_free()
 		await process_frame
 
-	SaveSystem.save_chapter_complete(4)
+	SaveSystem.save_chapter_complete(0, 4)
 	var completed_opening := scene.instantiate()
 	root.add_child(completed_opening)
 	await process_frame
@@ -5738,7 +5739,7 @@ func _test_ch1_save_and_deploy_flow() -> void:
 		opening_fresh.queue_free()
 	await process_frame
 
-	SaveSystem.save_chapter_complete(2) # 当前章节应为3
+	SaveSystem.save_chapter_complete(0, 2) # 当前章节应为3
 	var opening_saved := TestOpeningClass.new()
 	root.add_child(opening_saved)
 	await process_frame
@@ -5984,7 +5985,7 @@ func _test_ch1_save_and_deploy_flow() -> void:
 	_assert_eq(GameState.deploy_selection[0], "ned_stark.json", "部署列表首位固定为奈德")
 	_assert(deploy.recorded_scene_changes.has("res://scenes/battle/BattleMap.tscn"),
 		"部署确认后进入战斗场景")
-	SaveSystem.save_chapter_complete(1)
+	SaveSystem.save_chapter_complete(0, 1)
 	_assert(SaveSystem.has_save(), "为测试新游戏按钮先创建存档")
 	deploy.test_new_game()
 	_assert(not SaveSystem.has_save(), "部署界面新游戏按钮会清除存档")
@@ -6314,6 +6315,36 @@ func _test_overlay_runtime_flow() -> void:
 		"DialogueSystem 完成后继续提示保持完整透明度")
 	dialogue.queue_free()
 	await process_frame
+
+func _test_chapter_act_structure() -> void:
+	# global_chapter_id 映射
+	GameState.set_prologue(3)
+	_assert_eq(GameState.act, 0, "set_prologue 设置 act=0")
+	_assert_eq(GameState.chapter, 3, "set_prologue 设置 chapter")
+	_assert_eq(GameState.current_chapter, 3, "序章兼容别名 current_chapter 正常")
+	_assert_eq(GameState.global_chapter_id(), "prologue.3", "序章 global_chapter_id")
+	GameState.set_act(1, 1)
+	_assert_eq(GameState.act, 1, "set_act 设置 act")
+	_assert_eq(GameState.chapter, 1, "set_act 设置 chapter")
+	_assert_eq(GameState.global_chapter_id(), "act1.1", "正篇 global_chapter_id")
+	# 存档兼容：旧 {chapter:N} 能读
+	SaveSystem.delete_save()
+	SaveSystem._write_json_for_test({"chapter": 3, "completed_chapters": [1, 2]})
+	var prog := SaveSystem.load_progress()
+	_assert_eq(prog["act"], 0, "旧存档兼容读出 act=0")
+	_assert_eq(prog["chapter"], 3, "旧存档兼容读出 chapter=3")
+	var completed := SaveSystem.get_completed_ids()
+	_assert(completed.has("prologue.1") and completed.has("prologue.2"),
+		"旧 completed_chapters 映射为 prologue.N")
+	# 新存档写读
+	SaveSystem.delete_save()
+	SaveSystem.save_chapter_complete(0, 2)
+	prog = SaveSystem.load_progress()
+	_assert_eq(prog["act"], 0, "新存档写读 act")
+	_assert_eq(int(prog["chapter"]), 3, "save_chapter_complete 推进到下一章")
+	# 序章别名不破坏现有读取
+	_assert_eq(SaveSystem.load_current_chapter(), 3, "load_current_chapter 兼容保留")
+	GameState.set_prologue(1)
 
 func _test_test_script_reliability() -> void:
 	var test_script := _read_repo_root_text("scripts/test.sh")
