@@ -5168,6 +5168,9 @@ func _test_map_sprite_assets_and_animation() -> void:
 	# 詹姆与史林特暂未拥有单位 JSON，但预制同规格资源供后续章节直接接入。
 	sprite_names.append("jaime_lannister_map.png")
 	sprite_names.append("janos_slynt_map.png")
+	sprite_names.append("robb_stark_map.png")
+	sprite_names.append("brynden_tully_map.png")
+	sprite_names.append("golden_lion_knight_map.png")
 	for sprite_name: String in sprite_names:
 		var path := "res://assets/units/" + sprite_name
 		_assert(FileAccess.file_exists(path), "地图精灵资源存在：%s" % sprite_name)

@@ -1,0 +1,34 @@
+{
+  "name": "罗柏",
+  "class": "剑骑士",
+  "level": 1,
+  "hp": 32,
+  "max_hp": 32,
+  "pow": 12,
+  "spd": 11,
+  "skl": 12,
+  "def": 8,
+  "lck": 8,
+  "con": 9,
+  "move": 6,
+  "weapon_type": "sword",
+  "weapon_rank": "C",
+  "weapon_uses": 35,
+  "weapon_max_uses": 35,
+  "weapon_stats": {
+    "might": 8,
+    "hit": 85,
+    "weight": 6
+  },
+  "is_protagonist": true,
+  "is_boss": false,
+  "min_hp": 0,
+  "items": [
+    {
+      "name": "急救药",
+      "type": "heal",
+      "heal_amount": 10,
+      "uses": 2
+    }
+  ]
+}
